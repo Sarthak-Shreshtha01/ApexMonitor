@@ -7,6 +7,9 @@ import { config } from '@config';
 import http from 'http';
 import { RawLogWorker } from '@workers/raw-log.worker';
 import { AggregationWorker } from '@workers/aggregation.worker';
+import { WebSocketService } from '@modules/websocket';
+import { AnomalyWorker } from '@workers/anomaly.worker';
+import { AlertWorker } from '@workers/alert.worker';
 
 async function bootstrap() {
   try {
@@ -25,15 +28,22 @@ async function bootstrap() {
     const rawLogWorker = new RawLogWorker();
     // await rawLogWorker.start();
     const aggregationWorker = new AggregationWorker();
+    const anomalyWorker = new AnomalyWorker();
+    const alertWorker = new AlertWorker();
     
     await Promise.all([
       rawLogWorker.start(),
-      aggregationWorker.start()
+      aggregationWorker.start(),
+      anomalyWorker.start(),
     ]);
+    alertWorker.start()
 
     // 2. Start HTTP Server
     const app = createApp();
     const server = http.createServer(app);
+
+    // Initialize WebSocket Server (Pass the HTTP server instance)
+    const wsService = new WebSocketService(server);
 
     server.listen(config.PORT, () => {
       console.log(`🚀 PulseAPI running on http://localhost:${config.PORT}`);
