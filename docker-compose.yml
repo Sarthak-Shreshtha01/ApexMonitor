@@ -1,0 +1,65 @@
+version: '3.9'
+
+services:
+  # ==========================================
+  # MongoDB - Raw Log Store
+  # ==========================================
+  mongo:
+    image: mongo:7
+    container_name: pulseapi-mongo
+    ports: 
+      - '27018:27017'
+    volumes: 
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # ==========================================
+  # PostgreSQL - Aggregated Metrics & Config
+  # ==========================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: pulseapi-postgres
+    environment:
+      POSTGRES_DB: pulseapi
+      POSTGRES_USER: pulse
+      POSTGRES_PASSWORD: pulse_dev_password
+    ports: 
+      - '9999:5432'
+    volumes: 
+      - pg_data:/var/lib/postgresql/data
+      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
+    restart: unless-stopped
+
+  # ==========================================
+  # Redis - Caching, Rate Limiting & Pub/Sub
+  # ==========================================
+  redis:
+    image: redis:7-alpine
+    container_name: pulseapi-redis
+    ports: 
+      - '6379:6379'
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+
+  # ==========================================
+  # RabbitMQ - Async Message Queue
+  # ==========================================
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: pulseapi-rabbitmq
+    ports:
+      - '5672:5672'    # AMQP protocol port for workers
+      - '15672:15672'  # Management UI (http://localhost:15672)
+    environment:
+      RABBITMQ_DEFAULT_USER: pulse
+      RABBITMQ_DEFAULT_PASS: pulse_dev
+    restart: unless-stopped
+
+# ==========================================
+# Persistent Volumes
+# ==========================================
+volumes:
+  mongo_data:
+    driver: local
+  pg_data:
+    driver: local
