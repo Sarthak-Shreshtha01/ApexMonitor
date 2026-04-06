@@ -1,26 +1,45 @@
-@import "tailwindcss";
+@config '../tailwind.config.ts';
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-primary: #c0c1ff;
+  --color-on-primary: #1000a9;
+  --color-primary-container: #8083ff;
+  --color-secondary: #5de6ff;
+  --color-tertiary: #ffb783;
+  --color-background: #101419;
+  --color-surface: #101419;
+  --color-on-surface: #e0e2ea;
+  --color-surface-variant: #31353b;
+  --color-on-surface-variant: #c7c4d7;
+  --color-surface-container-lowest: #0a0e13;
+  --color-surface-container-low: #181c21;
+  --color-surface-container: #1c2025;
+  --color-surface-container-high: #262a30;
+  --color-surface-container-highest: #31353b;
+  --color-outline: #464554;
+  --color-outline-variant: #464554;
+  --color-error: #ffb4ab;
+  --color-danger-text: #ffb4ab;
+  --color-warning-text: #ffb783;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .grid-blueprint {
+    background-image: linear-gradient(to right, rgba(70, 69, 84, 0.05) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(70, 69, 84, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  .glass-panel {
+    background: rgba(49, 53, 59, 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
