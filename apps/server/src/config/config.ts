@@ -31,6 +31,9 @@ const ConfigSchema = z.object({
   
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  API_BASE_URL: z.string().url().default('http://localhost:3000'),
+
+  // PhonePe Configs (with defaults for sandbox testing)
 });
 
 const parsed = ConfigSchema.safeParse(process.env);

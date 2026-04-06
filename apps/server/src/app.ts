@@ -6,6 +6,8 @@ import { config } from '@config';
 import { ingestRouter } from '@modules/ingest';
 import { metricsRouter } from '@modules/metrics/metrics.router';
 import { authRouter } from '@modules/auth/auth.router';
+import { userRouter } from '@modules/users/user.router';
+import { billingRouter } from '@modules/billing/billing.router';
 
 export function createApp(): Application {
   const app = express();
@@ -24,6 +26,8 @@ export function createApp(): Application {
   v1.use('/auth', authRouter);
   v1.use('/ingest', ingestRouter);
   v1.use('/metrics', metricsRouter);
+  v1.use('/users', userRouter);
+  v1.use('/billing', billingRouter);
   
   app.use('/api/v1', v1);
 
