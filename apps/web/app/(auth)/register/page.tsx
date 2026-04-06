@@ -18,26 +18,34 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const getErrorMessage = (value: unknown, fallback: string) => {
+    if (typeof value === 'object' && value !== null && 'response' in value) {
+      const response = value as { response?: { data?: { message?: string } } };
+      return response.response?.data?.message || fallback;
+    }
+
+    return fallback;
+  };
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      const { accessToken } = await authService.register({ name:fullName, email, password: password });
+      const { accessToken } = await authService.register({ name: fullName, email, password });
       setAccessToken(accessToken);
-      document.cookie = "auth_present=true; path=/; max-age=86400; SameSite=Lax";
       router.push('/overview');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to create account.');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Failed to create account.'));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <main className="flex-grow flex items-center justify-center p-6 relative z-10 w-full">
-      <div className="w-full max-w-[440px]">
+    <main className="grow flex items-center justify-center p-6 relative z-10 w-full">
+      <div className="w-full max-w-110 grow">
         
         <div className="flex flex-col items-center mb-10">
           <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/30 drop-shadow-[0_0_8px_rgba(192,193,255,0.4)] mb-6">
@@ -105,7 +113,7 @@ export default function RegisterPage() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-primary-container to-primary hover:from-primary hover:to-primary-fixed text-on-primary font-bold py-3.5 rounded-lg transition-all duration-200 transform active:scale-[0.98] shadow-[0_0_20px_-5px_rgba(192,193,255,0.4)] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+                className="w-full bg-linear-to-r from-primary-container to-primary hover:from-primary hover:to-primary-fixed text-on-primary font-bold py-3.5 rounded-lg transition-all duration-200 transform active:scale-[0.98] shadow-[0_0_20px_-5px_rgba(192,193,255,0.4)] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
               >
                 <span>{isLoading ? 'Creating...' : 'Create Account'}</span>
                 <ArrowRight className="w-5 h-5" />

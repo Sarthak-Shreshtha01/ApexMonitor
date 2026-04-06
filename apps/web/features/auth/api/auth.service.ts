@@ -1,21 +1,24 @@
-import { RegisterRequest } from './../../../../server/src/modules/users/dto/user.dto';
 import { apiClient } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
 
-// DTOs based on SRS
 export interface LoginDto {
   email: string;
-  passwordHash: string; // Assuming hashing is handled before or at this layer
+  password: string;
 }
 
 export interface RegisterDto {
-  fullName: string;
+  name: string;
   email: string;
-  passwordHash: string;
+  password: string;
 }
 
 export interface AuthResponse {
   accessToken: string;
+  user?: {
+    id: string;
+    email: string;
+    name: string;
+  };
   // Refresh token is in httpOnly cookie
 }
 
@@ -24,8 +27,7 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>(ENDPOINTS.auth.login, data);
     return response.data;
   },
-  register: async (data: RegisterRequest): Promise<AuthResponse> => {
-    // Assuming a register endpoint exists in the expanded REST API
+  register: async (data: RegisterDto): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>(ENDPOINTS.auth.register, data);
     return response.data;
   },

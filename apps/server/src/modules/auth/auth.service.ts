@@ -3,9 +3,11 @@ import { config } from '@config';
 import { getRedis } from '@infrastructure/redis';
 import { AuthRepository } from './auth.repository';
 import crypto from 'crypto';
+import { UserService } from '@modules/users/user.service';
 
 export class AuthService {
   private repo = new AuthRepository();
+  private userService = new UserService();
 
   async validateApiKey(rawKey: string): Promise<string> {
     const redis = getRedis();
@@ -46,6 +48,14 @@ export class AuthService {
     await this.repo.insertKey({ projectId, keyPrefix: prefix, keyHash: hash, label });
     
     return key;  // Shown to user exactly once
+  }
+
+  async login(email: string, password: string) {
+    return this.userService.login({ email, password });
+  }
+
+  async refreshSession(refreshToken: string) {
+    return this.userService.refreshSession(refreshToken);
   }
 
 }

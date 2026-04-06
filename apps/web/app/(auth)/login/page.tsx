@@ -16,24 +16,29 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const getErrorMessage = (value: unknown, fallback: string) => {
+    if (typeof value === 'object' && value !== null && 'response' in value) {
+      const response = value as { response?: { data?: { message?: string } } };
+      return response.response?.data?.message || fallback;
+    }
+
+    return fallback;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
     try {
-      // In a real implementation, hash the password if mandated by SRS, otherwise send raw over TLS
-      const { accessToken } = await authService.login({ email, passwordHash: password });
+      const { accessToken } = await authService.login({ email, password });
       
       // Store in memory (Zustand)
       setAccessToken(accessToken);
       
-      // Set the lightweight middleware flag cookie
-      document.cookie = "auth_present=true; path=/; max-age=86400; SameSite=Lax";
-      
       router.push('/overview');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password.');
+    } catch (error: unknown) {
+      setError(getErrorMessage(error, 'Invalid email or password.'));
     } finally {
       setIsLoading(false);
     }
@@ -106,7 +111,7 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full py-4 bg-gradient-to-r from-primary-container to-primary text-on-primary font-bold rounded-lg shadow-[0_0_30px_-5px_rgba(192,193,255,0.15)] hover:shadow-[0_0_40px_-5px_rgba(192,193,255,0.25)] hover:scale-[0.98] transition-all duration-200 text-sm uppercase tracking-widest disabled:opacity-70 disabled:hover:scale-100"
+            className="w-full py-4 bg-primary-container hover:bg-primary text-on-primary font-bold rounded-lg shadow-[0_0_30px_-5px_rgba(192,193,255,0.15)] hover:shadow-[0_0_40px_-5px_rgba(192,193,255,0.25)] hover:scale-[0.98] transition-all duration-200 text-sm uppercase tracking-widest disabled:opacity-70 disabled:hover:scale-100"
           >
             {isLoading ? 'Authenticating...' : 'Sign In'}
           </button>
@@ -114,7 +119,7 @@ export default function LoginPage() {
 
         <footer className="mt-8 text-center">
           <p className="text-sm text-outline-variant">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/register" className="text-primary font-semibold hover:underline decoration-primary/30 underline-offset-4">
               Sign up
             </Link>

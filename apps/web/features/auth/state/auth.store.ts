@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface AuthState {
   accessToken: string | null;
@@ -6,11 +7,19 @@ interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: null,
-  setAccessToken: (token) => set({ accessToken: token }),
-  logout: () => {
-    // Clear memory token. The API service will handle deleting the httpOnly cookie.
-    set({ accessToken: null });
-  },
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      accessToken: null,
+      setAccessToken: (token) => set({ accessToken: token }),
+      logout: () => {
+        set({ accessToken: null });
+      },
+    }),
+    {
+      name: 'persistroot',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({ accessToken: state.accessToken }),
+    }
+  )
+);
