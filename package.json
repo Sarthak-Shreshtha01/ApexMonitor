@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "dev:server": "npm run dev --workspace=apps/server",
-    "dev:dashboard": "npm run dev --workspace=apps/dashboard"
+    "dev:web": "npm run dev --workspace=apps/web"
   },
   "keywords": [],
   "author": "",
