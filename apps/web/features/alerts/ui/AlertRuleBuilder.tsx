@@ -11,35 +11,35 @@ export function AlertRuleBuilder() {
       <div className="bg-surface-container-low rounded-2xl p-8 border border-outline-variant/10 space-y-8 relative">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Metric</label>
+            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-secondary">Metric</label>
             <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3 flex items-center justify-between cursor-pointer">
               <span className="text-sm font-medium">Error Rate</span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
+              <ChevronDown className="w-4 h-4 text-secondary" />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Operator</label>
+            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-secondary">Operator</label>
             <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3 flex items-center justify-between cursor-pointer">
               <span className="text-sm font-medium">Greater than {`>`}</span>
-              <ChevronDown className="w-4 h-4 text-slate-500" />
+              <ChevronDown className="w-4 h-4 text-secondary" />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Threshold</label>
+            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-secondary">Threshold</label>
             <div className="bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3 flex items-center gap-2">
               <input 
                 type="text" 
                 defaultValue="5"
                 className="bg-transparent border-none p-0 text-sm font-bold text-secondary focus:ring-0 w-full outline-none" 
               />
-              <span className="text-slate-500 text-xs">%</span>
+              <span className="text-secondary text-xs">%</span>
             </div>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-500">Preview Logic</label>
+            <label className="text-[10px] font-bold uppercase tracking-[0.1em] text-secondary">Preview Logic</label>
             <span className="text-[10px] text-secondary font-mono tracking-tighter">Live Preview 09:42 UTC</span>
           </div>
           <div className="h-32 bg-surface-container-lowest rounded-xl border border-outline-variant/10 p-4 flex items-end gap-1 overflow-hidden relative">
@@ -65,13 +65,13 @@ export function AlertRuleBuilder() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center">
-                <MessageSquare className="w-4 h-4 text-slate-400" />
+                <MessageSquare className="w-4 h-4 text-secondary" />
               </div>
               <span className="text-xs font-medium">#ops-alerts</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center">
-                <Mail className="w-4 h-4 text-slate-400" />
+                <Mail className="w-4 h-4 text-secondary" />
               </div>
               <span className="text-xs font-medium">admin@pulseapi.io</span>
             </div>

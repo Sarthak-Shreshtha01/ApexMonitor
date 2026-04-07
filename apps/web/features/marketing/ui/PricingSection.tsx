@@ -38,7 +38,7 @@ export function PricingSection() {
         </div>
 
         {/* Pro Tier */}
-        <div className="p-8 rounded-2xl bg-surface-container-lowest border-2 border-primary/50 flex flex-col relative shadow-[0_0_30px_-5px_rgba(192,193,255,0.15)]">
+        <div className="p-8 rounded-2xl bg-surface-container-lowest border-2 border-primary/50 flex flex-col relative shadow-[0_0_30px_-5px_rgba(255,69,0,0.15)]">
           <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-on-primary text-[10px] font-black uppercase tracking-widest">
             Most Popular
           </div>

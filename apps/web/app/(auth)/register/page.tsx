@@ -55,7 +55,7 @@ export default function RegisterPage() {
       <div className="w-full max-w-110 grow">
         
         <div className="flex flex-col items-center mb-10">
-          <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/30 drop-shadow-[0_0_8px_rgba(192,193,255,0.4)] mb-6">
+          <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/30 drop-shadow-[0_0_8px_rgba(255,69,0,0.4)] mb-6">
             <Activity className="text-primary w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-on-surface mb-2">PulseAPI</h1>
@@ -120,7 +120,7 @@ export default function RegisterPage() {
               <button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full bg-linear-to-r from-primary-container to-primary hover:from-primary hover:to-primary-fixed text-on-primary font-bold py-3.5 rounded-lg transition-all duration-200 transform active:scale-[0.98] shadow-[0_0_20px_-5px_rgba(192,193,255,0.4)] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
+                className="w-full bg-linear-to-r from-primary-container to-primary hover:from-primary hover:to-primary-fixed text-on-primary font-bold py-3.5 rounded-lg transition-all duration-200 transform active:scale-[0.98] shadow-[0_0_20px_-5px_rgba(255,69,0,0.4)] flex items-center justify-center gap-2 disabled:opacity-70 disabled:active:scale-100"
               >
                 <span>{isLoading ? 'Creating...' : 'Create Account'}</span>
                 <ArrowRight className="w-5 h-5" />

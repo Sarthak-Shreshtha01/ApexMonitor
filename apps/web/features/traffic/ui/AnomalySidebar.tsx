@@ -15,7 +15,7 @@ export function AnomalySidebar() {
         </div>
         <div>
           <h3 className="text-sm font-bold text-on-surface">Anomaly Stream</h3>
-          <p className="text-[10px] text-slate-400 uppercase tracking-widest">Real-time AI Detection</p>
+          <p className="text-[10px] text-secondary uppercase tracking-widest">Real-time AI Detection</p>
         </div>
       </div>
 
@@ -30,13 +30,13 @@ export function AnomalySidebar() {
               <div className="flex items-start gap-3">
                 <Icon className={`${anomaly.color} w-5 h-5 mt-0.5`} />
                 <div>
-                  <p className="text-xs font-bold text-slate-200">{anomaly.title}</p>
-                  <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">{anomaly.desc}</p>
+                  <p className="text-xs font-bold text-primary-foreground">{anomaly.title}</p>
+                  <p className="text-[10px] text-secondary mt-1 leading-relaxed">{anomaly.desc}</p>
                   <div className="flex items-center gap-2 mt-3">
                     <span className={`px-2 py-0.5 rounded-full ${anomaly.bg} ${anomaly.color} text-[9px] font-bold uppercase`}>
                       {anomaly.severity}
                     </span>
-                    <span className="text-[9px] text-slate-600 uppercase">{anomaly.time}</span>
+                    <span className="text-[9px] text-muted uppercase">{anomaly.time}</span>
                   </div>
                 </div>
               </div>

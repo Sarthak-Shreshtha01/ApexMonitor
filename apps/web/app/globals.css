@@ -2,44 +2,81 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #c0c1ff;
-  --color-on-primary: #1000a9;
-  --color-primary-container: #8083ff;
-  --color-secondary: #5de6ff;
-  --color-tertiary: #ffb783;
-  --color-background: #101419;
-  --color-surface: #101419;
-  --color-on-surface: #e0e2ea;
-  --color-surface-variant: #31353b;
-  --color-on-surface-variant: #c7c4d7;
-  --color-surface-container-lowest: #0a0e13;
-  --color-surface-container-low: #181c21;
-  --color-surface-container: #1c2025;
-  --color-surface-container-high: #262a30;
-  --color-surface-container-highest: #31353b;
-  --color-outline: #464554;
-  --color-outline-variant: #464554;
-  --color-error: #ffb4ab;
-  --color-danger-text: #ffb4ab;
-  --color-warning-text: #ffb783;
+  --color-app: #000000;
+  --color-background: #000000;
+  --color-surface: #050505;
+  --color-surface-variant: #0a0a0a;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low: #050505;
+  --color-surface-container: #0a0a0a;
+  --color-surface-container-high: #141414;
+  --color-surface-container-highest: #1a1a1a;
+
+  --color-primary: #ff4500;
+  --color-primary-foreground: #ffffff;
+  --color-on-primary: #000000;
+  --color-primary-container: #cc3600;
+  --color-on-primary-container: #ffffff;
+
+  --color-secondary: #a3a3a3;
+  --color-tertiary: #f59e0b;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-muted: #737373;
+
+  --color-on-surface: #ffffff;
+  --color-on-surface-variant: #a3a3a3;
+  --color-outline: #333333;
+  --color-outline-variant: #262626;
+  --color-danger-text: #ef4444;
+  --color-warning-text: #f59e0b;
+}
+
+@layer base {
+  html,
+  body {
+    background: #000000;
+    color: #ffffff;
+  }
+
+  * {
+    border-color: #262626;
+  }
+
+  ::selection {
+    background: rgba(255, 69, 0, 0.2);
+    color: #ffffff;
+  }
 }
 
 @layer utilities {
   .grid-blueprint {
-    background-image: linear-gradient(to right, rgba(70, 69, 84, 0.05) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(70, 69, 84, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
+    background-image: linear-gradient(to right, rgba(38, 38, 38, 0.25) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(38, 38, 38, 0.25) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
-  .glass-panel {
-    background: rgba(49, 53, 59, 0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-  }
+
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #050505;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #262626;
+    border-radius: 2px;
   }
 }

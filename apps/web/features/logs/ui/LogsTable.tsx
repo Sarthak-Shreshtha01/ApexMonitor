@@ -25,7 +25,7 @@ export function LogsTable() {
       case 'error':
         return <span className="bg-error/10 text-error px-2 py-1 rounded text-[10px] font-bold border border-error/20">{status}</span>;
       case 'warning':
-        return <span className="bg-surface-container-highest text-slate-400 px-2 py-1 rounded text-[10px] font-bold border border-outline-variant/20">{status}</span>;
+        return <span className="bg-surface-container-highest text-secondary px-2 py-1 rounded text-[10px] font-bold border border-outline-variant/20">{status}</span>;
       default:
         return <span>{status}</span>;
     }
@@ -38,7 +38,7 @@ export function LogsTable() {
           <thead>
             <tr className="bg-surface-container-low border-b border-outline-variant/10">
               {['Status', 'Method', 'Path', 'Duration', 'Timestamp', 'Action'].map((header) => (
-                <th key={header} className={`px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-500 ${header === 'Action' ? 'text-right' : ''}`}>
+                <th key={header} className={`px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-secondary ${header === 'Action' ? 'text-right' : ''}`}>
                   {header}
                 </th>
               ))}
@@ -53,15 +53,15 @@ export function LogsTable() {
                   className="group hover:bg-surface-container-high/50 cursor-pointer transition-colors"
                 >
                   <td className="px-6 py-4">{getStatusBadge(log.type, log.status)}</td>
-                  <td className="px-6 py-4 font-mono text-xs text-indigo-300">{log.method}</td>
+                  <td className="px-6 py-4 font-mono text-xs text-primary">{log.method}</td>
                   <td className="px-6 py-4 font-mono text-xs text-on-surface truncate max-w-xs">{log.path}</td>
-                  <td className="px-6 py-4 text-xs font-medium text-slate-400">{log.duration}</td>
-                  <td className="px-6 py-4 text-xs text-slate-500">{log.time}</td>
+                  <td className="px-6 py-4 text-xs font-medium text-secondary">{log.duration}</td>
+                  <td className="px-6 py-4 text-xs text-secondary">{log.time}</td>
                   <td className="px-6 py-4 text-right">
                     {expandedRow === log.id ? (
                       <ChevronUp className="w-5 h-5 inline-block text-primary" />
                     ) : (
-                      <ChevronDown className="w-5 h-5 inline-block text-slate-600 group-hover:text-primary transition-colors" />
+                      <ChevronDown className="w-5 h-5 inline-block text-muted group-hover:text-primary transition-colors" />
                     )}
                   </td>
                 </tr>
@@ -74,15 +74,15 @@ export function LogsTable() {
                         <div className="flex justify-between items-start mb-4 border-b border-outline-variant/10 pb-4">
                           <div className="flex gap-8">
                             <div className="flex flex-col gap-1">
-                              <span className="text-[10px] uppercase text-slate-600 font-bold">Request ID</span>
-                              <span className="text-indigo-200">{log.id}</span>
+                              <span className="text-[10px] uppercase text-muted font-bold">Request ID</span>
+                              <span className="text-primary">{log.id}</span>
                             </div>
                             <div className="flex flex-col gap-1">
-                              <span className="text-[10px] uppercase text-slate-600 font-bold">IP Address</span>
-                              <span className="text-slate-400">{log.ip}</span>
+                              <span className="text-[10px] uppercase text-muted font-bold">IP Address</span>
+                              <span className="text-secondary">{log.ip}</span>
                             </div>
                           </div>
-                          <button className="text-indigo-400 hover:text-indigo-200 flex items-center gap-1.5 transition-colors focus:outline-none">
+                          <button className="text-primary hover:text-primary flex items-center gap-1.5 transition-colors focus:outline-none">
                             <Copy className="w-4 h-4" /> Copy JSON
                           </button>
                         </div>
@@ -132,7 +132,7 @@ export function LogsTable() {
 
       {/* Pagination */}
       <div className="bg-surface-container-low px-6 py-4 flex items-center justify-between border-t border-outline-variant/10">
-        <p className="text-xs text-slate-500">Showing 50 of 4,209 logs</p>
+        <p className="text-xs text-secondary">Showing 50 of 4,209 logs</p>
         <div className="flex gap-2">
           <button className="px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/20 text-xs font-bold hover:bg-surface-container-high transition-colors focus:outline-none focus:ring-1 focus:ring-primary">Previous</button>
           <button className="px-3 py-1.5 rounded-lg bg-surface-container-lowest border border-outline-variant/20 text-xs font-bold hover:bg-surface-container-high transition-colors focus:outline-none focus:ring-1 focus:ring-primary">Next</button>

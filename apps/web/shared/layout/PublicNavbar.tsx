@@ -37,7 +37,7 @@ export function PublicNavbar() {
         </Link>
         <Link
           href="/register"
-          className="bg-primary hover:shadow-[0_0_20px_-5px_rgba(192,193,255,0.5)] text-on-primary text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-lg transition-all duration-300"
+          className="bg-primary hover:shadow-[0_0_20px_-5px_rgba(255,69,0,0.5)] text-on-primary text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-lg transition-all duration-300"
         >
           Start Free
         </Link>

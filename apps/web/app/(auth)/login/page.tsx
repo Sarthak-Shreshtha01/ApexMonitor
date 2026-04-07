@@ -53,7 +53,7 @@ export default function LoginPage() {
   return (
     <main className="relative z-10 w-full max-w-md px-6">
       <div className="flex flex-col items-center mb-10">
-        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_15px_2px_rgba(192,193,255,0.3)] mb-6 group transition-all duration-300">
+        <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_15px_2px_rgba(255,69,0,0.3)] mb-6 group transition-all duration-300">
           <Activity className="text-on-primary w-6 h-6 font-bold" />
         </div>
         <h1 className="text-2xl font-extrabold tracking-tighter text-on-surface mb-2">PulseAPI</h1>
@@ -117,7 +117,7 @@ export default function LoginPage() {
           <button 
             type="submit" 
             disabled={isLoading}
-            className="w-full py-4 bg-primary-container hover:bg-primary text-on-primary font-bold rounded-lg shadow-[0_0_30px_-5px_rgba(192,193,255,0.15)] hover:shadow-[0_0_40px_-5px_rgba(192,193,255,0.25)] hover:scale-[0.98] transition-all duration-200 text-sm uppercase tracking-widest disabled:opacity-70 disabled:hover:scale-100"
+            className="w-full py-4 bg-primary-container hover:bg-primary text-on-primary font-bold rounded-lg shadow-[0_0_30px_-5px_rgba(255,69,0,0.15)] hover:shadow-[0_0_40px_-5px_rgba(255,69,0,0.25)] hover:scale-[0.98] transition-all duration-200 text-sm uppercase tracking-widest disabled:opacity-70 disabled:hover:scale-100"
           >
             {isLoading ? 'Authenticating...' : 'Sign In'}
           </button>

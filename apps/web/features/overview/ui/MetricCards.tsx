@@ -8,8 +8,8 @@ const METRICS_DATA = [
     delta: '+12.4%',
     trend: 'up',
     color: 'text-secondary',
-    stroke: '#5de6ff',
-    dropShadow: 'drop-shadow-[0_0_4px_rgba(93,230,255,0.5)]',
+    stroke: '#ff4500',
+    dropShadow: 'drop-shadow-[0_0_4px_rgba(255,69,0,0.5)]',
     path: 'M0 15 Q 10 5, 20 12 T 40 8 T 60 15 T 80 5 T 100 10'
   },
   {
@@ -19,7 +19,7 @@ const METRICS_DATA = [
     delta: '-0.02%',
     trend: 'down',
     color: 'text-tertiary',
-    stroke: '#ffb783',
+    stroke: '#f59e0b',
     dropShadow: 'drop-shadow-[0_0_4px_rgba(255,183,131,0.5)]',
     path: 'M0 5 Q 15 8, 30 5 T 60 7 T 100 5'
   },
@@ -29,9 +29,9 @@ const METRICS_DATA = [
     value: '142ms',
     delta: 'Stable',
     trend: 'neutral',
-    color: 'text-slate-500',
-    stroke: '#c0c1ff',
-    dropShadow: 'drop-shadow-[0_0_4px_rgba(192,193,255,0.5)]',
+    color: 'text-secondary',
+    stroke: '#ff4500',
+    dropShadow: 'drop-shadow-[0_0_4px_rgba(255,69,0,0.5)]',
     path: 'M0 10 L 20 12 L 40 9 L 60 11 L 80 10 L 100 10'
   },
   {
@@ -41,8 +41,8 @@ const METRICS_DATA = [
     delta: '+0.01',
     trend: 'up',
     color: 'text-secondary',
-    stroke: '#5de6ff',
-    dropShadow: 'drop-shadow-[0_0_4px_rgba(93,230,255,0.5)]',
+    stroke: '#ff4500',
+    dropShadow: 'drop-shadow-[0_0_4px_rgba(255,69,0,0.5)]',
     path: 'M0 15 L 10 12 L 25 15 L 50 8 L 75 12 L 100 5'
   }
 ];
@@ -53,7 +53,7 @@ export function MetricCards() {
       {METRICS_DATA.map((metric) => (
         <div key={metric.id} className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)]">
           <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{metric.title}</span>
+            <span className="text-[10px] uppercase tracking-widest text-secondary font-bold">{metric.title}</span>
             <span className={`${metric.color} text-xs font-bold flex items-center gap-1`}>
               {metric.delta} 
               {metric.trend === 'up' && <TrendingUp className="w-3.5 h-3.5" />}

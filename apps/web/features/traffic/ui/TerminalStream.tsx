@@ -16,13 +16,13 @@ export function TerminalStream() {
     <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 flex flex-col h-[500px]">
       <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Terminal className="text-indigo-400 w-4 h-4" />
-          <span className="text-xs font-bold uppercase tracking-widest text-slate-300">Traffic Terminal</span>
+          <Terminal className="text-primary w-4 h-4" />
+          <span className="text-xs font-bold uppercase tracking-widest text-primary-foreground">Traffic Terminal</span>
         </div>
         <div className="flex gap-4">
-          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-secondary"></div><span className="text-[10px] text-slate-500">2xx</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-tertiary"></div><span className="text-[10px] text-slate-500">4xx</span></div>
-          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-error"></div><span className="text-[10px] text-slate-500">5xx</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-secondary"></div><span className="text-[10px] text-secondary">2xx</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-tertiary"></div><span className="text-[10px] text-secondary">4xx</span></div>
+          <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-error"></div><span className="text-[10px] text-secondary">5xx</span></div>
         </div>
       </div>
       
@@ -33,11 +33,11 @@ export function TerminalStream() {
           
           return (
             <div key={i} className={`flex items-center gap-4 py-1.5 px-2 border-b border-white/[0.03] rounded ${bgClass}`}>
-              <span className="text-slate-600 w-20">{log.time}</span>
+              <span className="text-muted w-20">{log.time}</span>
               <span className={`${statusColor} font-bold w-24 shrink-0`}>{log.status}</span>
-              <span className="text-indigo-300 flex-1 truncate">{log.method} {log.endpoint}</span>
-              <span className="text-slate-500 w-12 text-right">{log.latency}</span>
-              <span className="text-slate-600 w-32 ml-auto text-right truncate">{log.ua}</span>
+              <span className="text-primary flex-1 truncate">{log.method} {log.endpoint}</span>
+              <span className="text-secondary w-12 text-right">{log.latency}</span>
+              <span className="text-muted w-32 ml-auto text-right truncate">{log.ua}</span>
             </div>
           );
         })}

@@ -7,11 +7,11 @@ export function LogsHeader() {
       </div>
       <div className="flex gap-4">
         <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Error Rate</p>
+          <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Error Rate</p>
           <p className="text-2xl font-semibold text-error tracking-tight">0.24%</p>
         </div>
         <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
-          <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Avg Latency</p>
+          <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Avg Latency</p>
           <p className="text-2xl font-semibold text-secondary tracking-tight">42ms</p>
         </div>
       </div>

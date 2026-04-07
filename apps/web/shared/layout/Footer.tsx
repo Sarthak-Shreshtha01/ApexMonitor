@@ -39,7 +39,7 @@ export function Footer() {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-12">
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-slate-200 mb-6">Product</h5>
+            <h5 className="text-xs font-bold uppercase tracking-widest text-primary-foreground mb-6">Product</h5>
             <ul className="space-y-4">
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">Platform</Link></li>
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">Pricing</Link></li>
@@ -48,7 +48,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-slate-200 mb-6">Resources</h5>
+            <h5 className="text-xs font-bold uppercase tracking-widest text-primary-foreground mb-6">Resources</h5>
             <ul className="space-y-4">
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">Documentation</Link></li>
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">API Reference</Link></li>
@@ -57,7 +57,7 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h5 className="text-xs font-bold uppercase tracking-widest text-slate-200 mb-6">Company</h5>
+            <h5 className="text-xs font-bold uppercase tracking-widest text-primary-foreground mb-6">Company</h5>
             <ul className="space-y-4">
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">About</Link></li>
               <li><Link href="#" className="text-on-surface-variant text-sm hover:text-primary transition-colors">Blog</Link></li>

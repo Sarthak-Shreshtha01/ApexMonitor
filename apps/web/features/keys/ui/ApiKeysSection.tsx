@@ -20,9 +20,9 @@ export function ApiKeysSection() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-black tracking-tight text-white">API Keys</h2>
-          <p className="text-slate-500 text-sm">Manage your secret identifiers and environment tokens.</p>
+          <p className="text-secondary text-sm">Manage your secret identifiers and environment tokens.</p>
         </div>
-        <button className="bg-gradient-to-r from-primary to-primary-container text-on-primary px-5 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_20px_-5px_rgba(192,193,255,0.4)] hover:shadow-[0_0_25px_-5px_rgba(192,193,255,0.5)] hover:scale-[0.98] transition-all flex items-center gap-2">
+        <button className="bg-primary text-on-primary px-5 py-2.5 rounded-lg text-sm font-bold shadow-[0_0_20px_-5px_rgba(255,69,0,0.4)] hover:shadow-[0_0_25px_-5px_rgba(255,69,0,0.5)] hover:scale-[0.98] transition-all flex items-center gap-2">
           <Plus className="w-4 h-4" />
           Create New Key
         </button>
@@ -41,7 +41,7 @@ export function ApiKeysSection() {
                 <h4 className="text-lg font-bold text-white mt-2">{key.name}</h4>
               </div>
               <div className="flex gap-2">
-                <button className="p-2 rounded-lg bg-surface-container-high text-slate-400 hover:text-white transition-colors">
+                <button className="p-2 rounded-lg bg-surface-container-high text-secondary hover:text-white transition-colors">
                   <Edit2 className="w-4 h-4" />
                 </button>
                 <button className="p-2 rounded-lg bg-error-container/20 text-error hover:bg-error-container/40 transition-colors">
@@ -63,7 +63,7 @@ export function ApiKeysSection() {
               </button>
             </div>
 
-            <div className="mt-4 flex items-center gap-4 text-[10px] uppercase tracking-widest text-slate-500 font-semibold">
+            <div className="mt-4 flex items-center gap-4 text-[10px] uppercase tracking-widest text-secondary font-semibold">
               <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Created {key.created}</span>
               {key.warning ? (
                 <span className="flex items-center gap-1 text-tertiary"><AlertTriangle className="w-3.5 h-3.5" /> Needs Rotation</span>

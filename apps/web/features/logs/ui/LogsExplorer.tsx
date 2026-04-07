@@ -72,11 +72,11 @@ export function LogsExplorer() {
         </div>
         <div className="flex gap-4">
           <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Error Rate</p>
+            <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Error Rate</p>
             <p className="text-2xl font-semibold text-error tracking-tight">{logsQuery.data?.summary.errorRate ?? 0}%</p>
           </div>
           <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
-            <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-1">Avg Latency</p>
+            <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Avg Latency</p>
             <p className="text-2xl font-semibold text-secondary tracking-tight">{logsQuery.data?.summary.avgLatency ?? 0}ms</p>
           </div>
         </div>
@@ -84,11 +84,11 @@ export function LogsExplorer() {
 
       <form onSubmit={onApplyFilters} className="bg-surface-container rounded-2xl p-2 flex flex-wrap items-center gap-2 border border-outline-variant/5">
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20">
-          <span className="text-slate-500">Method:</span>
+          <span className="text-secondary">Method:</span>
           <select
             value={draft.method}
             onChange={(e) => setDraft((prev) => ({ ...prev, method: e.target.value as DraftFilters['method'] }))}
-            className="bg-transparent border-none p-0 text-indigo-300 focus:ring-0 text-xs font-bold cursor-pointer outline-none"
+            className="bg-transparent border-none p-0 text-primary focus:ring-0 text-xs font-bold cursor-pointer outline-none"
           >
             <option value="">ALL</option>
             <option value="GET">GET</option>
@@ -101,7 +101,7 @@ export function LogsExplorer() {
         </div>
 
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20">
-          <span className="text-slate-500">Status:</span>
+          <span className="text-secondary">Status:</span>
           <select
             value={draft.statusClass}
             onChange={(e) => setDraft((prev) => ({ ...prev, statusClass: e.target.value as DraftFilters['statusClass'] }))}
@@ -116,17 +116,17 @@ export function LogsExplorer() {
         </div>
 
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20 min-w-[220px]">
-          <span className="text-slate-500">Endpoint:</span>
+          <span className="text-secondary">Endpoint:</span>
           <input
             value={draft.endpoint}
             onChange={(e) => setDraft((prev) => ({ ...prev, endpoint: e.target.value }))}
             placeholder="/api/v1/users"
-            className="bg-transparent border-none p-0 text-indigo-300 focus:ring-0 text-xs font-bold outline-none w-full"
+            className="bg-transparent border-none p-0 text-primary focus:ring-0 text-xs font-bold outline-none w-full"
           />
         </div>
 
         <div className="flex-1 min-w-[200px] flex items-center bg-surface-container-lowest rounded-lg px-3 py-2 border border-outline-variant/20">
-          <Search className="text-slate-500 w-4 h-4 mr-2" />
+          <Search className="text-secondary w-4 h-4 mr-2" />
           <input
             value={draft.search}
             onChange={(e) => setDraft((prev) => ({ ...prev, search: e.target.value }))}
@@ -136,7 +136,7 @@ export function LogsExplorer() {
           />
         </div>
 
-        <button type="submit" className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-xs hover:shadow-[0_0_20px_rgba(192,193,255,0.4)] transition-all">
+        <button type="submit" className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-xs hover:shadow-[0_0_20px_rgba(255,69,0,0.4)] transition-all">
           Apply Filters
         </button>
       </form>
@@ -147,7 +147,7 @@ export function LogsExplorer() {
             <thead>
               <tr className="bg-surface-container-low border-b border-outline-variant/10">
                 {['Status', 'Method', 'Path', 'Duration', 'Timestamp', 'Action'].map((header) => (
-                  <th key={header} className={`px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-slate-500 ${header === 'Action' ? 'text-right' : ''}`}>
+                  <th key={header} className={`px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-secondary ${header === 'Action' ? 'text-right' : ''}`}>
                     {header}
                   </th>
                 ))}
@@ -156,7 +156,7 @@ export function LogsExplorer() {
             <tbody className="divide-y divide-outline-variant/5">
               {logsQuery.isLoading ? (
                 <tr>
-                  <td className="px-6 py-8 text-sm text-slate-400" colSpan={6}>Loading logs...</td>
+                  <td className="px-6 py-8 text-sm text-secondary" colSpan={6}>Loading logs...</td>
                 </tr>
               ) : logsQuery.isError ? (
                 <tr>
@@ -164,7 +164,7 @@ export function LogsExplorer() {
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td className="px-6 py-8 text-sm text-slate-400" colSpan={6}>No logs found for the current filters.</td>
+                  <td className="px-6 py-8 text-sm text-secondary" colSpan={6}>No logs found for the current filters.</td>
                 </tr>
               ) : (
                 logs.map((log) => (
@@ -181,7 +181,7 @@ export function LogsExplorer() {
         </div>
 
         <div className="bg-surface-container-low px-6 py-4 flex items-center justify-between border-t border-outline-variant/10">
-          <p className="text-xs text-slate-500">Showing {logs.length} of {total} logs</p>
+          <p className="text-xs text-secondary">Showing {logs.length} of {total} logs</p>
           <div className="flex gap-2 items-center">
             <button
               disabled={!canPrev}
@@ -190,7 +190,7 @@ export function LogsExplorer() {
             >
               Previous
             </button>
-            <span className="text-xs text-slate-400">Page {page} / {totalPages}</span>
+            <span className="text-xs text-secondary">Page {page} / {totalPages}</span>
             <button
               disabled={!canNext}
               onClick={() => canNext && setPage((prev) => prev + 1)}
@@ -225,8 +225,8 @@ function LogRow({
     log.method === 'GET'
       ? 'text-secondary'
       : log.method === 'POST'
-        ? 'text-indigo-300'
-        : 'text-slate-300';
+        ? 'text-primary'
+        : 'text-primary-foreground';
 
   const formattedTime = new Date(log.timestamp).toLocaleString();
 
@@ -238,9 +238,9 @@ function LogRow({
         </td>
         <td className={`px-6 py-4 font-mono text-xs ${methodTone}`}>{log.method}</td>
         <td className="px-6 py-4 font-mono text-xs text-on-surface truncate max-w-xs">{log.endpoint}</td>
-        <td className="px-6 py-4 text-xs font-medium text-slate-400">{log.latencyMs}ms</td>
-        <td className="px-6 py-4 text-xs text-slate-500">{formattedTime}</td>
-        <td className="px-6 py-4 text-right text-xs text-indigo-300">{expanded ? 'Hide' : 'Details'}</td>
+        <td className="px-6 py-4 text-xs font-medium text-secondary">{log.latencyMs}ms</td>
+        <td className="px-6 py-4 text-xs text-secondary">{formattedTime}</td>
+        <td className="px-6 py-4 text-right text-xs text-primary">{expanded ? 'Hide' : 'Details'}</td>
       </tr>
       {expanded ? (
         <tr className="bg-surface-container-high/30">
@@ -249,12 +249,12 @@ function LogRow({
               <div className="flex justify-between items-start mb-4 border-b border-outline-variant/10 pb-4">
                 <div className="flex gap-8">
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase text-slate-600 font-bold">Request ID</span>
-                    <span className="text-indigo-200">{log.reqId}</span>
+                    <span className="text-[10px] uppercase text-muted font-bold">Request ID</span>
+                    <span className="text-primary">{log.reqId}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-[10px] uppercase text-slate-600 font-bold">IP Address</span>
-                    <span className="text-slate-400">{log.ip}</span>
+                    <span className="text-[10px] uppercase text-muted font-bold">IP Address</span>
+                    <span className="text-secondary">{log.ip}</span>
                   </div>
                 </div>
                 <button
@@ -263,7 +263,7 @@ function LogRow({
                     const payload = JSON.stringify(log, null, 2);
                     navigator.clipboard.writeText(payload).catch(() => undefined);
                   }}
-                  className="text-indigo-400 hover:text-indigo-200 flex items-center gap-1.5 transition-colors focus:outline-none"
+                  className="text-primary hover:text-primary flex items-center gap-1.5 transition-colors focus:outline-none"
                 >
                   <Copy className="w-4 h-4" /> Copy JSON
                 </button>
