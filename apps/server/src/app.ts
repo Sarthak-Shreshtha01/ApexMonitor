@@ -10,6 +10,8 @@ import { userRouter } from '@modules/users/user.router';
 import { billingRouter } from '@modules/billing/billing.router';
 import { projectsRouter } from '@modules/projects/projects.router';
 import { logsRouter } from '@modules/logs/logs.router';
+import { insightsRouter } from '@modules/insights/insights.router';
+import { keysRouter } from '@modules/keys/keys.router';
 
 export function createApp(): Application {
   const app = express();
@@ -32,6 +34,8 @@ export function createApp(): Application {
   v1.use('/billing', billingRouter);
   v1.use('/projects', projectsRouter);
   v1.use('/logs', logsRouter);
+  v1.use('/insights', insightsRouter);
+  v1.use('/keys', keysRouter);
   
   app.use('/api/v1', v1);
 

@@ -1,0 +1,85 @@
+import { NextFunction, Request, Response } from 'express';
+import { CreateKeyDto, ListKeysQueryDto, RevokeKeyQueryDto } from './dto/keys.dto';
+import { KeysService } from './keys.service';
+
+export class KeysController {
+  private service = new KeysService();
+
+  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
+      const query = ListKeysQueryDto.parse(req.query);
+      const result = await this.service.list(userId, query);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        return;
+      }
+
+      next(error);
+    }
+  };
+
+  create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
+      const body = CreateKeyDto.parse(req.body);
+      const created = await this.service.create(userId, body);
+
+      res.status(201).json({
+        message: 'Store this key securely. It will not be shown again.',
+        ...created,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        return;
+      }
+
+      next(error);
+    }
+  };
+
+  revoke = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
+      const keyId = Number(req.params.keyId);
+      if (!Number.isInteger(keyId) || keyId <= 0) {
+        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid key id' });
+        return;
+      }
+
+      const query = RevokeKeyQueryDto.parse(req.query);
+      await this.service.revoke(userId, query.projectId, keyId);
+      res.status(204).send();
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        return;
+      }
+
+      if (error instanceof Error && error.message === 'KEY_NOT_FOUND') {
+        res.status(404).json({ error: 'NOT_FOUND', message: 'Key not found' });
+        return;
+      }
+
+      next(error);
+    }
+  };
+}

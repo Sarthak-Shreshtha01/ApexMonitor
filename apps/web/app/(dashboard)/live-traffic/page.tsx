@@ -1,61 +1,95 @@
+'use client';
+
+import { RefreshCcw } from 'lucide-react';
 import { LiveThroughputCard } from '@/features/traffic/ui/LiveThroughputCard';
 import { TerminalStream } from '@/features/traffic/ui/TerminalStream';
 import { AnomalySidebar } from '@/features/traffic/ui/AnomalySidebar';
-import { Globe, Zap } from 'lucide-react';
+import { useLiveTraffic } from '@/features/traffic/hooks/useLiveTraffic';
 
 export default function LiveTrafficPage() {
+  const {
+    projectId,
+    timeframe,
+    overviewQuery,
+    logsQuery,
+    insightsQuery,
+    pulse,
+    isSocketConnected,
+    criticalLogs,
+    mergedInsights,
+  } = useLiveTraffic();
+
+  const summary = overviewQuery.data?.summary;
+  const series = overviewQuery.data?.series ?? [];
+
   return (
-    <div className="grid grid-cols-12 gap-6 relative">
-      
-      {/* Left Column: Metrics & Logs */}
-      <section className="col-span-12 lg:col-span-8 space-y-6">
-        <LiveThroughputCard />
-        <TerminalStream />
-      </section>
-
-      {/* Right Column: AI & Infra Status */}
-      <section className="col-span-12 lg:col-span-4 space-y-6">
-        <AnomalySidebar />
-
-        {/* Secondary Metric Cards */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/15">
-            <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-2">Error Rate</p>
-            <p className="text-2xl font-black text-error">0.04%</p>
-            <p className="text-[9px] text-muted mt-1">↓ 2% from avg</p>
+    <div className="h-[calc(100vh-3rem)] flex flex-col overflow-hidden bg-app border border-outline-variant rounded-lg">
+      <header className="flex justify-between items-center px-4 h-14 w-full bg-app border-b border-outline-variant z-10">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${isSocketConnected ? 'bg-primary animate-pulse' : 'bg-secondary'}`}></div>
+            <span className="font-medium tracking-tight text-[11px] uppercase text-primary">Real-time Ops Monitor</span>
           </div>
-          <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/15">
-            <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-2">Active Nodes</p>
-            <p className="text-2xl font-black text-on-surface">12</p>
-            <p className="text-[9px] text-secondary mt-1">Healthy</p>
+          <div className="hidden sm:flex items-center gap-6">
+            <span className="font-medium tracking-tight text-[11px] uppercase text-primary border-b-2 border-primary pb-1">
+              {projectId ?? 'No Project'}
+            </span>
+            <span className="font-medium tracking-tight text-[11px] uppercase text-secondary">{timeframe}</span>
           </div>
         </div>
 
-        {/* Infrastructure Visualization */}
-        <div className="p-6 rounded-2xl bg-surface-container-low border border-outline-variant/15 relative overflow-hidden">
-          <p className="text-[10px] text-secondary uppercase tracking-widest font-bold mb-4">Traffic Map</p>
-          <div className="h-40 w-full rounded-xl bg-surface/50 flex items-center justify-center border border-outline-variant/10 relative overflow-hidden">
-            {/* Using a CSS gradient map grid as a safe fallback instead of an external image link */}
-            <div 
-              className="absolute inset-0 opacity-20"
-              style={{ backgroundImage: 'radial-gradient(circle, #ff4500 1px, transparent 1px)', backgroundSize: '10px 10px' }}
-            ></div>
-            <div className="relative z-10 flex flex-col items-center">
-              <Globe className="text-secondary w-8 h-8 mb-2 animate-pulse" />
-              <span className="text-[10px] text-secondary">Global Cluster Status: Nominal</span>
-            </div>
+        <div className="flex items-center gap-4">
+          <div className="text-[10px] font-mono text-secondary bg-surface-container px-3 py-1 border border-outline-variant">
+            UPTIME: <span className="text-white">{isSocketConnected ? 'LIVE' : 'SYNC'}</span>
+          </div>
+          <button
+            className="text-secondary hover:text-primary transition-colors"
+            onClick={() => {
+              overviewQuery.refetch();
+              logsQuery.refetch();
+              insightsQuery.refetch();
+            }}
+            type="button"
+            aria-label="Refresh traffic data"
+          >
+            <RefreshCcw className="w-4 h-4" />
+          </button>
+        </div>
+      </header>
+
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 border-r border-outline-variant">
+          <LiveThroughputCard
+            summary={summary}
+            series={series}
+            liveRps={pulse?.rps}
+            liveErrorRate={pulse?.errorRate}
+            isSocketConnected={isSocketConnected}
+          />
+          <TerminalStream logs={criticalLogs} isLoading={logsQuery.isLoading} />
+        </div>
+
+        <AnomalySidebar
+          insights={mergedInsights}
+          isLoading={insightsQuery.isLoading}
+          isSocketConnected={isSocketConnected}
+        />
+      </div>
+
+      <footer className="bg-app border-t border-outline-variant">
+        <div className="px-6 flex justify-between items-center py-3">
+          <span className="text-[10px] text-secondary uppercase tracking-widest">PulseAPI Ops OS v3.8.1</span>
+          <div className="flex gap-6 text-[10px] uppercase tracking-widest">
+            <span className="text-secondary">Knowledge Base</span>
+            <span className="text-secondary">Node Status</span>
+            <span className="text-secondary">Sec Compliance</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-primary font-bold font-mono">CLUSTER: {isSocketConnected ? 'LIVE' : 'DEGRADED'}</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${isSocketConnected ? 'bg-success' : 'bg-tertiary'}`}></span>
           </div>
         </div>
-      </section>
-
-      {/* Contextual FAB for Troubleshooting */}
-      <button 
-        className="fixed bottom-8 right-8 w-14 h-14 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-2xl hover:scale-110 active:scale-95 transition-all z-50 pulse-glow"
-        aria-label="Quick Action"
-      >
-        <Zap className="w-6 h-6 fill-current" />
-      </button>
-
+      </footer>
     </div>
   );
 }

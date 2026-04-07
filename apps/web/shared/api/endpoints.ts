@@ -17,5 +17,13 @@ export const ENDPOINTS = {
   },
   logs: {
     list: '/api/v1/logs',
+  },
+  insights: {
+    list: '/api/v1/insights',
+  },
+  keys: {
+    list: '/api/v1/keys',
+    create: '/api/v1/keys',
+    revoke: (keyId: number) => `/api/v1/keys/${keyId}`,
   }
 } as const;
