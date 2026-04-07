@@ -10,5 +10,12 @@ export const ENDPOINTS = {
     latency: '/api/v1/metrics/latency', // [cite: 807]
     rps: '/api/v1/metrics/rps', // [cite: 807]
     endpoints: '/api/v1/metrics/endpoints', // [cite: 807]
+  },
+  projects: {
+    listMine: '/api/v1/projects',
+    create: '/api/v1/projects',
+  },
+  logs: {
+    list: '/api/v1/logs',
   }
 } as const;

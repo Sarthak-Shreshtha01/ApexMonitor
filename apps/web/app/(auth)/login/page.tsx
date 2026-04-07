@@ -6,10 +6,13 @@ import { useRouter } from 'next/navigation';
 import { Activity, Mail, Unlock } from 'lucide-react';
 import { authService } from '@/features/auth/api/auth.service';
 import { useAuthStore } from '@/features/auth/state/auth.store';
+import { projectsService } from '@/features/projects/api/projects.service';
+import { useProjectStore } from '@/features/projects/state/project.store';
 
 export default function LoginPage() {
   const router = useRouter();
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  const setProjects = useProjectStore((s) => s.setProjects);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +38,9 @@ export default function LoginPage() {
       
       // Store in memory (Zustand)
       setAccessToken(accessToken);
+
+      const projects = await projectsService.listMine();
+      setProjects(projects);
       
       router.push('/overview');
     } catch (error: unknown) {

@@ -2,7 +2,7 @@ import argon2 from 'argon2';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { config } from '@config';
-import { UserRepository } from './user.repository';
+import { UserProjectRecord, UserRepository } from './user.repository';
 import { RegisterRequest, LoginRequest } from './dto/user.dto';
 
 interface AuthUser {
@@ -16,6 +16,18 @@ interface AuthResult {
   accessToken: string;
   refreshToken: string;
   token: string;
+}
+
+export interface UserProjectSummary {
+  id: string;
+  name: string;
+  ownerUserId: string;
+  role: string;
+  plan: string;
+  rateLimitRpm: number;
+  logRetentionDays: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export class UserService {
@@ -33,7 +45,17 @@ export class UserService {
       parallelism: 4,
     });
 
-    await this.repo.createUser(userId, data.email, hash, data.name);
+    const defaultProjectId = this.generateProjectId();
+    const defaultProjectName = this.buildDefaultProjectName(data.name);
+
+    await this.repo.createUserWithDefaultProject({
+      id: userId,
+      email: data.email,
+      passwordHash: hash,
+      name: data.name,
+      defaultProjectId,
+      defaultProjectName,
+    });
 
     return this.buildAuthResult({ id: userId, email: data.email, name: data.name });
   }
@@ -46,6 +68,26 @@ export class UserService {
     if (!isValid) throw new Error('INVALID_CREDENTIALS');
 
     return this.buildAuthResult({ id: user.id, email: user.email, name: user.name });
+  }
+
+  async listProjects(userId: string): Promise<UserProjectSummary[]> {
+    const records = await this.repo.listProjectsByUserId(userId);
+    return records.map((record) => this.mapProjectRecord(record));
+  }
+
+  async createProject(userId: string, name: string): Promise<UserProjectSummary> {
+    const projectId = this.generateProjectId();
+    const normalizedName = name.trim();
+    await this.repo.createProjectForUser(userId, projectId, normalizedName);
+
+    const projects = await this.repo.listProjectsByUserId(userId);
+    const created = projects.find((project) => project.id === projectId);
+
+    if (!created) {
+      throw new Error('PROJECT_CREATE_FAILED');
+    }
+
+    return this.mapProjectRecord(created);
   }
 
   async refreshSession(rawRefreshToken: string): Promise<AuthResult> {
@@ -87,5 +129,29 @@ export class UserService {
     }
 
     return { sub: payload.sub, email: payload.email, tokenType: payload.tokenType };
+  }
+
+  private generateProjectId(): string {
+    return `proj_${crypto.randomBytes(12).toString('hex')}`;
+  }
+
+  private buildDefaultProjectName(userName: string): string {
+    const cleanName = userName.trim();
+    if (!cleanName) return 'My First Project';
+    return `${cleanName.split(' ')[0]}'s Project`;
+  }
+
+  private mapProjectRecord(record: UserProjectRecord): UserProjectSummary {
+    return {
+      id: record.id,
+      name: record.name,
+      ownerUserId: record.owner_user_id,
+      role: record.role,
+      plan: record.plan,
+      rateLimitRpm: record.rate_limit_rpm,
+      logRetentionDays: record.log_retention_days,
+      createdAt: record.created_at,
+      updatedAt: record.updated_at,
+    };
   }
 }

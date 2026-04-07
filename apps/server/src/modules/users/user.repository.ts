@@ -1,7 +1,60 @@
 import { getPg } from '@infrastructure/db/postgres';
 
+interface CreateUserWithDefaultProjectInput {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  defaultProjectId: string;
+  defaultProjectName: string;
+}
+
+export interface UserProjectRecord {
+  id: string;
+  name: string;
+  owner_user_id: string;
+  plan: string;
+  rate_limit_rpm: number;
+  log_retention_days: number;
+  role: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export class UserRepository {
   private get db() { return getPg(); }
+
+  async createUserWithDefaultProject(input: CreateUserWithDefaultProjectInput): Promise<void> {
+    const client = await this.db.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        `INSERT INTO users (id, email, password_hash, name) VALUES ($1, $2, $3, $4)`,
+        [input.id, input.email, input.passwordHash, input.name]
+      );
+
+      await client.query(
+        `INSERT INTO projects (id, name, owner_user_id, plan, rate_limit_rpm, log_retention_days)
+         VALUES ($1, $2, $3, 'free', 60000, 90)`,
+        [input.defaultProjectId, input.defaultProjectName, input.id]
+      );
+
+      await client.query(
+        `INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'owner')
+         ON CONFLICT (project_id, user_id) DO NOTHING`,
+        [input.defaultProjectId, input.id]
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
 
   async createUser(id: string, email: string, passwordHash: string, name: string) {
     await this.db.query(
@@ -16,5 +69,54 @@ export class UserRepository {
       [email]
     );
     return rows[0];
+  }
+
+  async listProjectsByUserId(userId: string): Promise<UserProjectRecord[]> {
+    const { rows } = await this.db.query(
+      `SELECT
+         p.id,
+         p.name,
+         p.owner_user_id,
+         p.plan,
+         p.rate_limit_rpm,
+         p.log_retention_days,
+         pm.role,
+         p.created_at,
+         p.updated_at
+       FROM project_members pm
+       INNER JOIN projects p ON p.id = pm.project_id
+       WHERE pm.user_id = $1
+       ORDER BY p.created_at ASC`,
+      [userId]
+    );
+
+    return rows;
+  }
+
+  async createProjectForUser(userId: string, projectId: string, projectName: string): Promise<void> {
+    const client = await this.db.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        `INSERT INTO projects (id, name, owner_user_id, plan, rate_limit_rpm, log_retention_days)
+         VALUES ($1, $2, $3, 'free', 60000, 90)`,
+        [projectId, projectName, userId]
+      );
+
+      await client.query(
+        `INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, 'owner')
+         ON CONFLICT (project_id, user_id) DO NOTHING`,
+        [projectId, userId]
+      );
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 }

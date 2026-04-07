@@ -7,6 +7,7 @@ import {
   Activity, LayoutDashboard, Radio, ScrollText, Key, 
   Bell, LineChart, CreditCard, Settings, Search, HelpCircle 
 } from 'lucide-react';
+import { useProjectStore } from '@/features/projects/state/project.store';
 
 const NAV_LINKS = [
   { name: 'Overview', href: '/overview', icon: LayoutDashboard },
@@ -21,11 +22,16 @@ const NAV_LINKS = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const projects = useProjectStore((state) => state.projects);
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
+  const setActiveProjectId = useProjectStore((state) => state.setActiveProjectId);
+
+  const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0] ?? null;
 
   return (
     <div className="bg-background text-on-surface font-sans selection:bg-primary/30 min-h-screen">
       {/* SideNavBar */}
-      <aside className="fixed left-0 top-0 h-full flex flex-col bg-slate-950 w-64 border-r border-slate-800/50 shadow-[0_0_30px_-5px_rgba(99,102,241,0.15)] z-[60]">
+      <aside className="fixed left-0 top-0 h-full flex flex-col bg-slate-950 w-64 border-r border-slate-800/50 shadow-[0_0_30px_-5px_rgba(99,102,241,0.15)] z-60">
         <div className="p-6">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary-container">
@@ -76,8 +82,30 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="flex items-center justify-between px-6 ml-64 max-w-[calc(100%-16rem)] bg-slate-950/80 backdrop-blur-xl w-full h-16 border-b border-slate-800/50 sticky top-0 z-50">
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <div className="text-xs font-medium uppercase tracking-widest text-slate-500">Environment:</div>
-            <div className="text-lg font-black text-white">Project: Production-Main</div>
+            <div className="text-xs font-medium uppercase tracking-widest text-slate-500">Project:</div>
+            <div className="flex items-center gap-2">
+              <select
+                value={activeProject?.id ?? ''}
+                onChange={(event) => setActiveProjectId(event.target.value)}
+                disabled={projects.length === 0}
+                className="bg-slate-900/70 border border-slate-800 text-sm font-bold text-white rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {projects.length === 0 ? (
+                  <option value="">No Projects</option>
+                ) : (
+                  projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))
+                )}
+              </select>
+              {activeProject ? (
+                <span className="text-[10px] uppercase tracking-widest text-slate-500">
+                  {activeProject.plan} / {activeProject.role}
+                </span>
+              ) : null}
+            </div>
           </div>
           <div className="h-4 w-px bg-slate-800"></div>
           <div className="flex items-center bg-slate-900/60 rounded-full px-4 py-1.5 border border-slate-800 focus-within:ring-1 focus-within:ring-indigo-500/50 transition-all">
