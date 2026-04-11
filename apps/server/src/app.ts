@@ -13,6 +13,7 @@ import { logsRouter } from '@modules/logs/logs.router';
 import { insightsRouter } from '@modules/insights/insights.router';
 import { keysRouter } from '@modules/keys/keys.router';
 import { tracesRouter } from '@modules/traces/traces.router';
+import { rumRouter } from '@modules/rum';
 import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants/endpoints';
 
 export function createApp(): Application {
@@ -31,6 +32,7 @@ export function createApp(): Application {
   const v1 = express.Router();
   v1.use(SERVER_ENDPOINTS.modules.auth, authRouter);
   v1.use(SERVER_ENDPOINTS.modules.ingest, ingestRouter);
+  v1.use(SERVER_ENDPOINTS.modules.rum, rumRouter);
   v1.use(SERVER_ENDPOINTS.modules.metrics, metricsRouter);
   v1.use(SERVER_ENDPOINTS.modules.users, userRouter);
   v1.use(SERVER_ENDPOINTS.modules.billing, billingRouter);

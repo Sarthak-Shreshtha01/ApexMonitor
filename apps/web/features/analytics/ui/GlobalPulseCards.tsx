@@ -1,6 +1,16 @@
 import { TrendingUp } from 'lucide-react';
 
-export function GlobalPulseCards() {
+type GlobalPulseCardsProps = {
+  activeVisitors: number;
+  pageViews: number;
+  uniqueVisitors: number;
+  uniqueSessions: number;
+};
+
+const formatCompact = (value: number) =>
+  Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+
+export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, uniqueSessions }: GlobalPulseCardsProps) {
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       {/* Current Visitors */}
@@ -13,7 +23,7 @@ export function GlobalPulseCards() {
           </div>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-mono font-bold text-white tracking-tighter">42</span>
+          <span className="text-4xl font-mono font-bold text-white tracking-tighter">{activeVisitors}</span>
           <span className="text-zinc-400 text-xs font-medium">Active now</span>
         </div>
         <div className="mt-4 h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
@@ -30,7 +40,7 @@ export function GlobalPulseCards() {
           </span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-mono font-bold text-white tracking-tighter">124.5k</span>
+          <span className="text-4xl font-mono font-bold text-white tracking-tighter">{formatCompact(pageViews)}</span>
         </div>
         <div className="mt-4 flex gap-1 h-6 items-end">
           <div className="bg-zinc-800 w-1 h-2 rounded-t-sm"></div>
@@ -49,11 +59,11 @@ export function GlobalPulseCards() {
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Unique Visitors</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-mono font-bold text-white tracking-tighter">89.2k</span>
+          <span className="text-4xl font-mono font-bold text-white tracking-tighter">{formatCompact(uniqueVisitors)}</span>
         </div>
         <div className="mt-4 flex items-center gap-2">
           <span className="text-[10px] font-mono text-zinc-600">VS PREV PERIOD:</span>
-          <span className="text-[10px] font-mono text-zinc-400">84.1k</span>
+          <span className="text-[10px] font-mono text-zinc-400">{formatCompact(Math.max(uniqueVisitors - uniqueSessions, 0))}</span>
         </div>
       </div>
 
@@ -63,10 +73,12 @@ export function GlobalPulseCards() {
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Bounce Rate</span>
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-4xl font-mono font-bold text-white tracking-tighter">42%</span>
+          <span className="text-4xl font-mono font-bold text-white tracking-tighter">
+            {pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0}%
+          </span>
         </div>
         <div className="mt-4 h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-800 w-[42%]"></div>
+          <div className="h-full bg-orange-800" style={{ width: `${pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0}%` }}></div>
         </div>
       </div>
     </section>

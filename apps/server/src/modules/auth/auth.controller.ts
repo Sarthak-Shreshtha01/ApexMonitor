@@ -93,4 +93,37 @@ export class AuthController {
       next(error);
     }
   };
+
+  public generateRumKey = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
+      const { projectId, label, allowedOrigins } = req.body as {
+        projectId?: string;
+        label?: string;
+        allowedOrigins?: string[];
+      };
+
+      if (!projectId) {
+        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'projectId is required' });
+        return;
+      }
+
+      try {
+        await this.service.assertProjectOwner(projectId, userId);
+      } catch {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'Only project owners can issue RUM keys' });
+        return;
+      }
+
+      const key = await this.service.generateRumWriteKey(projectId, label, allowedOrigins);
+      res.status(201).json({ message: 'Store this key securely. It will not be shown again.', key });
+    } catch (error) {
+      next(error);
+    }
+  };
 }

@@ -1,11 +1,16 @@
-const TOP_PAGES = [
-  { path: '/dashboard', views: '42.1k', lcp: '1.1s', color: 'text-emerald-500' },
-  { path: '/api/v2/docs', views: '38.4k', lcp: '0.9s', color: 'text-emerald-500' },
-  { path: '/pricing', views: '12.5k', lcp: '2.4s', color: 'text-amber-500' },
-  { path: '/blog/release-notes', views: '8.2k', lcp: '1.2s', color: 'text-emerald-500' },
-];
+type TopPage = {
+  path: string;
+  page_views: number;
+  avg_lcp_ms: number;
+};
 
-export function TopPagesTable() {
+type TopPagesTableProps = {
+  rows: TopPage[];
+};
+
+const formatCompact = (value: number) => Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
+
+export function TopPagesTable({ rows }: TopPagesTableProps) {
   return (
     <div className="bg-[#131313] border border-[#242424] overflow-hidden rounded-lg">
       <div className="p-6 border-b border-[#242424]">
@@ -21,13 +26,20 @@ export function TopPagesTable() {
             </tr>
           </thead>
           <tbody className="text-zinc-300">
-            {TOP_PAGES.map((page, i) => (
+            {rows.map((page, i) => (
               <tr key={i} className="border-b border-[#242424]/30 hover:bg-white/5 transition-colors">
                 <td className="p-4">{page.path}</td>
-                <td className="p-4 text-right">{page.views}</td>
-                <td className={`p-4 text-right ${page.color}`}>{page.lcp}</td>
+                <td className="p-4 text-right">{formatCompact(page.page_views)}</td>
+                <td className={`p-4 text-right ${page.avg_lcp_ms <= 2500 ? 'text-emerald-500' : page.avg_lcp_ms <= 4000 ? 'text-amber-500' : 'text-error'}`}>
+                  {(page.avg_lcp_ms / 1000).toFixed(2)}s
+                </td>
               </tr>
             ))}
+            {rows.length === 0 ? (
+              <tr>
+                <td className="p-4 text-zinc-500" colSpan={3}>No page analytics for selected range.</td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </div>

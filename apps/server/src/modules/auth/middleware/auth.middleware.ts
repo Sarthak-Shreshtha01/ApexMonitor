@@ -28,3 +28,23 @@ export const validateApiKey = async (req: Request, res: Response, next: NextFunc
     res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid API Key' });
   }
 };
+
+export const validateRumWriteKey = async (req: Request, res: Response, next: NextFunction) => {
+  const rumKey = req.headers['x-rum-key'] as string;
+
+  if (!rumKey) {
+    return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing X-RUM-Key header' });
+  }
+
+  try {
+    const projectId = await authService.validateRumWriteKey(rumKey, String(req.headers.origin ?? ''));
+    req.project = { id: projectId };
+    next();
+  } catch (error) {
+    if (error instanceof Error && error.message === 'ORIGIN_NOT_ALLOWED') {
+      return res.status(403).json({ error: 'FORBIDDEN', message: 'Origin not allowed for this RUM key' });
+    }
+
+    return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid RUM write key' });
+  }
+};

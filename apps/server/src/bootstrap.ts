@@ -10,6 +10,7 @@ import { AggregationWorker } from '@workers/aggregation.worker';
 import { WebSocketService } from '@modules/websocket';
 import { AnomalyWorker } from '@workers/anomaly.worker';
 import { AlertWorker } from '@workers/alert.worker';
+import { RumWorker } from '@workers/rum.worker';
 
 async function bootstrap() {
   try {
@@ -30,11 +31,13 @@ async function bootstrap() {
     const aggregationWorker = new AggregationWorker();
     const anomalyWorker = new AnomalyWorker();
     const alertWorker = new AlertWorker();
+    const rumWorker = new RumWorker();
     
     await Promise.all([
       rawLogWorker.start(),
       aggregationWorker.start(),
       anomalyWorker.start(),
+      rumWorker.start(),
     ]);
     alertWorker.start()
 

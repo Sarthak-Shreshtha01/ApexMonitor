@@ -28,6 +28,7 @@ async function setupRabbitMQTopology(ch: Channel): Promise<void> {
   await ch.assertQueue('raw_log_dlq', { durable: true });
   await ch.assertQueue('aggregation_dlq', { durable: true });
   await ch.assertQueue('anomaly_dlq', { durable: true });
+  await ch.assertQueue('rum_dlq', { durable: true });
 
   // 3. Worker Queues with DLQ Routing
   const qArgs = (dlq: string) => ({
@@ -40,9 +41,11 @@ async function setupRabbitMQTopology(ch: Channel): Promise<void> {
   await ch.assertQueue('raw_log_queue', qArgs('raw_log_dlq'));
   await ch.assertQueue('aggregation_queue', qArgs('aggregation_dlq'));
   await ch.assertQueue('anomaly_queue', qArgs('anomaly_dlq'));
+  await ch.assertQueue('rum_queue', qArgs('rum_dlq'));
 
   // 4. Bindings
   await ch.bindQueue('raw_log_queue', 'logs.exchange', 'log.ingest');
   await ch.bindQueue('aggregation_queue', 'logs.exchange', 'log.ingest');
   await ch.bindQueue('anomaly_queue', 'logs.exchange', 'log.ingest');
+  await ch.bindQueue('rum_queue', 'logs.exchange', 'rum.ingest');
 }

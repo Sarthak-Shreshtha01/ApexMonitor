@@ -5,6 +5,7 @@ export const SERVER_ENDPOINTS = {
   modules: {
     auth: '/auth',
     ingest: '/ingest',
+    rum: '/rum',
     metrics: '/metrics',
     users: '/users',
     billing: '/billing',
@@ -19,6 +20,7 @@ export const SERVER_ENDPOINTS = {
     refresh: '/refresh',
     logout: '/logout',
     keys: '/keys',
+    rumKeys: '/rum-keys',
   },
   users: {
     register: '/register',
@@ -34,6 +36,15 @@ export const SERVER_ENDPOINTS = {
   },
   ingest: {
     root: '/',
+  },
+  rum: {
+    root: '/',
+    overview: '/overview',
+    series: '/series',
+    paths: '/paths',
+    devices: '/devices',
+    geo: '/geo',
+    referrers: '/referrers',
   },
   logs: {
     root: '/',

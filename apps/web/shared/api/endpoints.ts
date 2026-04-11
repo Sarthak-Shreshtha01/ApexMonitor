@@ -29,6 +29,15 @@ export const ENDPOINTS = {
     list: '/api/v1/traces',
     detail: (traceId: string) => `/api/v1/traces/${traceId}`,
   },
+  rum: {
+    ingest: '/api/v1/rum',
+    overview: '/api/v1/rum/overview',
+    series: '/api/v1/rum/series',
+    paths: '/api/v1/rum/paths',
+    devices: '/api/v1/rum/devices',
+    geo: '/api/v1/rum/geo',
+    referrers: '/api/v1/rum/referrers',
+  },
   insights: {
     list: '/api/v1/insights',
   },

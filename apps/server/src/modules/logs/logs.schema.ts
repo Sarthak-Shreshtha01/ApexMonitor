@@ -25,7 +25,7 @@ const ApiLogSchema = new Schema<IApiLog>({
   ip:         { type: String, required: true },
   userAgent:  { type: String, default: '', maxlength: 512 },
   region:     { type: String, default: 'XX' },
-  timestamp:  { type: Date, required: true, index: true },
+  timestamp:  { type: Date, required: true },
   sdkVersion: { type: String, default: 'unknown' },
   tags:       { type: [String], default: [], validate: (v: string[]) => v.length <= 10 },
 }, {

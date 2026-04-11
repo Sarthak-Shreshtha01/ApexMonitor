@@ -31,4 +31,26 @@ export class AuthRepository {
       [data.projectId, data.keyPrefix, data.keyHash, data.label]
     );
   }
+
+  async findRumKeyByPrefix(prefix: string) {
+    const { rows } = await this.db.query(
+      `SELECT * FROM rum_public_keys WHERE key_prefix = $1 AND revoked_at IS NULL`,
+      [prefix]
+    );
+    return rows[0];
+  }
+
+  async insertRumKey(data: { projectId: string; keyPrefix: string; keyHash: string; label?: string; allowedOrigins?: string[] }) {
+    await this.db.query(
+      `INSERT INTO rum_public_keys (project_id, key_prefix, key_hash, label, allowed_origins) VALUES ($1, $2, $3, $4, $5)`,
+      [data.projectId, data.keyPrefix, data.keyHash, data.label, data.allowedOrigins ?? []]
+    );
+  }
+
+  async updateRumLastUsed(keyId: string) {
+    await this.db.query(
+      `UPDATE rum_public_keys SET last_used_at = NOW() WHERE id = $1`,
+      [keyId]
+    );
+  }
 }
