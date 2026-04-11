@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Search } from 'lucide-react';
+import Link from 'next/link';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { logsService, LogsQuery, LogItem, StatusClass } from '../api/logs.service';
 
@@ -267,6 +268,13 @@ function LogRow({
                 >
                   <Copy className="w-4 h-4" /> Copy JSON
                 </button>
+                <Link
+                  href={`/traces/${log.reqId}`}
+                  onClick={(event) => event.stopPropagation()}
+                  className="text-secondary hover:text-primary transition-colors text-xs font-bold"
+                >
+                  View Trace
+                </Link>
               </div>
               <pre className="text-secondary/90">{JSON.stringify(log, null, 2)}</pre>
             </div>

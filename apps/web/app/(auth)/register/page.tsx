@@ -11,7 +11,7 @@ import { useProjectStore } from '@/features/projects/state/project.store';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  const setTokens = useAuthStore((s) => s.setTokens);
   const setProjects = useProjectStore((s) => s.setProjects);
 
   const [fullName, setFullName] = useState('');
@@ -36,8 +36,8 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const { accessToken } = await authService.register({ name: fullName, email, password });
-      setAccessToken(accessToken);
+      const { accessToken, refreshToken } = await authService.register({ name: fullName, email, password });
+      setTokens({ accessToken, refreshToken });
 
       const projects = await projectsService.listMine();
       setProjects(projects);

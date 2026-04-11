@@ -52,7 +52,8 @@ export class AuthController {
   public refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const cookies = parseCookieHeader(req.headers.cookie);
-      const refreshToken = cookies.refresh_token;
+      const bodyRefreshToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined;
+      const refreshToken = cookies.refresh_token || bodyRefreshToken;
 
       if (!refreshToken) {
         res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing refresh token' });
@@ -61,7 +62,7 @@ export class AuthController {
 
       const result = await this.service.refreshSession(refreshToken);
       setAuthCookies(res, result.accessToken, result.refreshToken);
-      res.status(200).json({ accessToken: result.accessToken });
+      res.status(200).json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_REFRESH_TOKEN') {
         res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid refresh token' });

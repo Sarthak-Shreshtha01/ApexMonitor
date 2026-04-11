@@ -62,4 +62,130 @@ export class UserController {
     clearAuthCookies(res);
     res.status(204).send();
   };
+
+  public getProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const profile = await this.service.getProfile(userId);
+      res.status(200).json({ profile });
+    } catch (error: any) {
+      if (error.message === 'USER_NOT_FOUND') return res.status(404).json({ error: error.message });
+      next(error);
+    }
+  };
+
+  public updateProfile = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const { name, email } = req.body;
+      if (!name || !email) {
+        res.status(400).json({ error: 'MISSING_FIELDS' });
+        return;
+      }
+
+      const profile = await this.service.updateProfile(userId, name, email);
+      res.status(200).json({ profile });
+    } catch (error: any) {
+      if (error.message === 'EMAIL_IN_USE') return res.status(409).json({ error: error.message });
+      if (error.message === 'USER_NOT_FOUND') return res.status(404).json({ error: error.message });
+      next(error);
+    }
+  };
+
+  public listProjectMembers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const projectId = req.params.projectId as string;
+      const members = await this.service.listProjectMembers(userId, projectId);
+      res.status(200).json({ members });
+    } catch (error: any) {
+      if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
+      next(error);
+    }
+  };
+
+  public addProjectMember = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const projectId = req.params.projectId as string;
+      const { email, role } = req.body;
+
+      if (!email || !role) {
+        res.status(400).json({ error: 'MISSING_FIELDS' });
+        return;
+      }
+
+      const member = await this.service.addProjectMember(userId, projectId, email, role);
+      res.status(201).json({ member });
+    } catch (error: any) {
+      if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
+      if (error.message === 'USER_NOT_FOUND') return res.status(404).json({ error: error.message });
+      next(error);
+    }
+  };
+
+  public updateMemberRole = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const projectId = req.params.projectId as string;
+      const memberId = req.params.memberId as string;
+      const { role } = req.body;
+
+      if (!role) {
+        res.status(400).json({ error: 'MISSING_FIELDS' });
+        return;
+      }
+
+      const member = await this.service.updateMemberRole(userId, projectId, memberId, role);
+      res.status(200).json({ member });
+    } catch (error: any) {
+      if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
+      next(error);
+    }
+  };
+
+  public removeMember = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED' });
+        return;
+      }
+
+      const projectId = req.params.projectId as string;
+      const memberId = req.params.memberId as string;
+
+      await this.service.removeMember(userId, projectId, memberId);
+      res.status(204).send();
+    } catch (error: any) {
+      if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
+      if (error.message === 'CANNOT_REMOVE_LAST_OWNER') return res.status(400).json({ error: error.message });
+      next(error);
+    }
+  };
 }

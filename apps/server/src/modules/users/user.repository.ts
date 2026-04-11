@@ -119,4 +119,69 @@ export class UserRepository {
       client.release();
     }
   }
+
+  async findById(userId: string) {
+    const { rows } = await this.db.query(
+      `SELECT id, email, name, created_at FROM users WHERE id = $1`,
+      [userId]
+    );
+    return rows[0];
+  }
+
+  async updateProfile(userId: string, name: string, email: string) {
+    const { rows } = await this.db.query(
+      `UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, email, name, created_at`,
+      [name, email, userId]
+    );
+    return rows[0];
+  }
+
+  async listProjectMembers(projectId: string) {
+    const { rows } = await this.db.query(
+      `SELECT pm.user_id, u.name, u.email, pm.role, u.created_at
+       FROM project_members pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.project_id = $1
+       ORDER BY u.created_at ASC`,
+      [projectId]
+    );
+    return rows;
+  }
+
+  async getProjectMember(projectId: string, userId: string) {
+    const { rows } = await this.db.query(
+      `SELECT pm.user_id, u.name, u.email, pm.role, u.created_at
+       FROM project_members pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.project_id = $1 AND pm.user_id = $2`,
+      [projectId, userId]
+    );
+    return rows[0];
+  }
+
+  async addProjectMember(projectId: string, userId: string, role: string) {
+    const { rows } = await this.db.query(
+      `INSERT INTO project_members (project_id, user_id, role) VALUES ($1, $2, $3)
+       ON CONFLICT (project_id, user_id) DO UPDATE SET role = EXCLUDED.role
+       RETURNING user_id, role`,
+      [projectId, userId, role]
+    );
+    return rows[0];
+  }
+
+  async updateMemberRole(projectId: string, userId: string, role: string) {
+    const { rows } = await this.db.query(
+      `UPDATE project_members SET role = $1 WHERE project_id = $2 AND user_id = $3
+       RETURNING user_id, role`,
+      [role, projectId, userId]
+    );
+    return rows[0];
+  }
+
+  async removeMember(projectId: string, userId: string) {
+    await this.db.query(
+      `DELETE FROM project_members WHERE project_id = $1 AND user_id = $2`,
+      [projectId, userId]
+    );
+  }
 }

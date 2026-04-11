@@ -12,6 +12,7 @@ import { projectsRouter } from '@modules/projects/projects.router';
 import { logsRouter } from '@modules/logs/logs.router';
 import { insightsRouter } from '@modules/insights/insights.router';
 import { keysRouter } from '@modules/keys/keys.router';
+import { tracesRouter } from '@modules/traces/traces.router';
 
 export function createApp(): Application {
   const app = express();
@@ -36,6 +37,7 @@ export function createApp(): Application {
   v1.use('/logs', logsRouter);
   v1.use('/insights', insightsRouter);
   v1.use('/keys', keysRouter);
+  v1.use('/traces', tracesRouter);
   
   app.use('/api/v1', v1);
 

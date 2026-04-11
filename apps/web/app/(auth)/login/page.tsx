@@ -11,7 +11,7 @@ import { useProjectStore } from '@/features/projects/state/project.store';
 
 export default function LoginPage() {
   const router = useRouter();
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
+  const setTokens = useAuthStore((s) => s.setTokens);
   const setProjects = useProjectStore((s) => s.setProjects);
   
   const [email, setEmail] = useState('');
@@ -34,10 +34,9 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { accessToken } = await authService.login({ email, password });
-      
-      // Store in memory (Zustand)
-      setAccessToken(accessToken);
+      const { accessToken, refreshToken } = await authService.login({ email, password });
+
+      setTokens({ accessToken, refreshToken });
 
       const projects = await projectsService.listMine();
       setProjects(projects);

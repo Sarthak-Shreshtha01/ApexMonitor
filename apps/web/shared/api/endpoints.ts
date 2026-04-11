@@ -5,6 +5,9 @@ export const ENDPOINTS = {
     refresh: '/api/v1/auth/refresh', // [cite: 466]
     logout: '/api/v1/users/logout', // [cite: 466]
   },
+  user: {
+    profile: '/api/v1/users/me',
+  },
   metrics: {
     overview: '/api/v1/metrics/overview', // [cite: 807]
     latency: '/api/v1/metrics/latency', // [cite: 807]
@@ -14,9 +17,17 @@ export const ENDPOINTS = {
   projects: {
     listMine: '/api/v1/projects',
     create: '/api/v1/projects',
+    members: (projectId: string) => `/api/v1/users/${projectId}/members`,
+    addMember: (projectId: string) => `/api/v1/users/${projectId}/members`,
+    updateMember: (projectId: string, memberId: string) => `/api/v1/users/${projectId}/members/${memberId}`,
+    removeMember: (projectId: string, memberId: string) => `/api/v1/users/${projectId}/members/${memberId}`,
   },
   logs: {
     list: '/api/v1/logs',
+  },
+  traces: {
+    list: '/api/v1/traces',
+    detail: (traceId: string) => `/api/v1/traces/${traceId}`,
   },
   insights: {
     list: '/api/v1/insights',

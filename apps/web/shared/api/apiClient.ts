@@ -1,6 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENDPOINTS } from './endpoints';
-// Note: Assumes auth store is built according to SRS [cite: 924]
 import { useAuthStore } from '@/features/auth/state/auth.store';
 
 export const apiClient = axios.create({
@@ -19,7 +18,44 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 });
 
 let isRefreshing = false; // [cite: 762]
-let failedQueue: Array<{ resolve: (val?: unknown) => void; reject: (err: unknown) => void }> = []; // [cite: 764]
+type FailedQueueItem = {
+  resolve: (token: string) => void;
+  reject: (err: unknown) => void;
+};
+
+let failedQueue: FailedQueueItem[] = []; // [cite: 764]
+
+const processQueue = (error: unknown, token: string | null) => {
+  failedQueue.forEach((item) => {
+    if (error) {
+      item.reject(error);
+      return;
+    }
+
+    if (token) {
+      item.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+type RefreshResponse = {
+  accessToken: string;
+  refreshToken: string;
+};
+
+const AUTH_ENDPOINTS = [
+  ENDPOINTS.auth.login,
+  ENDPOINTS.auth.register,
+  ENDPOINTS.auth.refresh,
+  ENDPOINTS.auth.logout,
+];
+
+const isAuthEndpoint = (url?: string): boolean => {
+  if (!url) return false;
+  return AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
+};
 
 // Response Interceptor: Handle 401 Auto-Refresh
 apiClient.interceptors.response.use(
@@ -27,9 +63,18 @@ apiClient.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    if (error.response?.status === 401 && !originalRequest._retry) { // [cite: 772]
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
+
+    const shouldAttemptRefresh =
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url);
+
+    if (shouldAttemptRefresh) { // [cite: 772]
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject }); // [cite: 774]
         }).then((token) => {
           if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${token}`;
@@ -41,26 +86,34 @@ apiClient.interceptors.response.use(
       isRefreshing = true; // [cite: 776]
 
       try {
-        const { data } = await axios.post<{ accessToken: string }>(ENDPOINTS.auth.refresh, {}, {
+        const storedRefreshToken = useAuthStore.getState().refreshToken;
+        if (!storedRefreshToken) {
+          throw new Error('MISSING_REFRESH_TOKEN');
+        }
+
+        const { data } = await axios.post<RefreshResponse>(ENDPOINTS.auth.refresh, { refreshToken: storedRefreshToken }, {
           baseURL: process.env.NEXT_PUBLIC_API_URL,
           withCredentials: true // [cite: 778]
         });
-        
-        const newToken = data.accessToken;
-        useAuthStore.getState().setAccessToken(newToken); // [cite: 779]
 
-        failedQueue.forEach((prom) => prom.resolve(newToken)); // [cite: 780]
-        if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        const newAccessToken = data.accessToken;
+        const newRefreshToken = data.refreshToken;
+
+        useAuthStore.getState().setTokens({
+          accessToken: newAccessToken,
+          refreshToken: newRefreshToken,
+        });
+
+        processQueue(null, newAccessToken); // [cite: 780]
+
+        if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return apiClient(originalRequest); // [cite: 781]
-        
+
       } catch (refreshError) {
-        failedQueue.forEach((prom) => prom.reject(refreshError)); // [cite: 783]
-        useAuthStore.getState().logout(); // [cite: 784]
-        window.location.href = '/login'; // [cite: 785]
+        processQueue(refreshError, null); // [cite: 783]
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false; // [cite: 787]
-        failedQueue = []; // [cite: 788]
       }
     }
     return Promise.reject(error);

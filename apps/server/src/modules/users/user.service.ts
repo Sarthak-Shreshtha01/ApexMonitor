@@ -30,6 +30,21 @@ export interface UserProjectSummary {
   updatedAt: string;
 }
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface ProjectMember {
+  userId: string;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: string;
+}
+
 export class UserService {
   private repo = new UserRepository();
 
@@ -99,6 +114,118 @@ export class UserService {
     }
 
     return this.buildAuthResult({ id: user.id, email: user.email, name: user.name });
+  }
+
+  async getProfile(userId: string): Promise<UserProfile> {
+    const user = await this.repo.findById(userId);
+    if (!user) throw new Error('USER_NOT_FOUND');
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      createdAt: user.created_at,
+    };
+  }
+
+  async updateProfile(userId: string, name: string, email: string): Promise<UserProfile> {
+    const existing = await this.repo.findByEmail(email);
+    if (existing && existing.id !== userId) {
+      throw new Error('EMAIL_IN_USE');
+    }
+
+    const user = await this.repo.updateProfile(userId, name, email);
+    if (!user) throw new Error('USER_NOT_FOUND');
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      createdAt: user.created_at,
+    };
+  }
+
+  async listProjectMembers(userId: string, projectId: string): Promise<ProjectMember[]> {
+    // Check if user has access to project
+    const projects = await this.repo.listProjectsByUserId(userId);
+    if (!projects.find(p => p.id === projectId)) {
+      throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    const members = await this.repo.listProjectMembers(projectId);
+    return members.map(m => ({
+      userId: m.user_id,
+      name: m.name,
+      email: m.email,
+      role: m.role,
+      createdAt: m.created_at,
+    }));
+  }
+
+  async addProjectMember(userId: string, projectId: string, memberEmail: string, role: string): Promise<ProjectMember> {
+    // Check if user is project owner
+    const projects = await this.repo.listProjectsByUserId(userId);
+    const project = projects.find(p => p.id === projectId);
+    if (!project || project.role !== 'owner') {
+      throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    // Check if member exists
+    const member = await this.repo.findByEmail(memberEmail);
+    if (!member) {
+      throw new Error('USER_NOT_FOUND');
+    }
+
+    // Add member to project
+    await this.repo.addProjectMember(projectId, member.id, role);
+
+    const result = await this.repo.getProjectMember(projectId, member.id);
+    return {
+      userId: result.user_id,
+      name: result.name,
+      email: result.email,
+      role: result.role,
+      createdAt: result.created_at,
+    };
+  }
+
+  async updateMemberRole(userId: string, projectId: string, memberId: string, role: string): Promise<ProjectMember> {
+    // Check if user is project owner
+    const projects = await this.repo.listProjectsByUserId(userId);
+    const project = projects.find(p => p.id === projectId);
+    if (!project || project.role !== 'owner') {
+      throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    // Update member role
+    await this.repo.updateMemberRole(projectId, memberId, role);
+
+    const result = await this.repo.getProjectMember(projectId, memberId);
+    return {
+      userId: result.user_id,
+      name: result.name,
+      email: result.email,
+      role: result.role,
+      createdAt: result.created_at,
+    };
+  }
+
+  async removeMember(userId: string, projectId: string, memberId: string): Promise<void> {
+    // Check if user is project owner
+    const projects = await this.repo.listProjectsByUserId(userId);
+    const project = projects.find(p => p.id === projectId);
+    if (!project || project.role !== 'owner') {
+      throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    // Don't allow removing the last owner
+    const members = await this.repo.listProjectMembers(projectId);
+    const owners = members.filter(m => m.role === 'owner');
+    if (owners.length === 1 && owners[0].user_id === memberId) {
+      throw new Error('CANNOT_REMOVE_LAST_OWNER');
+    }
+
+    await this.repo.removeMember(projectId, memberId);
   }
 
   private buildAuthResult(user: AuthUser): AuthResult {
