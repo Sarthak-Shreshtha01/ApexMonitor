@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { tracesService } from '@/features/traces/api/traces.service';
+import { ROUTES } from '@/shared/routes/routes';
 
 export default function TraceDetailView() {
   const params = useParams<{ id: string }>();
@@ -31,7 +32,7 @@ export default function TraceDetailView() {
         <div className="max-w-xl bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6">
           <h1 className="text-2xl font-bold text-white mb-2">Trace Not Found</h1>
           <p className="text-sm text-secondary mb-4">This trace is unavailable or does not belong to your project.</p>
-          <Link href="/traces" className="text-primary text-sm font-bold hover:underline">Back to Traces</Link>
+          <Link href={ROUTES.dashboard.traces} className="text-primary text-sm font-bold hover:underline">Back to Traces</Link>
         </div>
       </div>
     );
@@ -106,7 +107,7 @@ export default function TraceDetailView() {
               )}
             </div>
           </div>
-          <Link href="/traces" className="inline-block text-xs font-bold text-primary hover:underline">Back to Trace Explorer</Link>
+          <Link href={ROUTES.dashboard.traces} className="inline-block text-xs font-bold text-primary hover:underline">Back to Trace Explorer</Link>
         </aside>
       </div>
     </div>

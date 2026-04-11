@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ROUTES } from '@/shared/routes/routes';
 
 export default function DashboardNotFound() {
   return (
@@ -10,10 +11,10 @@ export default function DashboardNotFound() {
           The page you requested does not exist in the dashboard workspace.
         </p>
         <div className="flex gap-3 justify-center">
-          <Link href="/overview" className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold uppercase tracking-widest">
+          <Link href={ROUTES.dashboard.overview} className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold uppercase tracking-widest">
             Go To Overview
           </Link>
-          <Link href="/traces" className="px-5 py-2.5 rounded-lg border border-outline-variant/30 text-xs font-bold uppercase tracking-widest text-secondary">
+          <Link href={ROUTES.dashboard.traces} className="px-5 py-2.5 rounded-lg border border-outline-variant/30 text-xs font-bold uppercase tracking-widest text-secondary">
             Open Traces
           </Link>
         </div>

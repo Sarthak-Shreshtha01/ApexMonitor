@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ROUTES } from '@/shared/routes/routes';
 
 export default function GlobalNotFound() {
   return (
@@ -11,13 +12,13 @@ export default function GlobalNotFound() {
         </p>
         <div className="flex items-center justify-center gap-3">
           <Link
-            href="/overview"
+            href={ROUTES.dashboard.overview}
             className="px-5 py-2.5 rounded-lg bg-primary text-on-primary text-xs font-bold uppercase tracking-widest"
           >
             Go to Overview
           </Link>
           <Link
-            href="/traces"
+            href={ROUTES.dashboard.traces}
             className="px-5 py-2.5 rounded-lg border border-outline-variant/30 text-xs font-bold uppercase tracking-widest text-secondary"
           >
             Open Traces

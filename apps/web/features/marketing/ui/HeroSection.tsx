@@ -1,5 +1,6 @@
 import { Network, Database, Calendar, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
+import { ROUTES } from '@/shared/routes/routes';
 
 export function HeroSection() {
   return (
@@ -27,7 +28,7 @@ export function HeroSection() {
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Link href="/register" className="bg-primary text-white px-10 py-5 rounded-xl text-lg font-bold transition-all shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] hover:scale-[1.02] hover:bg-primary flex items-center justify-center">
+          <Link href={ROUTES.auth.register} className="bg-primary text-white px-10 py-5 rounded-xl text-lg font-bold transition-all shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] hover:scale-[1.02] hover:bg-primary flex items-center justify-center">
             Start Free Trial
           </Link>
           <button className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-xl text-lg font-semibold transition-all hover:bg-white/10">

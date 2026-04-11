@@ -9,6 +9,7 @@ import { useAppDispatch } from '@/lib/redux/hooks';
 import { setTokens } from '@/features/auth/state/auth.slice';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
+import { ROUTES } from '@/shared/routes/routes';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,7 +42,7 @@ export default function LoginPage() {
       const projects = await projectsService.listMine();
       setProjects(projects);
       
-      router.push('/overview');
+      router.push(ROUTES.dashboard.overview);
     } catch (error: unknown) {
       setError(getErrorMessage(error, 'Invalid email or password.'));
     } finally {
@@ -94,7 +95,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <div className="flex justify-between items-center px-1">
               <label className="text-xs uppercase tracking-widest text-on-surface-variant font-semibold">Password</label>
-              <Link href="/forgot-password" className="text-[10px] uppercase tracking-wider text-primary hover:text-secondary transition-colors font-bold">
+              <Link href={ROUTES.auth.forgotPassword} className="text-[10px] uppercase tracking-wider text-primary hover:text-secondary transition-colors font-bold">
                 Forgot password?
               </Link>
             </div>
@@ -125,7 +126,7 @@ export default function LoginPage() {
         <footer className="mt-8 text-center">
           <p className="text-sm text-outline-variant">
             Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary font-semibold hover:underline decoration-primary/30 underline-offset-4">
+            <Link href={ROUTES.auth.register} className="text-primary font-semibold hover:underline decoration-primary/30 underline-offset-4">
               Sign up
             </Link>
           </p>

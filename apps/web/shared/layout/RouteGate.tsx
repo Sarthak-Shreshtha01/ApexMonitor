@@ -5,8 +5,9 @@ import { usePathname, useRouter } from 'next/navigation';
 import { authService } from '@/features/auth/api/auth.service';
 import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
 import { setTokens } from '@/features/auth/state/auth.slice';
+import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
 
-const PUBLIC_PATHS = ['/', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
+const isPublicPath = (path: string) => (PUBLIC_PATHS as readonly string[]).includes(path);
 
 export function RouteGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -21,8 +22,7 @@ export function RouteGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isHydrated) return;
 
-    const isPublicPath = PUBLIC_PATHS.includes(pathname);
-    if (isPublicPath) return;
+    if (isPublicPath(pathname)) return;
 
     if (accessToken || !refreshToken) return;
 
@@ -61,10 +61,10 @@ export function RouteGate({ children }: { children: ReactNode }) {
     if (!isHydrated) return;
     if (isRestoringSession) return;
 
-    const isPublicPath = PUBLIC_PATHS.includes(pathname);
+    const isCurrentPathPublic = isPublicPath(pathname);
 
-    if (!isPublicPath && !accessToken && !refreshToken) {
-      router.replace('/login');
+    if (!isCurrentPathPublic && !accessToken && !refreshToken) {
+      router.replace(ROUTES.auth.login);
     }
   }, [accessToken, isHydrated, isRestoringSession, pathname, refreshToken, router]);
 
@@ -72,7 +72,7 @@ export function RouteGate({ children }: { children: ReactNode }) {
     return null;
   }
 
-  if (!PUBLIC_PATHS.includes(pathname) && !accessToken && !refreshToken) {
+  if (!isPublicPath(pathname) && !accessToken && !refreshToken) {
     return null;
   }
 

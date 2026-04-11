@@ -6,6 +6,7 @@ import { Copy, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { logsService, LogsQuery, LogItem, StatusClass } from '../api/logs.service';
+import { ROUTES } from '@/shared/routes/routes';
 
 const PAGE_SIZE = 25;
 
@@ -269,7 +270,7 @@ function LogRow({
                   <Copy className="w-4 h-4" /> Copy JSON
                 </button>
                 <Link
-                  href={`/traces/${log.reqId}`}
+                  href={ROUTES.dashboard.traceDetail(log.reqId)}
                   onClick={(event) => event.stopPropagation()}
                   className="text-secondary hover:text-primary transition-colors text-xs font-bold"
                 >

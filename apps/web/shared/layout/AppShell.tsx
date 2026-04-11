@@ -13,19 +13,22 @@ import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore, type DashboardTimeframe } from '@/features/dashboard/state/dashboard.store';
 import { userService } from '@/features/settings/api/user.service';
 import { apiClient } from '@/shared/api/apiClient';
+import { ENDPOINTS } from '@/shared/api/endpoints';
 import { useAppDispatch } from '@/lib/redux/hooks';
 import { clearAuth } from '@/features/auth/state/auth.slice';
+import { ROUTES } from '@/shared/routes/routes';
 
 const NAV_LINKS = [
-  { name: 'Overview', href: '/overview', icon: LayoutDashboard },
-  { name: 'Live Traffic', href: '/live-traffic', icon: Radio },
-  { name: 'Logs', href: '/logs', icon: ScrollText },
-  { name: 'Traces', href: '/traces', icon: GitBranch },
-  { name: 'Keys', href: '/keys', icon: Key },
-  { name: 'Alerts', href: '/alerts', icon: Bell },
-  { name: 'Insights', href: '/ai-insights', icon: LineChart },
-  { name: 'Billing', href: '/billing', icon: CreditCard },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Overview', href: ROUTES.dashboard.overview, icon: LayoutDashboard },
+  { name: 'Web Analytics', href: ROUTES.dashboard.webAnalytics, icon: LayoutDashboard },
+  { name: 'Live Traffic', href: ROUTES.dashboard.liveTraffic, icon: Radio },
+  { name: 'Logs', href: ROUTES.dashboard.logs, icon: ScrollText },
+  { name: 'Traces', href: ROUTES.dashboard.traces, icon: GitBranch },
+  { name: 'Keys', href: ROUTES.dashboard.keys, icon: Key },
+  { name: 'Alerts', href: ROUTES.dashboard.alerts, icon: Bell },
+  { name: 'Insights', href: ROUTES.dashboard.insights, icon: LineChart },
+  { name: 'Billing', href: ROUTES.dashboard.billing, icon: CreditCard },
+  { name: 'Settings', href: ROUTES.dashboard.settings, icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -50,17 +53,17 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiClient.post('/api/v1/users/logout', {});
+      await apiClient.post(ENDPOINTS.auth.logout, {});
     },
     onSuccess: () => {
       dispatch(clearAuth());
       clearProjects();
-      router.push('/login');
+      router.push(ROUTES.auth.login);
     },
     onError: () => {
       dispatch(clearAuth());
       clearProjects();
-      router.push('/login');
+      router.push(ROUTES.auth.login);
     },
   });
 
@@ -206,7 +209,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <p className="text-[10px] text-secondary truncate">{profileQuery.data?.email || ''}</p>
                   </div>
                   <Link
-                    href="/settings"
+                    href={ROUTES.dashboard.settings}
                     onClick={() => setIsDropdownOpen(false)}
                     className="flex items-center gap-3 px-4 py-2 text-xs text-secondary hover:text-on-surface hover:bg-surface-variant transition-colors"
                   >

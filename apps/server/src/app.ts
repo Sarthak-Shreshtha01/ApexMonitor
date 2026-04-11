@@ -13,6 +13,7 @@ import { logsRouter } from '@modules/logs/logs.router';
 import { insightsRouter } from '@modules/insights/insights.router';
 import { keysRouter } from '@modules/keys/keys.router';
 import { tracesRouter } from '@modules/traces/traces.router';
+import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants/endpoints';
 
 export function createApp(): Application {
   const app = express();
@@ -22,24 +23,24 @@ export function createApp(): Application {
   app.use(compression());
   app.use(express.json({ limit: '2mb' })); // Max batch size protection
 
-  app.get('/health', (_, res) => {
+  app.get(HEALTH_ENDPOINT, (_, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   // Mount API v1 Routes
   const v1 = express.Router();
-  v1.use('/auth', authRouter);
-  v1.use('/ingest', ingestRouter);
-  v1.use('/metrics', metricsRouter);
-  v1.use('/users', userRouter);
-  v1.use('/billing', billingRouter);
-  v1.use('/projects', projectsRouter);
-  v1.use('/logs', logsRouter);
-  v1.use('/insights', insightsRouter);
-  v1.use('/keys', keysRouter);
-  v1.use('/traces', tracesRouter);
+  v1.use(SERVER_ENDPOINTS.modules.auth, authRouter);
+  v1.use(SERVER_ENDPOINTS.modules.ingest, ingestRouter);
+  v1.use(SERVER_ENDPOINTS.modules.metrics, metricsRouter);
+  v1.use(SERVER_ENDPOINTS.modules.users, userRouter);
+  v1.use(SERVER_ENDPOINTS.modules.billing, billingRouter);
+  v1.use(SERVER_ENDPOINTS.modules.projects, projectsRouter);
+  v1.use(SERVER_ENDPOINTS.modules.logs, logsRouter);
+  v1.use(SERVER_ENDPOINTS.modules.insights, insightsRouter);
+  v1.use(SERVER_ENDPOINTS.modules.keys, keysRouter);
+  v1.use(SERVER_ENDPOINTS.modules.traces, tracesRouter);
   
-  app.use('/api/v1', v1);
+  app.use(API_PREFIX, v1);
 
   // Fallback Error Handler (We will build a proper one in a later step)
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { PUBLIC_PATHS } from '@/shared/routes/routes';
 
-const PUBLIC_PATHS = ['/', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
+const isPublicPath = (path: string) => (PUBLIC_PATHS as readonly string[]).includes(path);
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (PUBLIC_PATHS.includes(pathname)) {
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 

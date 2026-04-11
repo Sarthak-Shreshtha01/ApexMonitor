@@ -9,6 +9,7 @@ import { useAppDispatch } from '@/lib/redux/hooks';
 import { setTokens } from '@/features/auth/state/auth.slice';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
+import { ROUTES } from '@/shared/routes/routes';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,7 +44,7 @@ export default function RegisterPage() {
       const projects = await projectsService.listMine();
       setProjects(projects);
 
-      router.push('/overview');
+      router.push(ROUTES.dashboard.overview);
     } catch (error: unknown) {
       setError(getErrorMessage(error, 'Failed to create account.'));
     } finally {
@@ -132,9 +133,9 @@ export default function RegisterPage() {
           <div className="mt-8 text-center">
             <p className="text-[12px] text-on-surface-variant leading-relaxed">
               By signing up, you agree to our{' '}
-              <Link href="/terms" className="text-primary hover:underline font-medium transition-all">Terms of Service</Link>{' '}
+              <Link href={ROUTES.legal.terms} className="text-primary hover:underline font-medium transition-all">Terms of Service</Link>{' '}
               and{' '}
-              <Link href="/privacy" className="text-primary hover:underline font-medium transition-all">Privacy Policy</Link>.
+              <Link href={ROUTES.legal.privacy} className="text-primary hover:underline font-medium transition-all">Privacy Policy</Link>.
             </p>
           </div>
         </div>
@@ -142,7 +143,7 @@ export default function RegisterPage() {
         <div className="mt-8 text-center">
           <p className="text-sm text-on-surface-variant">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary font-semibold hover:text-primary-container transition-colors ml-1">
+            <Link href={ROUTES.auth.login} className="text-primary font-semibold hover:text-primary-container transition-colors ml-1">
               Log in
             </Link>
           </p>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ROUTES } from '@/shared/routes/routes';
 
 export function PublicNavbar() {
   return (
@@ -30,13 +31,13 @@ export function PublicNavbar() {
       </div>
       <div className="flex items-center gap-4">
         <Link
-          href="/login"
+          href={ROUTES.auth.login}
           className="text-xs font-medium uppercase tracking-widest text-on-surface hover:bg-surface-container-high px-4 py-2 rounded-lg transition-all"
         >
           Sign In
         </Link>
         <Link
-          href="/register"
+          href={ROUTES.auth.register}
           className="bg-primary hover:shadow-[0_0_20px_-5px_rgba(255,69,0,0.5)] text-on-primary text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded-lg transition-all duration-300"
         >
           Start Free
