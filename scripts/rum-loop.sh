@@ -34,6 +34,13 @@ minutes_ago_iso() {
   node -e "const minutes = Number(process.argv[1]); console.log(new Date(Date.now() - minutes * 60_000).toISOString())" "$1"
 }
 
+random_past_iso() {
+  local min_minutes max_minutes
+  min_minutes="$1"
+  max_minutes="$2"
+  node -e "const min=Number(process.argv[1]); const max=Number(process.argv[2]); const mins=Math.random()*(max-min)+min; const ts=Date.now()-Math.floor(mins*60_000); console.log(new Date(ts).toISOString())" "$min_minutes" "$max_minutes"
+}
+
 login() {
   local auth_resp
   auth_resp=$(curl -sS -X POST "$BASE_URL/api/v1/users/login" \
@@ -116,16 +123,16 @@ send_api_batch() {
   l9=$(rand_int 100 900)
   l10=$(rand_int 20 140)
 
-  t1=$(minutes_ago_iso 12)
-  t2=$(minutes_ago_iso 11)
-  t3=$(minutes_ago_iso 10)
-  t4=$(minutes_ago_iso 9)
-  t5=$(minutes_ago_iso 8)
-  t6=$(minutes_ago_iso 7)
-  t7=$(minutes_ago_iso 6)
-  t8=$(minutes_ago_iso 5)
-  t9=$(minutes_ago_iso 4)
-  t10=$(minutes_ago_iso 3)
+  t1=$(random_past_iso 2 30)
+  t2=$(random_past_iso 2 30)
+  t3=$(random_past_iso 2 30)
+  t4=$(random_past_iso 2 30)
+  t5=$(random_past_iso 2 30)
+  t6=$(random_past_iso 2 30)
+  t7=$(random_past_iso 2 30)
+  t8=$(random_past_iso 2 30)
+  t9=$(random_past_iso 2 30)
+  t10=$(random_past_iso 2 30)
 
   batch=$(cat <<JSON
 {
@@ -187,16 +194,16 @@ send_web_batch() {
   ref9=$(pick "https://reddit.com/r/devops" "https://stackoverflow.com" "direct")
   ref10=$(pick "https://newsletter.pulseapi.io" "https://google.com/search?q=pulseapi" "https://github.com")
 
-  t1=$(minutes_ago_iso 12)
-  t2=$(minutes_ago_iso 11)
-  t3=$(minutes_ago_iso 10)
-  t4=$(minutes_ago_iso 9)
-  t5=$(minutes_ago_iso 8)
-  t6=$(minutes_ago_iso 7)
-  t7=$(minutes_ago_iso 6)
-  t8=$(minutes_ago_iso 5)
-  t9=$(minutes_ago_iso 4)
-  t10=$(minutes_ago_iso 3)
+  t1=$(random_past_iso 2 30)
+  t2=$(random_past_iso 2 30)
+  t3=$(random_past_iso 2 30)
+  t4=$(random_past_iso 2 30)
+  t5=$(random_past_iso 2 30)
+  t6=$(random_past_iso 2 30)
+  t7=$(random_past_iso 2 30)
+  t8=$(random_past_iso 2 30)
+  t9=$(random_past_iso 2 30)
+  t10=$(random_past_iso 2 30)
 
   batch=$(cat <<JSON
 {

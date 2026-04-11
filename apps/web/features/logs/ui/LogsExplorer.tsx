@@ -1,10 +1,12 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Search } from 'lucide-react';
 import Link from 'next/link';
+import { io } from 'socket.io-client';
 import { useProjectStore } from '@/features/projects/state/project.store';
+import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { logsService, LogsQuery, LogItem, StatusClass } from '../api/logs.service';
 import { ROUTES } from '@/shared/routes/routes';
 
@@ -26,6 +28,7 @@ const EMPTY_FILTERS: DraftFilters = {
 
 export function LogsExplorer() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
+  const timeframe = useDashboardStore((state) => state.timeframe);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftFilters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<DraftFilters>(EMPTY_FILTERS);
@@ -34,22 +37,45 @@ export function LogsExplorer() {
   const queryParams: LogsQuery | null = useMemo(() => {
     if (!activeProjectId) return null;
 
+    const range = getTimeRange(timeframe);
+
     return {
       projectId: activeProjectId,
       method: applied.method || undefined,
       statusClass: applied.statusClass || undefined,
       endpoint: applied.endpoint || undefined,
       search: applied.search || undefined,
+      from: range.from,
+      to: range.to,
       page,
       limit: PAGE_SIZE,
     };
-  }, [activeProjectId, applied, page]);
+  }, [activeProjectId, applied, page, timeframe]);
 
   const logsQuery = useQuery({
     queryKey: ['logs', queryParams],
     queryFn: () => logsService.list(queryParams as LogsQuery),
     enabled: !!queryParams,
+    refetchInterval: 10000,
   });
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+
+    const socket = io(wsUrl, { transports: ['websocket'], withCredentials: true });
+    socket.on('connect', () => socket.emit('join', { projectId: activeProjectId }));
+    socket.on('pulse:live', (payload: { projectId: string }) => {
+      if (payload.projectId === activeProjectId) {
+        void logsQuery.refetch();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [activeProjectId, logsQuery.refetch]);
 
   const onApplyFilters = (event: FormEvent) => {
     event.preventDefault();
@@ -205,6 +231,21 @@ export function LogsExplorer() {
       </div>
     </div>
   );
+}
+
+function getTimeRange(timeframe: '1h' | '6h' | '24h' | '7d') {
+  const now = new Date();
+  const from = new Date(now);
+
+  if (timeframe === '1h') from.setHours(from.getHours() - 1);
+  if (timeframe === '6h') from.setHours(from.getHours() - 6);
+  if (timeframe === '24h') from.setHours(from.getHours() - 24);
+  if (timeframe === '7d') from.setDate(from.getDate() - 7);
+
+  return {
+    from: from.toISOString(),
+    to: now.toISOString(),
+  };
 }
 
 function LogRow({

@@ -138,7 +138,7 @@ export function LiveThroughputCard({
                     className="absolute top-6 bg-surface-container border border-outline-variant px-2 py-1 rounded-md text-[10px] font-mono z-20"
                     style={{ left: `calc(${(activePoint.x / 1000) * 100}% - 40px)` }}
                   >
-                    <div className="text-primary">RPS: {(activePoint.requestCount / 60).toFixed(1)}</div>
+                    <div className="text-primary">REQ: {activePoint.requestCount}</div>
                     <div className="text-primary-foreground">LAT: {activePoint.avgLatency.toFixed(1)}ms</div>
                     <div className="text-tertiary">ERR: {activePoint.errorRatio.toFixed(2)}%</div>
                   </div>

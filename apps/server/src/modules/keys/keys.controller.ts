@@ -1,9 +1,30 @@
 import { NextFunction, Request, Response } from 'express';
-import { CreateKeyDto, ListKeysQueryDto, RevokeKeyQueryDto } from './dto/keys.dto';
+import { CreateKeyDto, KeysStatsQueryDto, ListKeysQueryDto, RevokeKeyQueryDto } from './dto/keys.dto';
 import { KeysService } from './keys.service';
 
 export class KeysController {
   private service = new KeysService();
+
+  stats = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
+      const query = KeysStatsQueryDto.parse(req.query);
+      const result = await this.service.stats(userId, query);
+      res.status(200).json(result);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
+        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        return;
+      }
+
+      next(error);
+    }
+  };
 
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {

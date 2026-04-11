@@ -11,6 +11,7 @@ export const ENDPOINTS = {
   metrics: {
     overview: '/api/v1/metrics/overview',
     latency: '/api/v1/metrics/latency',
+    operations: '/api/v1/metrics/operations',
     rps: '/api/v1/metrics/rps',
     endpoints: '/api/v1/metrics/endpoints',
   },
@@ -43,6 +44,7 @@ export const ENDPOINTS = {
   },
   keys: {
     list: '/api/v1/keys',
+    stats: '/api/v1/keys/stats',
     create: '/api/v1/keys',
     revoke: (keyId: number) => `/api/v1/keys/${keyId}`,
   }

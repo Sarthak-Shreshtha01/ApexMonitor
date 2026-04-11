@@ -26,10 +26,17 @@ export function useLiveTraffic() {
   const projectId = useProjectStore((state) => state.activeProjectId);
   const timeframe = useDashboardStore((state) => state.timeframe);
   const overviewQuery = useMetricsOverview(projectId, timeframe);
+  const range = getTimeRange(timeframe);
 
   const logsQuery = useQuery({
-    queryKey: ['traffic', 'critical-logs', projectId],
-    queryFn: () => logsService.list({ projectId: projectId!, page: 1, limit: 40 }),
+    queryKey: ['traffic', 'critical-logs', projectId, timeframe],
+    queryFn: () => logsService.list({
+      projectId: projectId!,
+      page: 1,
+      limit: 40,
+      from: range.from,
+      to: range.to,
+    }),
     enabled: !!projectId,
     refetchInterval: 6000,
   });
@@ -113,5 +120,20 @@ export function useLiveTraffic() {
     isSocketConnected,
     criticalLogs,
     mergedInsights,
+  };
+}
+
+function getTimeRange(timeframe: '1h' | '6h' | '24h' | '7d') {
+  const now = new Date();
+  const from = new Date(now);
+
+  if (timeframe === '1h') from.setHours(from.getHours() - 1);
+  if (timeframe === '6h') from.setHours(from.getHours() - 6);
+  if (timeframe === '24h') from.setHours(from.getHours() - 24);
+  if (timeframe === '7d') from.setDate(from.getDate() - 7);
+
+  return {
+    from: from.toISOString(),
+    to: now.toISOString(),
   };
 }

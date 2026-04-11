@@ -7,6 +7,7 @@ const router = Router();
 const controller = new KeysController();
 
 router.get(SERVER_ENDPOINTS.keys.root, requireAuth, controller.list);
+router.get(SERVER_ENDPOINTS.keys.stats, requireAuth, controller.stats);
 router.post(SERVER_ENDPOINTS.keys.root, requireAuth, controller.create);
 router.delete(SERVER_ENDPOINTS.keys.key, requireAuth, controller.revoke);
 

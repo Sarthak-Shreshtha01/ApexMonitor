@@ -9,6 +9,8 @@ export interface LogsQuery {
   statusClass?: StatusClass;
   endpoint?: string;
   search?: string;
+  from?: string;
+  to?: string;
   page: number;
   limit: number;
 }

@@ -1,15 +1,16 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Activity, AlertTriangle, Gauge, Globe } from 'lucide-react';
+import { Activity, AlertTriangle, Gauge, Globe, RefreshCcw } from 'lucide-react';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
-import { useMetricsOverview } from '@/features/metrics/hooks/useMetrics';
+import { useMetricsOverview, useMetricsOperations } from '@/features/metrics/hooks/useMetrics';
 
 export function OverviewExplorer() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const timeframe = useDashboardStore((state) => state.timeframe);
   const overviewQuery = useMetricsOverview(activeProjectId, timeframe);
+  const operationsQuery = useMetricsOperations(activeProjectId, timeframe);
 
   const summary = overviewQuery.data?.summary;
   const series = useMemo(() => overviewQuery.data?.series ?? [], [overviewQuery.data?.series]);
@@ -74,18 +75,21 @@ export function OverviewExplorer() {
   }, [series]);
 
   const statusModel = useMemo(() => {
-    if (!summary) {
+    const breakdown = operationsQuery.data?.statusBreakdown;
+    if (!breakdown) {
       return { ok: 0, client: 0, server: 0, redirect: 0 };
     }
 
-    const totalError = summary.errorRate;
-    const client = Number((totalError * 0.7).toFixed(2));
-    const server = Number((totalError * 0.3).toFixed(2));
-    const redirect = Number(Math.min(0.8, totalError > 0 ? 0.4 : 0.2).toFixed(2));
-    const ok = Number(Math.max(0, 100 - client - server - redirect).toFixed(2));
+    const ok = Number(breakdown.ok2xx.rate.toFixed(2));
+    const redirect = Number(breakdown.redirect3xx.rate.toFixed(2));
+    const client = Number(breakdown.client4xx.rate.toFixed(2));
+    const server = Number(breakdown.server5xx.rate.toFixed(2));
 
     return { ok, client, server, redirect };
-  }, [summary]);
+  }, [operationsQuery.data?.statusBreakdown]);
+
+  const topRegions = operationsQuery.data?.regions ?? [];
+  const clusterNodes = operationsQuery.data?.nodes ?? [];
 
   if (!activeProjectId) {
     return (
@@ -104,17 +108,28 @@ export function OverviewExplorer() {
           <h2 className="text-xl font-semibold tracking-tight text-white uppercase">Overview</h2>
           <p className="text-xs text-secondary font-mono">Project {activeProjectId} · Timeframe {timeframe}</p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            overviewQuery.refetch();
+            operationsQuery.refetch();
+          }}
+          className="inline-flex items-center gap-2 px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest border border-outline-variant text-secondary hover:text-white hover:bg-surface-container-high"
+        >
+          <RefreshCcw className="w-3.5 h-3.5" />
+          Refresh
+        </button>
       </div>
 
-      {overviewQuery.isLoading ? (
+      {overviewQuery.isLoading || operationsQuery.isLoading ? (
         <div className="bg-surface-container p-6 border border-outline-variant rounded-lg text-primary-foreground">Loading overview metrics...</div>
       ) : null}
 
-      {overviewQuery.isError ? (
+      {overviewQuery.isError || operationsQuery.isError ? (
         <div className="bg-error/10 border border-error/30 rounded-lg p-6 text-error">Failed to load overview metrics. Please retry.</div>
       ) : null}
 
-      {!overviewQuery.isLoading && !overviewQuery.isError && summary ? (
+      {!overviewQuery.isLoading && !operationsQuery.isLoading && !overviewQuery.isError && !operationsQuery.isError && summary ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <MetricCard title="Requests (RPS)" value={summary.rps.toFixed(2)} sub={`${formatCount(summary.totalRequests)} total`} accent="orange" />
@@ -180,7 +195,7 @@ export function OverviewExplorer() {
                         className="absolute -top-11 bg-surface-container-high border border-outline-variant px-2 py-1 rounded-md text-[10px] whitespace-nowrap z-20"
                         style={{ left: `calc(${(displayedPoint.x / 1000) * 100}% - 30px)` }}
                       >
-                        <div className="font-mono text-primary">RPS: {(displayedPoint.requestCount / 60).toFixed(1)}</div>
+                        <div className="font-mono text-primary">Requests: {formatCount(displayedPoint.requestCount)}</div>
                         <div className="font-mono text-tertiary">Err: {displayedPoint.errorRatio.toFixed(2)}%</div>
                         <div className="font-mono text-secondary">{new Date(displayedPoint.bucket).toLocaleTimeString()}</div>
                       </div>
@@ -290,31 +305,33 @@ export function OverviewExplorer() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 pb-10">
-            <div className="md:col-span-8 bg-surface-container border border-outline-variant h-64 relative overflow-hidden rounded-lg">
-              <div className="absolute top-4 left-4 z-10">
+            <div className="md:col-span-8 bg-surface-container border border-outline-variant h-64 relative overflow-hidden rounded-lg p-5">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-white">Global Ingress Distribution</h3>
+                <span className="text-[10px] text-secondary font-mono">Top regions by requests</span>
               </div>
-              <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle, rgba(255,69,0,0.25) 1px, transparent 1px)', backgroundSize: '10px 10px' }} />
-              <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-70">
-                <circle cx="30%" cy="40%" fill="#ff4500" r="4">
-                  <animate attributeName="r" values="3;4.5;3" dur="1.8s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="70%" cy="60%" fill="#ff4500" r="4">
-                  <animate attributeName="r" values="3;4.5;3" dur="2.1s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="50%" cy="30%" fill="#ff4500" r="4" />
-                <path d="M 30% 40% L 50% 30% L 70% 60%" fill="none" stroke="#ff4500" strokeDasharray="4" strokeWidth="1" />
-              </svg>
-              <div className="absolute bottom-4 right-4 bg-app/85 p-3 border border-outline-variant rounded-md">
-                <div className="text-[10px] text-secondary uppercase font-bold mb-1">Active Edge Nodes</div>
-                <div className="flex gap-2">
-                  <div className="w-8 h-1 bg-primary" />
-                  <div className="w-8 h-1 bg-primary" />
-                  <div className="w-8 h-1 bg-surface-container-high" />
-                  <div className="w-8 h-1 bg-primary" />
-                  <div className="w-8 h-1 bg-primary" />
-                </div>
-                <div className="mt-2 text-[11px] font-mono text-white">PDX, LHR, FRA, NRT</div>
+
+              <div className="space-y-3">
+                {topRegions.slice(0, 6).map((region) => {
+                  const maxRequests = Math.max(...topRegions.map((item) => item.requests), 1);
+                  const width = Math.max(4, Math.round((region.requests / maxRequests) * 100));
+
+                  return (
+                    <div key={region.region}>
+                      <div className="flex justify-between items-center text-[10px] font-mono mb-1">
+                        <span className="text-white">{region.region}</span>
+                        <span className="text-secondary">{formatCount(region.requests)} req · {region.errorRate.toFixed(2)}% err</span>
+                      </div>
+                      <div className="h-1.5 bg-app border border-outline-variant overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${width}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {topRegions.length === 0 ? (
+                  <div className="h-40 grid place-items-center text-secondary text-sm">No regional ingress data for selected timeframe.</div>
+                ) : null}
               </div>
             </div>
 
@@ -322,13 +339,9 @@ export function OverviewExplorer() {
               <div>
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-white mb-4">Cluster Health</h3>
                 <div className="space-y-3">
-                  {[
-                    { node: 'node-us-west-01', status: 'ok' },
-                    { node: 'node-eu-cent-04', status: 'ok' },
-                    { node: 'node-ap-ne-02', status: 'warn' },
-                  ].map((item) => (
-                    <div key={item.node} className="flex items-center justify-between p-2 bg-app border border-outline-variant">
-                      <span className="text-[11px] font-mono text-secondary">{item.node}</span>
+                  {clusterNodes.slice(0, 4).map((item) => (
+                    <div key={item.nodeId} className="flex items-center justify-between p-2 bg-app border border-outline-variant">
+                      <span className="text-[11px] font-mono text-secondary">{item.nodeId}</span>
                       {item.status === 'ok' ? (
                         <Activity className="w-3.5 h-3.5 text-primary" />
                       ) : (
@@ -336,6 +349,9 @@ export function OverviewExplorer() {
                       )}
                     </div>
                   ))}
+                  {clusterNodes.length === 0 ? (
+                    <div className="text-[11px] font-mono text-secondary p-2 bg-app border border-outline-variant">No node health data in selected range.</div>
+                  ) : null}
                 </div>
               </div>
 

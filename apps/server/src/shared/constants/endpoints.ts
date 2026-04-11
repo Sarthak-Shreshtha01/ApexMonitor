@@ -33,6 +33,7 @@ export const SERVER_ENDPOINTS = {
   metrics: {
     overview: '/overview',
     latency: '/latency',
+    operations: '/operations',
   },
   ingest: {
     root: '/',
@@ -61,6 +62,7 @@ export const SERVER_ENDPOINTS = {
   },
   keys: {
     root: '/',
+    stats: '/stats',
     key: '/:keyId',
   },
   traces: {

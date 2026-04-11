@@ -5,6 +5,7 @@ type TrafficPoint = {
 
 type TrafficChartProps = {
   points: TrafficPoint[];
+  timeframe: '1h' | '6h' | '24h' | '7d';
 };
 
 const buildPath = (values: TrafficPoint[]): string => {
@@ -20,7 +21,7 @@ const buildPath = (values: TrafficPoint[]): string => {
     .join(' ');
 };
 
-export function TrafficChart({ points }: TrafficChartProps) {
+export function TrafficChart({ points, timeframe }: TrafficChartProps) {
   const linePath = buildPath(points);
   const areaPath = linePath
     ? `${linePath} L1000,400 L0,400 Z`
@@ -29,15 +30,11 @@ export function TrafficChart({ points }: TrafficChartProps) {
   return (
     <section className="bg-[#131313] border border-[#242424] p-8 rounded-lg">
       <div className="flex justify-between items-center mb-8">
-        <h2 className="text-lg font-bold text-white">24h Traffic Distribution</h2>
+        <h2 className="text-lg font-bold text-white">{timeframe.toUpperCase()} Traffic Distribution</h2>
         <div className="flex gap-4">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 bg-[#FF4500] rounded-sm"></div>
             <span className="text-[10px] font-mono text-zinc-400">PAGE VIEWS</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-zinc-700 rounded-sm"></div>
-            <span className="text-[10px] font-mono text-zinc-400">PREV PERIOD</span>
           </div>
         </div>
       </div>

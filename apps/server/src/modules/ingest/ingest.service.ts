@@ -83,8 +83,23 @@ export class IngestService {
     );
 
     // 4. Increment Live WebSocket Counters
-    await redis.incrby(`live:${dto.projectId}:rps`, dto.logs.length);
-    await redis.expire(`live:${dto.projectId}:rps`, 5);
+    const totalErrors = normalizedLogs.reduce((sum, log) => sum + (log.statusCode >= 400 ? 1 : 0), 0);
+    const totalLatency = normalizedLogs.reduce((sum, log) => sum + log.latencyMs, 0);
+
+    await redis.incrby(`live:${dto.projectId}:requests`, normalizedLogs.length);
+    await redis.expire(`live:${dto.projectId}:requests`, 5);
+
+    await redis.incrby(`live:${dto.projectId}:errors`, totalErrors);
+    await redis.expire(`live:${dto.projectId}:errors`, 5);
+
+    await redis.incrbyfloat(`live:${dto.projectId}:latency_total`, totalLatency);
+    await redis.expire(`live:${dto.projectId}:latency_total`, 5);
+
+    const endpointKey = `live:${dto.projectId}:endpoints`;
+    for (const log of normalizedLogs) {
+      await redis.zincrby(endpointKey, 1, `${log.method} ${log.endpoint}`);
+    }
+    await redis.expire(endpointKey, 8);
 
     return { received: normalizedLogs.length, batchId };
   }

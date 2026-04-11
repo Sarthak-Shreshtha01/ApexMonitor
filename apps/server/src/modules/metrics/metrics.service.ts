@@ -57,6 +57,21 @@ export class MetricsService {
     return data;
   }
 
+  async getOperations(query: MetricsQuery, userId: string) {
+    await this.assertProjectAccess(userId, query.projectId);
+
+    const redis = getRedis();
+    const cacheKey = `metrics:${query.projectId}:operations:${query.timeframe}`;
+    const cachedData = await redis.get(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+
+    const data = await this.repository.getOperations(query);
+    await redis.setex(cacheKey, 15, JSON.stringify(data));
+    return data;
+  }
+
   /**
    * Scans and deletes all metric cache keys for a specific project.
    */

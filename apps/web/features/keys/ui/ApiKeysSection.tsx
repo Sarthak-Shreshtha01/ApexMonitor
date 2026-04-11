@@ -3,13 +3,18 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AlertTriangle, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
+import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { keysService } from '../api/keys.service';
+import { ROUTES } from '@/shared/routes/routes';
 
 export function ApiKeysSection() {
   const queryClient = useQueryClient();
   const setProjectsInStore = useProjectStore((state) => state.setProjects);
+  const activeProjectId = useProjectStore((state) => state.activeProjectId);
+  const timeframe = useDashboardStore((state) => state.timeframe);
 
   const [projectDialogOpen, setProjectDialogOpen] = useState(false);
   const [keyDialogProjectId, setKeyDialogProjectId] = useState<string | null>(null);
@@ -28,6 +33,11 @@ export function ApiKeysSection() {
     queryFn: () => keysService.list(),
   });
 
+  const statsQuery = useQuery({
+    queryKey: ['keys', 'stats', activeProjectId ?? 'all', timeframe],
+    queryFn: () => keysService.stats(activeProjectId ?? undefined, timeframe),
+  });
+
   const createProjectMutation = useMutation({
     mutationFn: (name: string) => projectsService.create(name),
     onSuccess: async () => {
@@ -36,6 +46,7 @@ export function ApiKeysSection() {
         queryFn: projectsService.listMine,
       });
       setProjectsInStore(projects);
+      await queryClient.invalidateQueries({ queryKey: ['keys', 'stats'] });
       setProjectDialogOpen(false);
       setProjectNameInput('');
     },
@@ -49,6 +60,7 @@ export function ApiKeysSection() {
       setKeyDialogProjectId(null);
       setKeyLabelInput('');
       await queryClient.invalidateQueries({ queryKey: ['keys', 'list', 'all-projects'] });
+      await queryClient.invalidateQueries({ queryKey: ['keys', 'stats'] });
     },
   });
 
@@ -56,6 +68,7 @@ export function ApiKeysSection() {
     mutationFn: (input: { keyId: number; projectId: string }) => keysService.revoke(input.keyId, input.projectId),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['keys', 'list', 'all-projects'] });
+      await queryClient.invalidateQueries({ queryKey: ['keys', 'stats'] });
     },
   });
 
@@ -108,8 +121,10 @@ export function ApiKeysSection() {
     await createKeyMutation.mutateAsync({ projectId: keyDialogProjectId, label });
   };
 
-  const totalKeys = keysQuery.data?.length ?? 0;
-  const criticalProjects = groupedKeys.filter((group) => group.plan !== 'free').length;
+  const totalKeys = statsQuery.data?.totalKeys ?? 0;
+  const criticalProjects = statsQuery.data?.criticalProjects ?? 0;
+  const healthyRate = statsQuery.data?.healthyRate ?? 100;
+  const staleKeys = statsQuery.data?.staleKeys ?? 0;
 
   return (
     <section className="space-y-10">
@@ -220,6 +235,7 @@ export function ApiKeysSection() {
                       <div className="col-span-1 text-right">
                         <button
                           onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
+                          disabled={revokeKeyMutation.isPending}
                           className="text-secondary hover:text-error transition-colors"
                           type="button"
                         >
@@ -238,30 +254,30 @@ export function ApiKeysSection() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
         <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
           <div className="text-secondary uppercase text-[10px] font-bold tracking-[0.2em] mb-4">Network Health</div>
-          <div className="text-4xl font-mono font-bold mb-2">99.98%</div>
-          <p className="text-xs text-secondary">Service availability across all project node clusters in last 24h.</p>
+          <div className="text-4xl font-mono font-bold mb-2">{healthyRate.toFixed(2)}%</div>
+          <p className="text-xs text-secondary">Key hygiene health in {timeframe} window. {staleKeys} stale key(s) detected.</p>
         </div>
 
         <div className="bg-surface-container-low border border-outline-variant rounded-xl p-6">
           <div className="text-secondary uppercase text-[10px] font-bold tracking-[0.2em] mb-4">Keys Provisioned</div>
           <div className="text-4xl font-mono font-bold mb-2">{totalKeys}</div>
-          <p className="text-xs text-secondary">{criticalProjects} critical project(s), {Math.max(0, groupedKeys.length - criticalProjects)} non-prod project(s).</p>
+          <p className="text-xs text-secondary">{criticalProjects} critical project(s), {Math.max(0, (statsQuery.data?.projectScopeCount ?? groupedKeys.length) - criticalProjects)} non-prod project(s).</p>
         </div>
 
         <div className="bg-primary rounded-xl p-6 text-on-primary relative overflow-hidden">
           <div className="text-black/70 uppercase text-[10px] font-bold tracking-[0.2em] mb-4">Subscription Plan</div>
-          <div className="text-2xl font-bold mb-1">ENTERPRISE_FLOW</div>
-          <p className="text-sm font-medium mb-4">Unlimited keys, advanced RBAC.</p>
-          <button className="w-full py-2 bg-black text-white text-xs font-bold rounded uppercase tracking-widest">Manage Billing</button>
+          <div className="text-2xl font-bold mb-1">KEY_GOVERNANCE</div>
+          <p className="text-sm font-medium mb-4">{statsQuery.data?.createdInWindow ?? 0} key(s) created in selected window.</p>
+          <Link href={ROUTES.dashboard.billing} className="block w-full py-2 bg-black text-white text-xs font-bold rounded uppercase tracking-widest text-center">Manage Billing</Link>
         </div>
       </div>
 
       <footer className="pt-8 border-t border-outline-variant flex justify-between items-center text-secondary text-[10px] font-mono uppercase tracking-[0.2em]">
         <div>PulseAPI Systems 2024</div>
         <div className="flex gap-6">
-          <span className="hover:text-white transition-colors">API Status</span>
-          <span className="hover:text-white transition-colors">Changelog</span>
-          <span className="hover:text-white transition-colors">Privacy Policy</span>
+          <Link href={ROUTES.dashboard.logs} className="hover:text-white transition-colors">API Status</Link>
+          <Link href={ROUTES.dashboard.insights} className="hover:text-white transition-colors">Insights</Link>
+          <Link href={ROUTES.dashboard.settings} className="hover:text-white transition-colors">Security</Link>
         </div>
       </footer>
 

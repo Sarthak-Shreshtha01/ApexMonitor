@@ -1,15 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { io } from 'socket.io-client';
 import { useProjectStore } from '@/features/projects/state/project.store';
+import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { tracesService, TracesQuery } from '@/features/traces/api/traces.service';
+import { ROUTES } from '@/shared/routes/routes';
 
 const PAGE_SIZE = 20;
 
 export function TracesExplorer() {
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
+  const timeframe = useDashboardStore((state) => state.timeframe);
   const [page, setPage] = useState(1);
   const [statusClass, setStatusClass] = useState<'' | '2xx' | '3xx' | '4xx' | '5xx'>('');
   const [searchDraft, setSearchDraft] = useState('');
@@ -18,20 +22,43 @@ export function TracesExplorer() {
   const queryParams: TracesQuery | null = useMemo(() => {
     if (!activeProjectId) return null;
 
+    const range = getTimeRange(timeframe);
+
     return {
       projectId: activeProjectId,
       page,
       limit: PAGE_SIZE,
       statusClass: statusClass || undefined,
       search: search || undefined,
+      from: range.from,
+      to: range.to,
     };
-  }, [activeProjectId, page, search, statusClass]);
+  }, [activeProjectId, page, search, statusClass, timeframe]);
 
   const tracesQuery = useQuery({
     queryKey: ['traces', queryParams],
     queryFn: () => tracesService.list(queryParams as TracesQuery),
     enabled: !!queryParams,
+    refetchInterval: 12000,
   });
+
+  useEffect(() => {
+    if (!activeProjectId) return;
+
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
+
+    const socket = io(wsUrl, { transports: ['websocket'], withCredentials: true });
+    socket.on('connect', () => socket.emit('join', { projectId: activeProjectId }));
+    socket.on('pulse:live', (payload: { projectId: string }) => {
+      if (payload.projectId === activeProjectId) {
+        void tracesQuery.refetch();
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [activeProjectId, tracesQuery.refetch]);
 
   const traces = tracesQuery.data?.traces ?? [];
   const total = tracesQuery.data?.total ?? 0;
@@ -115,7 +142,7 @@ export function TracesExplorer() {
                   <td className="px-5 py-4 text-xs text-secondary">{trace.latencyMs}ms</td>
                   <td className="px-5 py-4 text-xs text-secondary">{new Date(trace.timestamp).toLocaleString()}</td>
                   <td className="px-5 py-4 text-right">
-                    <Link href={`/traces/${trace.traceId}`} className="text-xs font-bold text-primary hover:underline">
+                    <Link href={ROUTES.dashboard.traceDetail(trace.traceId)} className="text-xs font-bold text-primary hover:underline">
                       View Trace
                     </Link>
                   </td>
@@ -142,4 +169,19 @@ export function TracesExplorer() {
       </div>
     </div>
   );
+}
+
+function getTimeRange(timeframe: '1h' | '6h' | '24h' | '7d') {
+  const now = new Date();
+  const from = new Date(now);
+
+  if (timeframe === '1h') from.setHours(from.getHours() - 1);
+  if (timeframe === '6h') from.setHours(from.getHours() - 6);
+  if (timeframe === '24h') from.setHours(from.getHours() - 24);
+  if (timeframe === '7d') from.setDate(from.getDate() - 7);
+
+  return {
+    from: from.toISOString(),
+    to: now.toISOString(),
+  };
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Clock, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Clock, ChevronDown, CheckCircle2, RefreshCcw } from 'lucide-react';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { useRumAnalytics } from '@/features/analytics/hooks/useAnalytics';
@@ -24,6 +24,21 @@ export function WebAnalyticsExplorer() {
   const devices = analytics.devices.data ?? [];
   const geo = analytics.geo.data ?? [];
   const referrers = analytics.referrers.data ?? [];
+
+  const health = useMemo(() => {
+    if (!overview) return { label: 'NO_DATA', tone: 'text-zinc-400 border-zinc-500/30 bg-zinc-500/10' };
+
+    const poorVitals = [overview.avg_ttfb_ms > 1800, overview.avg_fcp_ms > 3000, overview.avg_lcp_ms > 4000].filter(Boolean).length;
+    if (poorVitals >= 2) {
+      return { label: 'DEGRADED', tone: 'text-error border-error/50 bg-error/10' };
+    }
+
+    if (poorVitals === 1) {
+      return { label: 'WATCH', tone: 'text-amber-500 border-amber-500/50 bg-amber-500/10' };
+    }
+
+    return { label: 'OPTIMAL', tone: 'text-emerald-500 border-emerald-500/50 bg-emerald-500/10' };
+  }, [overview]);
 
   const activeVisitors = useMemo(() => {
     return Math.max(0, Math.round((overview?.unique_sessions ?? 0) / (timeframe === '1h' ? 12 : timeframe === '6h' ? 24 : timeframe === '24h' ? 48 : 96)));
@@ -52,6 +67,21 @@ export function WebAnalyticsExplorer() {
             <span className="text-xs font-mono text-white">{timeframe.toUpperCase()}</span>
             <ChevronDown className="w-4 h-4 text-zinc-600" />
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              analytics.overview.refetch();
+              analytics.series.refetch();
+              analytics.paths.refetch();
+              analytics.devices.refetch();
+              analytics.geo.refetch();
+              analytics.referrers.refetch();
+            }}
+            className="inline-flex items-center gap-2 bg-[#131313] border border-[#242424] px-4 py-2 rounded-lg text-[11px] uppercase tracking-widest text-zinc-300 hover:text-white"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            Refresh
+          </button>
         </header>
 
         {analytics.isLoading ? <div className="bg-[#131313] border border-[#242424] p-4 rounded text-zinc-400 text-sm">Loading analytics...</div> : null}
@@ -70,7 +100,7 @@ export function WebAnalyticsExplorer() {
           lcpMs={overview?.avg_lcp_ms ?? 0}
         />
 
-        <TrafficChart points={series} />
+        <TrafficChart points={series} timeframe={timeframe} />
 
         <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <TopPagesTable rows={paths} />
@@ -79,9 +109,9 @@ export function WebAnalyticsExplorer() {
         </section>
       </div>
 
-      <div className="fixed bottom-6 right-6 flex items-center gap-3 px-4 py-2 bg-emerald-500/10 border border-emerald-500/50 backdrop-blur-md rounded-lg shadow-lg z-50">
-        <CheckCircle2 className="text-emerald-500 w-4 h-4" />
-        <span className="text-[10px] font-mono text-emerald-500 font-bold uppercase tracking-widest">System Health: Optimal</span>
+      <div className={`fixed bottom-6 right-6 flex items-center gap-3 px-4 py-2 backdrop-blur-md rounded-lg shadow-lg z-50 border ${health.tone}`}>
+        <CheckCircle2 className="w-4 h-4" />
+        <span className="text-[10px] font-mono font-bold uppercase tracking-widest">System Health: {health.label}</span>
       </div>
     </div>
   );

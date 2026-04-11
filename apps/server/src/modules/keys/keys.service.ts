@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import argon2 from 'argon2';
 import { config } from '@config';
 import { UserService } from '@modules/users/user.service';
-import { CreateKeyInput, ListKeysQuery } from './dto/keys.dto';
+import { CreateKeyInput, KeysStatsQuery, ListKeysQuery } from './dto/keys.dto';
 import { KeysRepository } from './keys.repository';
 
 export class KeysService {
@@ -22,6 +22,28 @@ export class KeysService {
 
     const keys = await this.repository.listByProjectIds(allowedProjectIds);
     return { keys };
+  }
+
+  async stats(userId: string, query: KeysStatsQuery) {
+    const projects = await this.usersService.listProjects(userId);
+
+    const allowedProjectIds = query.projectId
+      ? projects.filter((project) => project.id === query.projectId).map((project) => project.id)
+      : projects.map((project) => project.id);
+
+    if (allowedProjectIds.length === 0) {
+      throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    const stats = await this.repository.getStats(allowedProjectIds, query.timeframe);
+    const criticalProjects = projects.filter((project) => allowedProjectIds.includes(project.id) && project.plan !== 'free').length;
+
+    return {
+      timeframe: query.timeframe,
+      projectScopeCount: allowedProjectIds.length,
+      criticalProjects,
+      ...stats,
+    };
   }
 
   async create(userId: string, input: CreateKeyInput) {

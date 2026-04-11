@@ -1,5 +1,8 @@
 import { getPg } from '@infrastructure/db/postgres';
 import { MetricsQuery } from './dto/metrics-query.dto';
+import { ApiLog } from '@modules/logs/logs.schema';
+
+type StatusClass = '2xx' | '3xx' | '4xx' | '5xx';
 
 export class MetricsRepository {
   private get db() { return getPg(); }
@@ -136,6 +139,127 @@ export class MetricsRepository {
     return rows;
   }
 
+  async getOperations(query: MetricsQuery) {
+    const from = this.timeframeToDate(query.timeframe);
+
+    const [statusAgg, regionsAgg, nodesAgg] = await Promise.all([
+      ApiLog.aggregate([
+        { $match: { projectId: query.projectId, timestamp: { $gte: from } } },
+        {
+          $project: {
+            statusClass: {
+              $switch: {
+                branches: [
+                  { case: { $and: [{ $gte: ['$statusCode', 200] }, { $lt: ['$statusCode', 300] }] }, then: '2xx' },
+                  { case: { $and: [{ $gte: ['$statusCode', 300] }, { $lt: ['$statusCode', 400] }] }, then: '3xx' },
+                  { case: { $and: [{ $gte: ['$statusCode', 400] }, { $lt: ['$statusCode', 500] }] }, then: '4xx' },
+                ],
+                default: '5xx',
+              },
+            },
+          },
+        },
+        { $group: { _id: '$statusClass', count: { $sum: 1 } } },
+      ]),
+      ApiLog.aggregate([
+        { $match: { projectId: query.projectId, timestamp: { $gte: from } } },
+        {
+          $group: {
+            _id: { $ifNull: ['$region', 'XX'] },
+            requests: { $sum: 1 },
+            errors: {
+              $sum: {
+                $cond: [{ $gte: ['$statusCode', 400] }, 1, 0],
+              },
+            },
+            avgLatency: { $avg: '$latencyMs' },
+          },
+        },
+        { $sort: { requests: -1 } },
+        { $limit: 8 },
+      ]),
+      ApiLog.aggregate([
+        { $match: { projectId: query.projectId, timestamp: { $gte: from } } },
+        {
+          $group: {
+            _id: { $ifNull: ['$sdkVersion', 'unknown'] },
+            requests: { $sum: 1 },
+            errors: {
+              $sum: {
+                $cond: [{ $gte: ['$statusCode', 400] }, 1, 0],
+              },
+            },
+            avgLatency: { $avg: '$latencyMs' },
+          },
+        },
+        { $sort: { requests: -1 } },
+        { $limit: 6 },
+      ]),
+    ]);
+
+    const statusCounts: Record<StatusClass, number> = {
+      '2xx': 0,
+      '3xx': 0,
+      '4xx': 0,
+      '5xx': 0,
+    };
+
+    for (const row of statusAgg) {
+      const key = String(row._id) as StatusClass;
+      if (statusCounts[key] !== undefined) {
+        statusCounts[key] = Number(row.count ?? 0);
+      }
+    }
+
+    const total = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+    const toRate = (count: number) => (total > 0 ? Number(((count / total) * 100).toFixed(2)) : 0);
+
+    return {
+      timeframe: query.timeframe,
+      totals: {
+        requests: total,
+        errors: statusCounts['4xx'] + statusCounts['5xx'],
+      },
+      statusBreakdown: {
+        ok2xx: { count: statusCounts['2xx'], rate: toRate(statusCounts['2xx']) },
+        redirect3xx: { count: statusCounts['3xx'], rate: toRate(statusCounts['3xx']) },
+        client4xx: { count: statusCounts['4xx'], rate: toRate(statusCounts['4xx']) },
+        server5xx: { count: statusCounts['5xx'], rate: toRate(statusCounts['5xx']) },
+      },
+      regions: regionsAgg.map((row) => {
+        const requests = Number(row.requests ?? 0);
+        const errors = Number(row.errors ?? 0);
+        return {
+          region: String(row._id ?? 'XX'),
+          requests,
+          errorRate: requests > 0 ? Number(((errors / requests) * 100).toFixed(2)) : 0,
+          avgLatency: Number(Number(row.avgLatency ?? 0).toFixed(2)),
+        };
+      }),
+      nodes: nodesAgg.map((row, index) => {
+        const requests = Number(row.requests ?? 0);
+        const errors = Number(row.errors ?? 0);
+        const errorRate = requests > 0 ? (errors / requests) * 100 : 0;
+        const avgLatency = Number(Number(row.avgLatency ?? 0).toFixed(2));
+        const status = errorRate >= 12 || avgLatency >= 1200
+          ? 'critical'
+          : errorRate >= 4 || avgLatency >= 650
+            ? 'warning'
+            : 'ok';
+
+        return {
+          nodeId: `edge-${String(row._id ?? 'unknown').replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}-${index + 1}`,
+          source: String(row._id ?? 'unknown'),
+          requests,
+          errorRate: Number(errorRate.toFixed(2)),
+          avgLatency,
+          status,
+        };
+      }),
+      generatedAt: new Date().toISOString(),
+    };
+  }
+
   private timeframeToHours(timeframe: MetricsQuery['timeframe']): number {
     switch (timeframe) {
       case '1h':
@@ -151,5 +275,11 @@ export class MetricsRepository {
       default:
         return 24;
     }
+  }
+
+  private timeframeToDate(timeframe: MetricsQuery['timeframe']): Date {
+    const now = Date.now();
+    const hours = this.timeframeToHours(timeframe);
+    return new Date(now - (hours * 60 * 60 * 1000));
   }
 }

@@ -74,9 +74,36 @@ export class WebSocketService {
         }
 
         // Fetch live counters populated by the Ingest Service
-        const rpsKey = `live:${projectId}:rps`;
-        const currentRpsStr = await redis.get(rpsKey);
-        const rps = currentRpsStr ? parseInt(currentRpsStr, 10) : 0;
+        const requestsKey = `live:${projectId}:requests`;
+        const errorsKey = `live:${projectId}:errors`;
+        const latencyTotalKey = `live:${projectId}:latency_total`;
+        const endpointKey = `live:${projectId}:endpoints`;
+
+        const [requestCountRaw, errorCountRaw, latencyTotalRaw, endpointRows] = await Promise.all([
+          redis.get(requestsKey),
+          redis.get(errorsKey),
+          redis.get(latencyTotalKey),
+          redis.zrevrange(endpointKey, 0, 2, 'WITHSCORES'),
+        ]);
+
+        const requestCount = Number(requestCountRaw ?? 0);
+        const errorCount = Number(errorCountRaw ?? 0);
+        const latencyTotal = Number(latencyTotalRaw ?? 0);
+
+        const rps = Number((requestCount / 5).toFixed(2));
+        const errorRate = requestCount > 0 ? Number(((errorCount / requestCount) * 100).toFixed(2)) : 0;
+
+        const topEndpoints: Array<{ endpoint: string; rps: number; p99: number }> = [];
+        for (let index = 0; index < endpointRows.length; index += 2) {
+          const label = endpointRows[index] ?? '';
+          const score = Number(endpointRows[index + 1] ?? 0);
+          const endpoint = typeof label === 'string' ? label : String(label);
+          topEndpoints.push({
+            endpoint,
+            rps: Number((score / 5).toFixed(2)),
+            p99: requestCount > 0 ? Number((latencyTotal / requestCount).toFixed(2)) : 0,
+          });
+        }
 
         const insight = this.latestInsights.get(projectId) || null;
 
@@ -86,10 +113,10 @@ export class WebSocketService {
           projectId,
           timestamp: Date.now(),
           data: {
-            rps: rps,
-            errorRate: 0, // Placeholder until Alerting Phase
+            rps,
+            errorRate,
             activeAlerts: 0,
-            topEndpoints: [],
+            topEndpoints,
             latestInsight: insight
           }
         };

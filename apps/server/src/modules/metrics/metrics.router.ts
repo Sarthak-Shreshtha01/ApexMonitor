@@ -12,4 +12,7 @@ router.get(SERVER_ENDPOINTS.metrics.overview, requireAuth, controller.getOvervie
 // GET /api/v1/metrics/latency
 router.get(SERVER_ENDPOINTS.metrics.latency, requireAuth, controller.getLatency);
 
+// GET /api/v1/metrics/operations
+router.get(SERVER_ENDPOINTS.metrics.operations, requireAuth, controller.getOperations);
+
 export { router as metricsRouter };

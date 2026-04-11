@@ -11,6 +11,9 @@ const formatCompact = (value: number) =>
   Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 }).format(value);
 
 export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, uniqueSessions }: GlobalPulseCardsProps) {
+  const repeatVisits = Math.max(uniqueSessions - uniqueVisitors, 0);
+  const bounceRate = pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0;
+
   return (
     <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
       {/* Current Visitors */}
@@ -36,7 +39,7 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Total Page Views</span>
           <span className="text-emerald-500 text-xs font-mono font-bold flex items-center gap-1">
-            +12% <TrendingUp className="w-3 h-3" />
+            {formatCompact(uniqueSessions)} sessions <TrendingUp className="w-3 h-3" />
           </span>
         </div>
         <div className="flex items-baseline gap-2">
@@ -63,7 +66,7 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
         </div>
         <div className="mt-4 flex items-center gap-2">
           <span className="text-[10px] font-mono text-zinc-600">VS PREV PERIOD:</span>
-          <span className="text-[10px] font-mono text-zinc-400">{formatCompact(Math.max(uniqueVisitors - uniqueSessions, 0))}</span>
+          <span className="text-[10px] font-mono text-zinc-400">{formatCompact(repeatVisits)} repeat sessions</span>
         </div>
       </div>
 
@@ -74,11 +77,11 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
         </div>
         <div className="flex items-baseline gap-2">
           <span className="text-4xl font-mono font-bold text-white tracking-tighter">
-            {pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0}%
+            {bounceRate}%
           </span>
         </div>
         <div className="mt-4 h-1 w-full bg-zinc-900 rounded-full overflow-hidden">
-          <div className="h-full bg-orange-800" style={{ width: `${pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0}%` }}></div>
+          <div className="h-full bg-orange-800" style={{ width: `${bounceRate}%` }}></div>
         </div>
       </div>
     </section>
