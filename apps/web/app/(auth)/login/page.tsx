@@ -60,7 +60,7 @@ export default function LoginPage() {
         <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_15px_2px_rgba(255,69,0,0.3)] mb-6 group transition-all duration-300">
           <Activity className="text-on-primary w-6 h-6 font-bold" />
         </div>
-        <h1 className="text-2xl font-extrabold tracking-tighter text-on-surface mb-2">PulseAPI</h1>
+        <h1 className="text-2xl font-extrabold tracking-tighter text-on-surface mb-2">ApexMonitor</h1>
         <p className="text-sm font-medium text-outline uppercase tracking-widest opacity-60">Kinetic Observatory</p>
       </div>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-lg py-3 pl-10 pr-4 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm" 
-                placeholder="dev@pulseapi.io" 
+                placeholder="dev@apexMonitor.tech" 
               />
             </div>
           </div>

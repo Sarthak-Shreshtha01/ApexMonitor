@@ -74,7 +74,7 @@ export default function RegisterPage() {
           <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/30 drop-shadow-[0_0_8px_rgba(255,69,0,0.4)] mb-6">
             <Activity className="text-primary w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-on-surface mb-2">PulseAPI</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-on-surface mb-2">ApexMonitor</h1>
           <p className="text-on-surface-variant text-sm font-medium tracking-wide">OBSERVATORY ACCESS</p>
         </div>
 

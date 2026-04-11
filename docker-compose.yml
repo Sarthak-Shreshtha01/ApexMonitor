@@ -6,7 +6,7 @@ services:
   # ==========================================
   mongo:
     image: mongo:7
-    container_name: pulseapi-mongo
+    container_name: apexmonitor-mongo
     ports: 
       - '27018:27017'
     volumes: 
@@ -18,9 +18,9 @@ services:
   # ==========================================
   postgres:
     image: postgres:16-alpine
-    container_name: pulseapi-postgres
+    container_name: apexmonitor-postgres
     environment:
-      POSTGRES_DB: pulseapi
+      POSTGRES_DB: apexmonitor
       POSTGRES_USER: pulse
       POSTGRES_PASSWORD: pulse_dev_password
     ports: 
@@ -35,7 +35,7 @@ services:
   # ==========================================
   redis:
     image: redis:7-alpine
-    container_name: pulseapi-redis
+    container_name: apexmonitor-redis
     ports: 
       - '6379:6379'
     command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
@@ -46,7 +46,7 @@ services:
   # ==========================================
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
-    container_name: pulseapi-rabbitmq
+    container_name: apexmonitor-rabbitmq
     ports:
       - '5672:5672'    # AMQP protocol port for workers
       - '15672:15672'  # Management UI (http://localhost:15672)

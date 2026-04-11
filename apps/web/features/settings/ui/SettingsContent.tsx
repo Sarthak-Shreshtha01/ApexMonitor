@@ -162,7 +162,7 @@ export function SettingsContent({
           {/* Page Header */}
           <header className="mb-12">
             <h1 className="text-4xl font-bold tracking-tighter text-on-background mb-2">Workspace Settings</h1>
-            <p className="text-zinc-500 text-sm">Manage your global PulseAPI configuration, team access, and identity.</p>
+            <p className="text-zinc-500 text-sm">Manage your global ApexMonitor configuration, team access, and identity.</p>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

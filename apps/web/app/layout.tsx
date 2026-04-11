@@ -14,8 +14,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PulseAPI",
-  description: "PulseAPI developer command center",
+  title: "ApexMonitor",
+  description: "ApexMonitor developer command center",
 };
 
 export default function RootLayout({

@@ -273,7 +273,7 @@ export function ApiKeysSection() {
       </div>
 
       <footer className="pt-8 border-t border-outline-variant flex justify-between items-center text-secondary text-[10px] font-mono uppercase tracking-[0.2em]">
-        <div>PulseAPI Systems 2024</div>
+        <div>ApexMonitor Systems 2024</div>
         <div className="flex gap-6">
           <Link href={ROUTES.dashboard.logs} className="hover:text-white transition-colors">API Status</Link>
           <Link href={ROUTES.dashboard.insights} className="hover:text-white transition-colors">Insights</Link>

@@ -133,16 +133,16 @@ RUM_BATCH=$(cat <<JSON
 {
   "sdkVersion": "$SDK_VERSION",
   "events": [
-    {"type":"page_view","path":"/overview","referrer":"https://google.com/search?q=pulseapi","timestamp":"$RUM_T1","sessionId":"sess-admin-1","visitorId":"visitor-admin-1","ttfbMs":110,"fcpMs":740,"lcpMs":1950,"metadata":{"route":"/overview","theme":"dark"}},
-    {"type":"web_vital","path":"/analytics","referrer":"https://twitter.com/pulseapi","timestamp":"$RUM_T2","sessionId":"sess-admin-1","visitorId":"visitor-admin-1","ttfbMs":90,"fcpMs":690,"lcpMs":1720,"metadata":{"route":"/analytics","device":"desktop"}},
-    {"type":"page_view","path":"/live-traffic","referrer":"https://github.com/pulseapi","timestamp":"$RUM_T3","sessionId":"sess-admin-2","visitorId":"visitor-admin-2","ttfbMs":140,"fcpMs":820,"lcpMs":2400,"metadata":{"route":"/live-traffic","browser":"chrome"}},
+    {"type":"page_view","path":"/overview","referrer":"https://google.com/search?q=apexmonitor","timestamp":"$RUM_T1","sessionId":"sess-admin-1","visitorId":"visitor-admin-1","ttfbMs":110,"fcpMs":740,"lcpMs":1950,"metadata":{"route":"/overview","theme":"dark"}},
+    {"type":"web_vital","path":"/analytics","referrer":"https://twitter.com/apexmonitor","timestamp":"$RUM_T2","sessionId":"sess-admin-1","visitorId":"visitor-admin-1","ttfbMs":90,"fcpMs":690,"lcpMs":1720,"metadata":{"route":"/analytics","device":"desktop"}},
+    {"type":"page_view","path":"/live-traffic","referrer":"https://github.com/apexmonitor","timestamp":"$RUM_T3","sessionId":"sess-admin-2","visitorId":"visitor-admin-2","ttfbMs":140,"fcpMs":820,"lcpMs":2400,"metadata":{"route":"/live-traffic","browser":"chrome"}},
     {"type":"web_vital","path":"/logs","referrer":"direct","timestamp":"$RUM_T4","sessionId":"sess-admin-2","visitorId":"visitor-admin-2","ttfbMs":180,"fcpMs":930,"lcpMs":3100,"metadata":{"route":"/logs","device":"mobile"}},
-    {"type":"page_view","path":"/traces","referrer":"https://linkedin.com/company/pulseapi","timestamp":"$RUM_T5","sessionId":"sess-admin-3","visitorId":"visitor-admin-3","ttfbMs":95,"fcpMs":710,"lcpMs":1800,"metadata":{"route":"/traces","browser":"firefox"}},
-    {"type":"page_view","path":"/keys","referrer":"https://bing.com/search?q=pulseapi","timestamp":"$RUM_T6","sessionId":"sess-admin-3","visitorId":"visitor-admin-3","ttfbMs":88,"fcpMs":660,"lcpMs":1680,"metadata":{"route":"/keys","device":"tablet"}},
-    {"type":"web_vital","path":"/settings","referrer":"https://google.com/search?q=pulseapi","timestamp":"$RUM_T7","sessionId":"sess-admin-4","visitorId":"visitor-admin-4","ttfbMs":120,"fcpMs":780,"lcpMs":2250,"metadata":{"route":"/settings","device":"desktop"}},
-    {"type":"page_view","path":"/billing","referrer":"https://x.com/pulseapi","timestamp":"$RUM_T8","sessionId":"sess-admin-4","visitorId":"visitor-admin-4","ttfbMs":102,"fcpMs":720,"lcpMs":1900,"metadata":{"route":"/billing","plan":"pro"}},
+    {"type":"page_view","path":"/traces","referrer":"https://linkedin.com/company/apexmonitor","timestamp":"$RUM_T5","sessionId":"sess-admin-3","visitorId":"visitor-admin-3","ttfbMs":95,"fcpMs":710,"lcpMs":1800,"metadata":{"route":"/traces","browser":"firefox"}},
+    {"type":"page_view","path":"/keys","referrer":"https://bing.com/search?q=apexmonitor","timestamp":"$RUM_T6","sessionId":"sess-admin-3","visitorId":"visitor-admin-3","ttfbMs":88,"fcpMs":660,"lcpMs":1680,"metadata":{"route":"/keys","device":"tablet"}},
+    {"type":"web_vital","path":"/settings","referrer":"https://google.com/search?q=apexmonitor","timestamp":"$RUM_T7","sessionId":"sess-admin-4","visitorId":"visitor-admin-4","ttfbMs":120,"fcpMs":780,"lcpMs":2250,"metadata":{"route":"/settings","device":"desktop"}},
+    {"type":"page_view","path":"/billing","referrer":"https://x.com/apexmonitor","timestamp":"$RUM_T8","sessionId":"sess-admin-4","visitorId":"visitor-admin-4","ttfbMs":102,"fcpMs":720,"lcpMs":1900,"metadata":{"route":"/billing","plan":"pro"}},
     {"type":"web_vital","path":"/ai-insights","referrer":"https://reddit.com/r/devops","timestamp":"$RUM_T9","sessionId":"sess-admin-5","visitorId":"visitor-admin-5","ttfbMs":170,"fcpMs":980,"lcpMs":3400,"metadata":{"route":"/ai-insights","device":"desktop"}},
-    {"type":"page_view","path":"/pricing","referrer":"https://newsletter.pulseapi.io","timestamp":"$RUM_T10","sessionId":"sess-admin-5","visitorId":"visitor-admin-5","ttfbMs":115,"fcpMs":760,"lcpMs":2100,"metadata":{"route":"/pricing","campaign":"launch"}}
+    {"type":"page_view","path":"/pricing","referrer":"https://newsletter.apexMonitor.tech","timestamp":"$RUM_T10","sessionId":"sess-admin-5","visitorId":"visitor-admin-5","ttfbMs":115,"fcpMs":760,"lcpMs":2100,"metadata":{"route":"/pricing","campaign":"launch"}}
   ]
 }
 JSON

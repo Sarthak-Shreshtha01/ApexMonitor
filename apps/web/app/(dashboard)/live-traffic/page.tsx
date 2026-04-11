@@ -78,7 +78,7 @@ export default function LiveTrafficPage() {
 
       <footer className="bg-app border-t border-outline-variant">
         <div className="px-6 flex justify-between items-center py-3">
-          <span className="text-[10px] text-secondary uppercase tracking-widest">PulseAPI Ops OS v3.8.1</span>
+          <span className="text-[10px] text-secondary uppercase tracking-widest">ApexMonitor Ops OS v3.8.1</span>
           <div className="flex gap-6 text-[10px] uppercase tracking-widest">
             <span className="text-secondary">Knowledge Base</span>
             <span className="text-secondary">Node Status</span>

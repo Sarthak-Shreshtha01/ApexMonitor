@@ -232,7 +232,7 @@ export class AuthService {
         headers: {
           Authorization: `Bearer ${tokenJson.access_token}`,
           Accept: 'application/vnd.github+json',
-          'User-Agent': 'PulseAPI',
+          'User-Agent': 'ApexMonitor',
         },
       });
 
@@ -240,7 +240,7 @@ export class AuthService {
         headers: {
           Authorization: `Bearer ${tokenJson.access_token}`,
           Accept: 'application/vnd.github+json',
-          'User-Agent': 'PulseAPI',
+          'User-Agent': 'ApexMonitor',
         },
       });
 

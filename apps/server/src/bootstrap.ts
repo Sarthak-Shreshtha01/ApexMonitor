@@ -14,7 +14,7 @@ import { RumWorker } from '@workers/rum.worker';
 
 async function bootstrap() {
   try {
-    console.log('⏳ Bootstrapping PulseAPI Infrastructure...');
+    console.log('⏳ Bootstrapping ApexMonitor Infrastructure...');
     
     // 1. Connect all infrastructure
     await Promise.all([
@@ -49,7 +49,7 @@ async function bootstrap() {
     const wsService = new WebSocketService(server);
 
     server.listen(config.PORT, () => {
-      console.log(`🚀 PulseAPI running on http://localhost:${config.PORT}`);
+      console.log(`🚀 ApexMonitor running on http://localhost:${config.PORT}`);
     });
 
     // Graceful Shutdown Handler

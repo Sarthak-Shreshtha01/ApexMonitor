@@ -91,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Activity className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-base font-semibold tracking-tight text-on-surface">PulseAPI</h1>
+              <h1 className="text-base font-semibold tracking-tight text-on-surface">ApexMonitor</h1>
               <p className="text-[10px] uppercase tracking-widest text-secondary">Observability</p>
             </div>
           </div>

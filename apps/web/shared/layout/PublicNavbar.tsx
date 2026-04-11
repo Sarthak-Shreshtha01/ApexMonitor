@@ -6,7 +6,7 @@ export function PublicNavbar() {
     <nav className="w-full h-16 border-b border-outline-variant/20 sticky top-0 z-50 bg-surface/80 backdrop-blur-xl flex items-center justify-between px-6 lg:px-12">
       <div className="flex items-center gap-8">
         <div className="text-lg font-black text-white tracking-tighter">
-          PulseAPI
+          ApexMonitor
         </div>
         <div className="hidden md:flex items-center gap-6">
           <Link

@@ -73,7 +73,7 @@ export function AlertRuleBuilder() {
               <div className="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center">
                 <Mail className="w-4 h-4 text-secondary" />
               </div>
-              <span className="text-xs font-medium">admin@pulseapi.io</span>
+              <span className="text-xs font-medium">admin@apexMonitor.tech</span>
             </div>
           </div>
           <button className="bg-surface-container-high border border-outline-variant/20 text-on-surface px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-surface-container-highest transition-all">

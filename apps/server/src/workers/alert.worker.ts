@@ -79,7 +79,7 @@ export class AlertWorker {
     await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: message, source: 'PulseAPI' })
+      body: JSON.stringify({ text: message, source: 'ApexMonitor' })
     });
   }
 }

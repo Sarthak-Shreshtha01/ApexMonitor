@@ -7,7 +7,7 @@ export function Footer() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between gap-12">
         <div className="max-w-xs">
           <div className="text-2xl font-black text-white tracking-tighter mb-6">
-            PulseAPI
+            ApexMonitor
           </div>
           <p className="text-on-surface-variant text-sm leading-relaxed mb-8">
             Building the future of digital infrastructure observability. Made for engineers, by engineers.
@@ -70,7 +70,7 @@ export function Footer() {
 
       <div className="max-w-7xl mx-auto mt-24 pt-8 border-t border-outline-variant/10 flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="text-on-surface-variant text-xs">
-          © 2024 PulseAPI Infrastructure Inc. All rights reserved.
+          © 2024 ApexMonitor Infrastructure Inc. All rights reserved.
         </p>
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-secondary"></span>
