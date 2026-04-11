@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
-import { QueryProvider } from "./providers/QueryProvider";
-import { RouteGate } from "@/shared/layout/RouteGate";
+import { AppProviders } from "./providers/AppProviders";
 import "./globals.css";
 
 const inter = Inter({
@@ -30,9 +29,7 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <RouteGate>
-          <QueryProvider>{children}</QueryProvider>
-        </RouteGate>
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

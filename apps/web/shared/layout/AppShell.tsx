@@ -11,9 +11,10 @@ import {
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore, type DashboardTimeframe } from '@/features/dashboard/state/dashboard.store';
-import { useAuthStore } from '@/features/auth/state/auth.store';
 import { userService } from '@/features/settings/api/user.service';
 import { apiClient } from '@/shared/api/apiClient';
+import { useAppDispatch } from '@/lib/redux/hooks';
+import { clearAuth } from '@/features/auth/state/auth.slice';
 
 const NAV_LINKS = [
   { name: 'Overview', href: '/overview', icon: LayoutDashboard },
@@ -30,6 +31,7 @@ const NAV_LINKS = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -37,7 +39,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const clearProjects = useProjectStore((state) => state.clearProjects);
   const activeProjectId = useProjectStore((state) => state.activeProjectId);
   const setActiveProjectId = useProjectStore((state) => state.setActiveProjectId);
-  const clearAuth = useAuthStore((state) => state.logout);
   const timeframe = useDashboardStore((state) => state.timeframe);
   const setTimeframe = useDashboardStore((state) => state.setTimeframe);
 
@@ -52,12 +53,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       await apiClient.post('/api/v1/users/logout', {});
     },
     onSuccess: () => {
-      clearAuth();
+      dispatch(clearAuth());
       clearProjects();
       router.push('/login');
     },
     onError: () => {
-      clearAuth();
+      dispatch(clearAuth());
       clearProjects();
       router.push('/login');
     },

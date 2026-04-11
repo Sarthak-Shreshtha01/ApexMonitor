@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Activity, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authService } from '@/features/auth/api/auth.service';
-import { useAuthStore } from '@/features/auth/state/auth.store';
+import { useAppDispatch } from '@/lib/redux/hooks';
+import { setTokens } from '@/features/auth/state/auth.slice';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const setTokens = useAuthStore((s) => s.setTokens);
+  const dispatch = useAppDispatch();
   const setProjects = useProjectStore((s) => s.setProjects);
 
   const [fullName, setFullName] = useState('');
@@ -37,7 +38,7 @@ export default function RegisterPage() {
 
     try {
       const { accessToken, refreshToken } = await authService.register({ name: fullName, email, password });
-      setTokens({ accessToken, refreshToken });
+      dispatch(setTokens({ accessToken, refreshToken }));
 
       const projects = await projectsService.listMine();
       setProjects(projects);

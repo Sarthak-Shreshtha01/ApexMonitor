@@ -2,46 +2,19 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAuthStore } from '@/features/auth/state/auth.store';
 import { authService } from '@/features/auth/api/auth.service';
+import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
+import { setTokens } from '@/features/auth/state/auth.slice';
 
 const PUBLIC_PATHS = ['/', '/login', '/register', '/verify-email', '/forgot-password', '/reset-password'];
 
 export function RouteGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const accessToken = useAuthStore((state) => state.accessToken);
-  const refreshToken = useAuthStore((state) => state.refreshToken);
-  const setTokens = useAuthStore((state) => state.setTokens);
-  const [isHydrated, setIsHydrated] = useState(() => {
-    const storeWithPersist = useAuthStore as typeof useAuthStore & {
-      persist?: {
-        hasHydrated: () => boolean;
-        onFinishHydration: (callback: () => void) => () => void;
-      };
-    };
-
-    return storeWithPersist.persist ? storeWithPersist.persist.hasHydrated() : true;
-  });
-
-  useEffect(() => {
-    const storeWithPersist = useAuthStore as typeof useAuthStore & {
-      persist?: {
-        hasHydrated: () => boolean;
-        onFinishHydration: (callback: () => void) => () => void;
-      };
-    };
-
-    const persistApi = storeWithPersist.persist;
-
-    if (!persistApi) {
-      return;
-    }
-
-    const unsubscribe = persistApi.onFinishHydration(() => setIsHydrated(true));
-
-    return unsubscribe;
-  }, []);
+  const dispatch = useAppDispatch();
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
+  const [isHydrated] = useState(true);
 
   const [isRestoringSession, setIsRestoringSession] = useState(false);
 
@@ -61,10 +34,10 @@ export function RouteGate({ children }: { children: ReactNode }) {
         const refreshed = await authService.refresh();
 
         if (!cancelled) {
-          setTokens({
+          dispatch(setTokens({
             accessToken: refreshed.accessToken,
             refreshToken: refreshed.refreshToken,
-          });
+          }));
         }
       } catch {
         if (!cancelled) {
@@ -82,7 +55,7 @@ export function RouteGate({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [accessToken, isHydrated, pathname, refreshToken, setTokens]);
+  }, [accessToken, dispatch, isHydrated, pathname, refreshToken]);
 
   useEffect(() => {
     if (!isHydrated) return;

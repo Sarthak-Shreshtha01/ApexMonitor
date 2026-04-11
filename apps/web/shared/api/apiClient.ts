@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENDPOINTS } from './endpoints';
-import { useAuthStore } from '@/features/auth/state/auth.store';
+import { store } from '@/lib/redux/store';
+import { setTokens } from '@/features/auth/state/auth.slice';
 
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL, // [cite: 750]
@@ -10,9 +11,9 @@ export const apiClient = axios.create({
 
 // Request Interceptor: Attach in-memory Access Token
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = useAuthStore.getState().accessToken; // [cite: 758]
+  const token = store.getState().auth.accessToken;
   if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`; // [cite: 759]
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -86,7 +87,7 @@ apiClient.interceptors.response.use(
       isRefreshing = true; // [cite: 776]
 
       try {
-        const storedRefreshToken = useAuthStore.getState().refreshToken;
+        const storedRefreshToken = store.getState().auth.refreshToken;
         if (!storedRefreshToken) {
           throw new Error('MISSING_REFRESH_TOKEN');
         }
@@ -99,10 +100,7 @@ apiClient.interceptors.response.use(
         const newAccessToken = data.accessToken;
         const newRefreshToken = data.refreshToken;
 
-        useAuthStore.getState().setTokens({
-          accessToken: newAccessToken,
-          refreshToken: newRefreshToken,
-        });
+        store.dispatch(setTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken }));
 
         processQueue(null, newAccessToken); // [cite: 780]
 
