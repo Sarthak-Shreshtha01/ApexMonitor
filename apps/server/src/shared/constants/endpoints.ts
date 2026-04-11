@@ -21,6 +21,8 @@ export const SERVER_ENDPOINTS = {
     logout: '/logout',
     keys: '/keys',
     rumKeys: '/rum-keys',
+    oauthStart: '/oauth/:provider/start',
+    oauthCallback: '/oauth/:provider/callback',
   },
   users: {
     register: '/register',

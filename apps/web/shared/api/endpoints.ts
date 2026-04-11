@@ -4,6 +4,8 @@ export const ENDPOINTS = {
     register: '/api/v1/users/register',
     refresh: '/api/v1/auth/refresh',
     logout: '/api/v1/users/logout',
+    oauthStart: (provider: 'google' | 'github', mode: 'login' | 'register') =>
+      `/api/v1/auth/oauth/${provider}/start?mode=${mode}`,
   },
   user: {
     profile: '/api/v1/users/me',

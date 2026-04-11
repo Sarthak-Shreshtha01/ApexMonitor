@@ -5,6 +5,9 @@ interface CreateUserWithDefaultProjectInput {
   email: string;
   passwordHash: string;
   name: string;
+  company?: string;
+  jobTitle?: string;
+  timezone?: string;
   defaultProjectId: string;
   defaultProjectName: string;
 }
@@ -31,8 +34,9 @@ export class UserRepository {
       await client.query('BEGIN');
 
       await client.query(
-        `INSERT INTO users (id, email, password_hash, name) VALUES ($1, $2, $3, $4)`,
-        [input.id, input.email, input.passwordHash, input.name]
+        `INSERT INTO users (id, email, password_hash, name, company, job_title, timezone)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [input.id, input.email, input.passwordHash, input.name, input.company ?? null, input.jobTitle ?? null, input.timezone ?? null]
       );
 
       await client.query(
@@ -56,10 +60,11 @@ export class UserRepository {
     }
   }
 
-  async createUser(id: string, email: string, passwordHash: string, name: string) {
+  async createUser(id: string, email: string, passwordHash: string, name: string, company?: string, jobTitle?: string, timezone?: string) {
     await this.db.query(
-      `INSERT INTO users (id, email, password_hash, name) VALUES ($1, $2, $3, $4)`,
-      [id, email, passwordHash, name]
+      `INSERT INTO users (id, email, password_hash, name, company, job_title, timezone)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, email, passwordHash, name, company ?? null, jobTitle ?? null, timezone ?? null]
     );
   }
 
@@ -122,16 +127,24 @@ export class UserRepository {
 
   async findById(userId: string) {
     const { rows } = await this.db.query(
-      `SELECT id, email, name, created_at FROM users WHERE id = $1`,
+      `SELECT id, email, name, company, job_title, timezone, created_at FROM users WHERE id = $1`,
       [userId]
     );
     return rows[0];
   }
 
-  async updateProfile(userId: string, name: string, email: string) {
+  async updateProfile(userId: string, name: string, email: string, company?: string, jobTitle?: string, timezone?: string) {
     const { rows } = await this.db.query(
-      `UPDATE users SET name = $1, email = $2 WHERE id = $3 RETURNING id, email, name, created_at`,
-      [name, email, userId]
+      `UPDATE users
+       SET name = $1,
+           email = $2,
+           company = $3,
+           job_title = $4,
+           timezone = $5,
+           updated_at = NOW()
+       WHERE id = $6
+       RETURNING id, email, name, company, job_title, timezone, created_at`,
+      [name, email, company ?? null, jobTitle ?? null, timezone ?? null, userId]
     );
     return rows[0];
   }

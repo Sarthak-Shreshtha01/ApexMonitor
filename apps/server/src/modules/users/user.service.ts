@@ -34,6 +34,9 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  company: string | null;
+  jobTitle: string | null;
+  timezone: string | null;
   createdAt: string;
 }
 
@@ -68,6 +71,9 @@ export class UserService {
       email: data.email,
       passwordHash: hash,
       name: data.name,
+      company: data.company,
+      jobTitle: data.jobTitle,
+      timezone: data.timezone,
       defaultProjectId,
       defaultProjectName,
     });
@@ -124,25 +130,71 @@ export class UserService {
       id: user.id,
       email: user.email,
       name: user.name,
+      company: user.company ?? null,
+      jobTitle: user.job_title ?? null,
+      timezone: user.timezone ?? null,
       createdAt: user.created_at,
     };
   }
 
-  async updateProfile(userId: string, name: string, email: string): Promise<UserProfile> {
+  async updateProfile(userId: string, name: string, email: string, company?: string, jobTitle?: string, timezone?: string): Promise<UserProfile> {
     const existing = await this.repo.findByEmail(email);
     if (existing && existing.id !== userId) {
       throw new Error('EMAIL_IN_USE');
     }
 
-    const user = await this.repo.updateProfile(userId, name, email);
+    const user = await this.repo.updateProfile(userId, name, email, company, jobTitle, timezone);
     if (!user) throw new Error('USER_NOT_FOUND');
 
     return {
       id: user.id,
       email: user.email,
       name: user.name,
+      company: user.company ?? null,
+      jobTitle: user.job_title ?? null,
+      timezone: user.timezone ?? null,
       createdAt: user.created_at,
     };
+  }
+
+  async loginOrRegisterOAuthUser(input: {
+    email: string;
+    name: string;
+    company?: string;
+    jobTitle?: string;
+    timezone?: string;
+  }): Promise<AuthResult> {
+    let user = await this.repo.findByEmail(input.email);
+
+    if (!user) {
+      const userId = `usr_${crypto.randomBytes(16).toString('hex')}`;
+      const randomPassword = crypto.randomBytes(32).toString('hex');
+      const hash = await argon2.hash(randomPassword + config.ARGON2_PEPPER, {
+        type: argon2.argon2id,
+        memoryCost: 65536,
+        timeCost: 3,
+        parallelism: 4,
+      });
+
+      const defaultProjectId = this.generateProjectId();
+      const defaultProjectName = this.buildDefaultProjectName(input.name);
+
+      await this.repo.createUserWithDefaultProject({
+        id: userId,
+        email: input.email,
+        passwordHash: hash,
+        name: input.name,
+        company: input.company,
+        jobTitle: input.jobTitle,
+        timezone: input.timezone,
+        defaultProjectId,
+        defaultProjectName,
+      });
+
+      user = await this.repo.findByEmail(input.email);
+    }
+
+    return this.buildAuthResult({ id: user.id, email: user.email, name: user.name });
   }
 
   async listProjectMembers(userId: string, projectId: string): Promise<ProjectMember[]> {

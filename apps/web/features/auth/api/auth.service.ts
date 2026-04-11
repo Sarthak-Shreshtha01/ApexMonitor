@@ -10,6 +10,9 @@ export interface RegisterDto {
   name: string;
   email: string;
   password: string;
+  company?: string;
+  jobTitle?: string;
+  timezone?: string;
 }
 
 export interface AuthResponse {
@@ -28,6 +31,10 @@ export interface RefreshResponse {
 }
 
 export const authService = {
+  oauthStartUrl: (provider: 'google' | 'github', mode: 'login' | 'register'): string => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+    return `${baseUrl}${ENDPOINTS.auth.oauthStart(provider, mode)}`;
+  },
   login: async (data: LoginDto): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>(ENDPOINTS.auth.login, data);
     return response.data;

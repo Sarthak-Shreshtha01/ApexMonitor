@@ -33,6 +33,60 @@ function clearAuthCookies(res: Response): void {
 export class AuthController {
   private service = new AuthService();
 
+  public oauthStart = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const provider = String(req.params.provider || '').toLowerCase();
+      const mode = req.query.mode === 'register' ? 'register' : 'login';
+      const authorizeUrl = await this.service.buildOAuthAuthorizationUrl(provider as 'google' | 'github', mode);
+      res.redirect(authorizeUrl);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'OAUTH_NOT_CONFIGURED') {
+        res.status(503).json({ error: 'OAUTH_NOT_CONFIGURED', message: 'OAuth provider is not configured' });
+        return;
+      }
+      if (error instanceof Error && error.message === 'UNSUPPORTED_PROVIDER') {
+        res.status(400).json({ error: 'UNSUPPORTED_PROVIDER', message: 'Unsupported OAuth provider' });
+        return;
+      }
+
+      next(error);
+    }
+  };
+
+  public oauthCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const provider = String(req.params.provider || '').toLowerCase();
+      const code = String(req.query.code || '');
+      const state = String(req.query.state || '');
+
+      if (!code || !state) {
+        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Missing OAuth code/state' });
+        return;
+      }
+
+      const result = await this.service.handleOAuthCallback(provider as 'google' | 'github', code, state);
+      setAuthCookies(res, result.accessToken, result.refreshToken);
+
+      const redirectUrl = new URL(`${this.service.getFrontendUrl()}/oauth/callback`);
+      redirectUrl.searchParams.set('accessToken', result.accessToken);
+      redirectUrl.searchParams.set('refreshToken', result.refreshToken);
+      redirectUrl.searchParams.set('provider', provider);
+
+      res.redirect(redirectUrl.toString());
+    } catch (error) {
+      if (error instanceof Error && error.message === 'OAUTH_NOT_CONFIGURED') {
+        res.status(503).json({ error: 'OAUTH_NOT_CONFIGURED', message: 'OAuth provider is not configured' });
+        return;
+      }
+      if (error instanceof Error && (error.message === 'INVALID_OAUTH_STATE' || error.message === 'OAUTH_EXCHANGE_FAILED' || error.message === 'OAUTH_EMAIL_UNAVAILABLE' || error.message === 'UNSUPPORTED_PROVIDER')) {
+        res.status(400).json({ error: error.message, message: 'OAuth sign-in failed' });
+        return;
+      }
+
+      next(error);
+    }
+  };
+
   public login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { email, password } = req.body;

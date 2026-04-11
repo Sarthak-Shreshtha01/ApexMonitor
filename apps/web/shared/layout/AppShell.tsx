@@ -25,7 +25,7 @@ const NAV_LINKS = [
   { name: 'Logs', href: ROUTES.dashboard.logs, icon: ScrollText },
   { name: 'Traces', href: ROUTES.dashboard.traces, icon: GitBranch },
   { name: 'Keys', href: ROUTES.dashboard.keys, icon: Key },
-  { name: 'Alerts', href: ROUTES.dashboard.alerts, icon: Bell },
+  // { name: 'Alerts', href: ROUTES.dashboard.alerts, icon: Bell },
   { name: 'Insights', href: ROUTES.dashboard.insights, icon: LineChart },
   { name: 'Billing', href: ROUTES.dashboard.billing, icon: CreditCard },
   { name: 'Settings', href: ROUTES.dashboard.settings, icon: Settings },

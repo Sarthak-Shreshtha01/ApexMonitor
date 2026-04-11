@@ -6,12 +6,18 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
+  company: string | null;
+  jobTitle: string | null;
+  timezone: string | null;
   createdAt: string;
 }
 
 export interface UpdateProfileRequest {
   name: string;
   email: string;
+  company?: string;
+  jobTitle?: string;
+  timezone?: string;
 }
 
 export class UserService {

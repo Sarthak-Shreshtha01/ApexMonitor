@@ -3,6 +3,7 @@ export const ROUTES = {
   auth: {
     login: '/login',
     register: '/register',
+    oauthCallback: '/oauth/callback',
     verifyEmail: '/verify-email',
     forgotPassword: '/forgot-password',
     resetPassword: '/reset-password',
@@ -33,6 +34,7 @@ export const PUBLIC_PATHS = [
   ROUTES.home,
   ROUTES.auth.login,
   ROUTES.auth.register,
+  ROUTES.auth.oauthCallback,
   ROUTES.auth.verifyEmail,
   ROUTES.auth.forgotPassword,
   ROUTES.auth.resetPassword,

@@ -4,6 +4,10 @@ import { getRedis } from '@infrastructure/redis';
 import { AuthRepository } from './auth.repository';
 import crypto from 'crypto';
 import { UserService } from '@modules/users/user.service';
+import jwt from 'jsonwebtoken';
+
+type OAuthProvider = 'google' | 'github';
+type OAuthMode = 'login' | 'register';
 
 export class AuthService {
   private repo = new AuthRepository();
@@ -108,6 +112,180 @@ export class AuthService {
     const member = await this.repo.getProjectMember(projectId, userId);
     if (!member || member.role !== 'owner') {
       throw new Error('PROJECT_ACCESS_DENIED');
+    }
+  }
+
+  getFrontendUrl(): string {
+    return config.FRONTEND_URL;
+  }
+
+  async buildOAuthAuthorizationUrl(provider: OAuthProvider, mode: OAuthMode): Promise<string> {
+    const state = this.signOAuthState(provider, mode);
+
+    if (provider === 'google') {
+      if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_REDIRECT_URI) {
+        throw new Error('OAUTH_NOT_CONFIGURED');
+      }
+
+      const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      url.searchParams.set('client_id', config.GOOGLE_CLIENT_ID);
+      url.searchParams.set('redirect_uri', config.GOOGLE_REDIRECT_URI);
+      url.searchParams.set('response_type', 'code');
+      url.searchParams.set('scope', 'openid email profile');
+      url.searchParams.set('access_type', 'offline');
+      url.searchParams.set('prompt', 'consent');
+      url.searchParams.set('state', state);
+      return url.toString();
+    }
+
+    if (provider === 'github') {
+      if (!config.GITHUB_CLIENT_ID || !config.GITHUB_REDIRECT_URI) {
+        throw new Error('OAUTH_NOT_CONFIGURED');
+      }
+
+      const url = new URL('https://github.com/login/oauth/authorize');
+      url.searchParams.set('client_id', config.GITHUB_CLIENT_ID);
+      url.searchParams.set('redirect_uri', config.GITHUB_REDIRECT_URI);
+      url.searchParams.set('scope', 'read:user user:email');
+      url.searchParams.set('state', state);
+      return url.toString();
+    }
+
+    throw new Error('UNSUPPORTED_PROVIDER');
+  }
+
+  async handleOAuthCallback(provider: OAuthProvider, code: string, state: string) {
+    this.verifyOAuthState(provider, state);
+
+    if (provider === 'google') {
+      if (!config.GOOGLE_CLIENT_ID || !config.GOOGLE_CLIENT_SECRET || !config.GOOGLE_REDIRECT_URI) {
+        throw new Error('OAUTH_NOT_CONFIGURED');
+      }
+
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          code,
+          client_id: config.GOOGLE_CLIENT_ID,
+          client_secret: config.GOOGLE_CLIENT_SECRET,
+          redirect_uri: config.GOOGLE_REDIRECT_URI,
+          grant_type: 'authorization_code',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const tokenJson = await tokenResponse.json() as { access_token?: string };
+      if (!tokenJson.access_token) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+        headers: { Authorization: `Bearer ${tokenJson.access_token}` },
+      });
+
+      if (!profileResponse.ok) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const profile = await profileResponse.json() as { email?: string; name?: string; locale?: string };
+      if (!profile.email) {
+        throw new Error('OAUTH_EMAIL_UNAVAILABLE');
+      }
+
+      return this.userService.loginOrRegisterOAuthUser({
+        email: profile.email,
+        name: profile.name || profile.email.split('@')[0],
+        timezone: profile.locale,
+      });
+    }
+
+    if (provider === 'github') {
+      if (!config.GITHUB_CLIENT_ID || !config.GITHUB_CLIENT_SECRET || !config.GITHUB_REDIRECT_URI) {
+        throw new Error('OAUTH_NOT_CONFIGURED');
+      }
+
+      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          code,
+          client_id: config.GITHUB_CLIENT_ID,
+          client_secret: config.GITHUB_CLIENT_SECRET,
+          redirect_uri: config.GITHUB_REDIRECT_URI,
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const tokenJson = await tokenResponse.json() as { access_token?: string };
+      if (!tokenJson.access_token) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${tokenJson.access_token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'PulseAPI',
+        },
+      });
+
+      const emailResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${tokenJson.access_token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'PulseAPI',
+        },
+      });
+
+      if (!userResponse.ok || !emailResponse.ok) {
+        throw new Error('OAUTH_EXCHANGE_FAILED');
+      }
+
+      const userJson = await userResponse.json() as { name?: string; login?: string };
+      const emails = await emailResponse.json() as Array<{ email: string; primary: boolean; verified: boolean }>;
+      const preferredEmail = emails.find((entry) => entry.primary && entry.verified)?.email || emails.find((entry) => entry.verified)?.email;
+
+      if (!preferredEmail) {
+        throw new Error('OAUTH_EMAIL_UNAVAILABLE');
+      }
+
+      return this.userService.loginOrRegisterOAuthUser({
+        email: preferredEmail,
+        name: userJson.name || userJson.login || preferredEmail.split('@')[0],
+      });
+    }
+
+    throw new Error('UNSUPPORTED_PROVIDER');
+  }
+
+  private signOAuthState(provider: OAuthProvider, mode: OAuthMode): string {
+    return jwt.sign(
+      {
+        provider,
+        mode,
+        tokenType: 'oauth_state',
+        nonce: crypto.randomBytes(8).toString('hex'),
+      },
+      config.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+  }
+
+  private verifyOAuthState(provider: OAuthProvider, state: string): void {
+    try {
+      const payload = jwt.verify(state, config.JWT_SECRET) as { provider?: string; tokenType?: string };
+      if (payload.tokenType !== 'oauth_state' || payload.provider !== provider) {
+        throw new Error('INVALID_OAUTH_STATE');
+      }
+    } catch {
+      throw new Error('INVALID_OAUTH_STATE');
     }
   }
 

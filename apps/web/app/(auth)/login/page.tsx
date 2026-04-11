@@ -30,6 +30,10 @@ export default function LoginPage() {
     return fallback;
   };
 
+  const startOAuth = (provider: 'google' | 'github') => {
+    window.location.href = authService.oauthStartUrl(provider, 'login');
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -121,6 +125,30 @@ export default function LoginPage() {
           >
             {isLoading ? 'Authenticating...' : 'Sign In'}
           </button>
+
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="h-px bg-outline-variant/30 flex-1" />
+              <span className="text-[10px] uppercase tracking-widest text-outline-variant">or continue with</span>
+              <div className="h-px bg-outline-variant/30 flex-1" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => startOAuth('google')}
+                className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+              >
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => startOAuth('github')}
+                className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+              >
+                GitHub
+              </button>
+            </div>
+          </div>
         </form>
 
         <footer className="mt-8 text-center">

@@ -9,7 +9,13 @@ export default function SettingsPage() {
 
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', email: '' });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    company: '',
+    jobTitle: '',
+    timezone: 'UTC',
+  });
   const [addMemberFormData, setAddMemberFormData] = useState<{ email: string; role: 'owner' | 'editor' | 'viewer' }>({ email: '', role: 'viewer' });
 
   return (

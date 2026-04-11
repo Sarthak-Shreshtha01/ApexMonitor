@@ -32,6 +32,14 @@ const ConfigSchema = z.object({
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   API_BASE_URL: z.string().url().default('http://localhost:3000'),
+  FRONTEND_URL: z.string().url().default('http://localhost:3001'),
+
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GOOGLE_REDIRECT_URI: z.string().url().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  GITHUB_REDIRECT_URI: z.string().url().optional(),
 
   // PhonePe Configs (with defaults for sandbox testing)
 });

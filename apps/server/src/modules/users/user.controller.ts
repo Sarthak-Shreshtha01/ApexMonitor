@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
-import { RegisterDto, LoginDto } from './dto/user.dto';
+import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
 import { serializeCookie } from '@shared/utils/cookie.utils';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
@@ -87,13 +87,15 @@ export class UserController {
         return;
       }
 
-      const { name, email } = req.body;
-      if (!name || !email) {
-        res.status(400).json({ error: 'MISSING_FIELDS' });
-        return;
-      }
-
-      const profile = await this.service.updateProfile(userId, name, email);
+      const payload = UpdateProfileDto.parse(req.body);
+      const profile = await this.service.updateProfile(
+        userId,
+        payload.name,
+        payload.email,
+        payload.company,
+        payload.jobTitle,
+        payload.timezone,
+      );
       res.status(200).json({ profile });
     } catch (error: any) {
       if (error.message === 'EMAIL_IN_USE') return res.status(409).json({ error: error.message });

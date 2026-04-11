@@ -13,8 +13,8 @@ interface SettingsContentProps {
   setIsEditProfileOpen: (open: boolean) => void;
   isAddMemberOpen: boolean;
   setIsAddMemberOpen: (open: boolean) => void;
-  editFormData: { name: string; email: string };
-  setEditFormData: (data: { name: string; email: string }) => void;
+  editFormData: { name: string; email: string; company: string; jobTitle: string; timezone: string };
+  setEditFormData: (data: { name: string; email: string; company: string; jobTitle: string; timezone: string }) => void;
   addMemberFormData: { email: string; role: 'owner' | 'editor' | 'viewer' };
   setAddMemberFormData: (data: { email: string; role: 'owner' | 'editor' | 'viewer' }) => void;
 }
@@ -55,7 +55,7 @@ export function SettingsContent({
 
   // Mutations
   const updateProfileMutation = useMutation({
-    mutationFn: (data: { name: string; email: string }) => userService.updateProfile(data),
+    mutationFn: (data: { name: string; email: string; company: string; jobTitle: string; timezone: string }) => userService.updateProfile(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userProfile'] });
       setIsEditProfileOpen(false);
@@ -125,6 +125,9 @@ export function SettingsContent({
       setEditFormData({
         name: profileQuery.data.name,
         email: profileQuery.data.email,
+        company: profileQuery.data.company ?? '',
+        jobTitle: profileQuery.data.jobTitle ?? '',
+        timezone: profileQuery.data.timezone ?? 'UTC',
       });
     }
     setIsEditProfileOpen(true);
@@ -195,6 +198,24 @@ export function SettingsContent({
                           Email Address
                         </label>
                         <p className="text-sm font-mono text-zinc-300">{profileQuery.data.email}</p>
+                      </div>
+                      <div>
+                        <label className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest block mb-1">
+                          Company
+                        </label>
+                        <p className="text-sm text-zinc-300">{profileQuery.data.company || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <label className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest block mb-1">
+                          Job Title
+                        </label>
+                        <p className="text-sm text-zinc-300">{profileQuery.data.jobTitle || 'Not set'}</p>
+                      </div>
+                      <div>
+                        <label className="text-zinc-600 text-[10px] uppercase font-bold tracking-widest block mb-1">
+                          Timezone
+                        </label>
+                        <p className="text-sm text-zinc-300">{profileQuery.data.timezone || 'Not set'}</p>
                       </div>
                     </div>
                     <button
@@ -416,6 +437,39 @@ export function SettingsContent({
                   onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
                   className="w-full bg-[#0A0A0A] border border-zinc-700 rounded p-3 text-sm text-white focus:outline-none focus:border-[#FF4500]"
                   required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Company
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.company}
+                  onChange={(e) => setEditFormData({ ...editFormData, company: e.target.value })}
+                  className="w-full bg-[#0A0A0A] border border-zinc-700 rounded p-3 text-sm text-white focus:outline-none focus:border-[#FF4500]"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Job Title
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.jobTitle}
+                  onChange={(e) => setEditFormData({ ...editFormData, jobTitle: e.target.value })}
+                  className="w-full bg-[#0A0A0A] border border-zinc-700 rounded p-3 text-sm text-white focus:outline-none focus:border-[#FF4500]"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Timezone
+                </label>
+                <input
+                  type="text"
+                  value={editFormData.timezone}
+                  onChange={(e) => setEditFormData({ ...editFormData, timezone: e.target.value })}
+                  className="w-full bg-[#0A0A0A] border border-zinc-700 rounded p-3 text-sm text-white focus:outline-none focus:border-[#FF4500]"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4">

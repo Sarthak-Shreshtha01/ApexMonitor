@@ -9,6 +9,8 @@ const controller = new AuthController();
 router.post(SERVER_ENDPOINTS.auth.login, controller.login);
 router.post(SERVER_ENDPOINTS.auth.refresh, controller.refresh);
 router.post(SERVER_ENDPOINTS.auth.logout, controller.logout);
+router.get(SERVER_ENDPOINTS.auth.oauthStart, controller.oauthStart);
+router.get(SERVER_ENDPOINTS.auth.oauthCallback, controller.oauthCallback);
 
 // POST /api/v1/auth/keys
 router.post(SERVER_ENDPOINTS.auth.keys, controller.generateKey);

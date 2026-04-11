@@ -19,6 +19,9 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [company, setCompany] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [timezone, setTimezone] = useState('UTC');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -38,7 +41,14 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const { accessToken, refreshToken } = await authService.register({ name: fullName, email, password });
+      const { accessToken, refreshToken } = await authService.register({
+        name: fullName,
+        email,
+        password,
+        company: company || undefined,
+        jobTitle: jobTitle || undefined,
+        timezone: timezone || undefined,
+      });
       dispatch(setTokens({ accessToken, refreshToken }));
 
       const projects = await projectsService.listMine();
@@ -50,6 +60,10 @@ export default function RegisterPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const startOAuth = (provider: 'google' | 'github') => {
+    window.location.href = authService.oauthStartUrl(provider, 'register');
   };
 
   return (
@@ -118,6 +132,39 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Company</label>
+              <input
+                type="text"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
+                placeholder="Acme Inc."
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Job Title</label>
+              <input
+                type="text"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
+                placeholder="Engineering Manager"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Timezone</label>
+              <input
+                type="text"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+                className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
+                placeholder="Asia/Kolkata"
+              />
+            </div>
+
             <div className="pt-4">
               <button 
                 type="submit" 
@@ -127,6 +174,30 @@ export default function RegisterPage() {
                 <span>{isLoading ? 'Creating...' : 'Create Account'}</span>
                 <ArrowRight className="w-5 h-5" />
               </button>
+            </div>
+
+            <div className="pt-2 space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-px bg-outline-variant/30 flex-1" />
+                <span className="text-[10px] uppercase tracking-widest text-outline-variant">or continue with</span>
+                <div className="h-px bg-outline-variant/30 flex-1" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => startOAuth('google')}
+                  className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                >
+                  Google
+                </button>
+                <button
+                  type="button"
+                  onClick={() => startOAuth('github')}
+                  className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                >
+                  GitHub
+                </button>
+              </div>
             </div>
           </form>
 
