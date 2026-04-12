@@ -1,3 +1,4 @@
+/*
 import { NeuralSummaryCard } from '@/features/ai-insights/ui/NeuralSummaryCard';
 import { HealthForecastMetrics } from '@/features/ai-insights/ui/HealthForecastMetrics';
 import { FlaggedRoutesTable } from '@/features/ai-insights/ui/FlaggedRoutesTable';
@@ -19,7 +20,7 @@ export default function AiInsightsPage() {
             </nav>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tighter text-white">Neural Intelligence Hub</h1>
           </div>
-          
+
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#131313] border border-neutral-800 rounded-lg shadow-sm">
             <div className="relative w-2 h-2 flex items-center justify-center">
               <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-75"></div>
@@ -46,8 +47,7 @@ export default function AiInsightsPage() {
       </div>
 
       <AiFab />
-      
-      {/* Scope custom scrollbar purely to this page if needed */}
+
       <style dangerouslySetInnerHTML={{
         __html: `
           .custom-scrollbar::-webkit-scrollbar { width: 4px; }
@@ -56,5 +56,20 @@ export default function AiInsightsPage() {
         `
       }} />
     </div>
+  );
+}
+*/
+
+export default function AiInsightsPage() {
+  return (
+    <section className="min-h-[calc(100vh-3rem)] w-full grid place-items-center p-4 sm:p-8 bg-[#0a0a0a]">
+      <div className="w-full max-w-2xl rounded-xl border border-neutral-800 bg-[#131313] p-6 sm:p-10 text-center space-y-4">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-neutral-500">ApexMonitor Insights</p>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">Insights Page Coming Soon</h1>
+        <p className="text-sm sm:text-base text-neutral-400 max-w-xl mx-auto">
+          We are preparing a smarter insights experience with anomaly detection, suggested actions, and service intelligence.
+        </p>
+      </div>
+    </section>
   );
 }
