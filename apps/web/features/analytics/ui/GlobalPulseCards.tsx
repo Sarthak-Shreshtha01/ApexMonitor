@@ -15,9 +15,9 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
   const bounceRate = pageViews > 0 ? Math.min(100, Math.round((1 - uniqueSessions / Math.max(pageViews, 1)) * 100)) : 0;
 
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+    <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
       {/* Current Visitors */}
-      <div className="bg-[#131313] p-6 border border-[#242424] relative overflow-hidden group">
+      <div className="bg-[#131313] p-4 sm:p-6 border border-[#242424] relative overflow-hidden group">
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Current Visitors</span>
           <div className="relative flex h-3 w-3">
@@ -35,7 +35,7 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
       </div>
 
       {/* Total Page Views */}
-      <div className="bg-[#131313] p-6 border border-[#242424]">
+      <div className="bg-[#131313] p-4 sm:p-6 border border-[#242424]">
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Total Page Views</span>
           <span className="text-emerald-500 text-xs font-mono font-bold flex items-center gap-1">
@@ -57,7 +57,7 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
       </div>
 
       {/* Unique Visitors */}
-      <div className="bg-[#131313] p-6 border border-[#242424]">
+      <div className="bg-[#131313] p-4 sm:p-6 border border-[#242424]">
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Unique Visitors</span>
         </div>
@@ -71,7 +71,7 @@ export function GlobalPulseCards({ activeVisitors, pageViews, uniqueVisitors, un
       </div>
 
       {/* Bounce Rate */}
-      <div className="bg-[#131313] p-6 border border-[#242424]">
+      <div className="bg-[#131313] p-4 sm:p-6 border border-[#242424]">
         <div className="flex justify-between items-start mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Bounce Rate</span>
         </div>

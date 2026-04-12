@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { userService } from '@/features/settings/api/user.service';
 import { teamService } from '@/features/settings/api/team.service';
 import { projectsService, ProjectSummary } from '@/features/projects/api/projects.service';
-import { Loader2 } from 'lucide-react';
+import { Check, ClipboardCopy, Loader2, Lock, Settings2, Trash2, Users } from 'lucide-react';
 
 interface SettingsContentProps {
   projectId: string;
@@ -149,7 +149,7 @@ export function SettingsContent({
     <div className="text-on-background antialiased overflow-x-hidden selection:bg-[#FF4500]/30">
       {/* Toast */}
       {toastMessage && (
-        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100]">
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-100">
           <div className="bg-[#131313] border border-[#FF4500] text-[#FF4500] px-6 py-3 rounded shadow-[0_0_20px_rgba(255,69,0,0.2)]">
             <span className="text-xs font-bold uppercase tracking-widest">{toastMessage}</span>
           </div>
@@ -160,16 +160,16 @@ export function SettingsContent({
       <main className="min-h-screen">
         <div className="max-w-6xl mx-auto p-8 lg:p-12">
           {/* Page Header */}
-          <header className="mb-12">
+          <header className="mb-8 sm:mb-12">
             <h1 className="text-4xl font-bold tracking-tighter text-on-background mb-2">Workspace Settings</h1>
             <p className="text-zinc-500 text-sm">Manage your global ApexMonitor configuration, team access, and identity.</p>
           </header>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Profile & Config */}
-            <div className="lg:col-span-4 space-y-8">
+            <div className="lg:col-span-4 space-y-6 sm:space-y-8">
               {/* User Profile Section */}
-              <section className="bg-[#131313] p-6 rounded-lg border border-zinc-700 relative overflow-hidden group hover:border-zinc-600 transition-colors">
+              <section className="bg-[#131313] p-4 sm:p-6 rounded-lg border border-zinc-700 relative overflow-hidden group hover:border-zinc-600 transition-colors">
                 {profileQuery.isLoading ? (
                   <div className="flex items-center justify-center h-40">
                     <Loader2 className="w-6 h-6 animate-spin text-[#FF4500]" />
@@ -177,7 +177,7 @@ export function SettingsContent({
                 ) : profileQuery.data ? (
                   <>
                     <div className="flex items-start justify-between mb-6">
-                      <div className="h-16 w-16 rounded-lg overflow-hidden border border-zinc-700 group-hover:border-[#FF4500]/50 transition-colors flex items-center justify-center bg-gradient-to-br from-[#FF4500] to-[#ff8a6b]">
+                      <div className="h-16 w-16 rounded-lg overflow-hidden border border-zinc-700 group-hover:border-[#FF4500]/50 transition-colors flex items-center justify-center bg-linear-to-br from-[#FF4500] to-[#ff8a6b]">
                         <span className="text-2xl font-bold text-white">
                           {profileQuery.data.name.charAt(0).toUpperCase()}
                         </span>
@@ -230,8 +230,8 @@ export function SettingsContent({
 
               {/* Project Configuration Section */}
               <section className="bg-[#131313] p-6 rounded-lg border border-zinc-700">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-6 flex items-center gap-2">
-                  <span className="text-sm">⚙️</span>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-4 flex items-center gap-2">
+                  <Settings2 className="w-4 h-4" />
                   Project Config
                 </h3>
                 {projectsQuery.isLoading ? (
@@ -255,12 +255,12 @@ export function SettingsContent({
                             onClick={() => {
                               if (currentProject) copyToClipboard(currentProject.id, 'projectId');
                             }}
-                            className="text-zinc-600 hover:text-white transition-colors ml-2 flex-shrink-0"
+                            className="text-zinc-600 hover:text-white transition-colors ml-2 shrink-0"
                           >
                             {copiedStates['projectId'] ? (
-                              <span className="text-[10px] font-bold text-green-400">✓</span>
+                              <Check className="w-3.5 h-3.5 text-green-400" />
                             ) : (
-                              <span className="text-sm">📋</span>
+                              <ClipboardCopy className="w-3.5 h-3.5" />
                             )}
                           </button>
                         </div>
@@ -299,7 +299,7 @@ export function SettingsContent({
                     {membersQuery.isLoading ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <span className="text-sm">👥</span>
+                      <Users className="w-4 h-4" />
                     )}
                     Add Member
                   </button>
@@ -327,7 +327,7 @@ export function SettingsContent({
                             <tr key={member.userId} className="hover:bg-zinc-900/50 transition-colors group">
                               <td className="px-6 py-4">
                                 <div className="flex items-center gap-3">
-                                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#FF4500] to-[#ff8a6b] flex items-center justify-center font-bold text-[10px] text-white border border-zinc-700 group-hover:border-[#FF4500]/50 transition-colors">
+                                  <div className="h-8 w-8 rounded-full bg-linear-to-br from-[#FF4500] to-[#ff8a6b] flex items-center justify-center font-bold text-[10px] text-white border border-zinc-700 group-hover:border-[#FF4500]/50 transition-colors">
                                     {member.name.charAt(0).toUpperCase()}
                                   </div>
                                   <div>
@@ -369,7 +369,7 @@ export function SettingsContent({
                                   className="text-zinc-600 hover:text-red-400 transition-colors p-1 rounded hover:bg-zinc-800 disabled:opacity-50"
                                   title="Remove member"
                                 >
-                                  <span className="text-sm">🗑️</span>
+                                  <Trash2 className="w-4 h-4" />
                                 </button>
                               </td>
                             </tr>
@@ -389,9 +389,9 @@ export function SettingsContent({
               </section>
 
               {/* Advanced Security Card */}
-              <section className="mt-8 bg-gradient-to-br from-[#1a1919] to-[#0A0A0A] p-8 rounded-lg border border-zinc-700 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5">
-                  <span className="text-[120px]">🔒</span>
+              <section className="mt-8 bg-linear-to-br from-[#1a1919] to-[#0A0A0A] p-8 rounded-lg border border-zinc-700 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-5">
+                  <Lock className="w-28 h-28" />
                 </div>
                 <div className="relative z-10">
                   <h3 className="text-xl font-bold tracking-tight text-white mb-2">Advanced Protection</h3>
@@ -410,8 +410,8 @@ export function SettingsContent({
 
       {/* Edit Profile Modal */}
       {isEditProfileOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
-          <div className="bg-[#131313] border border-zinc-700 p-8 rounded-lg w-full max-w-md">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+          <div className="bg-[#131313] border border-zinc-700 p-5 sm:p-8 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-2">Edit Identity</h3>
             <p className="text-sm text-zinc-500 mb-6">Update your display name and email.</p>
             <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -495,7 +495,7 @@ export function SettingsContent({
 
       {/* Add Member Modal */}
       {isAddMemberOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
           <div className="bg-[#131313] border border-zinc-700 p-8 rounded-lg w-full max-w-md">
             <h3 className="text-xl font-bold mb-2">Invite Team Member</h3>
             <p className="text-sm text-zinc-500 mb-6">Add a new member to your team.</p>

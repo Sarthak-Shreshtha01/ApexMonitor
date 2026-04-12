@@ -2,13 +2,13 @@ import { Filter, Download } from 'lucide-react';
 
 export function RequestVolumeChart() {
   return (
-    <div className="bg-surface-container-low p-8 rounded-2xl border border-outline-variant/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)] mb-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-10">
+    <div className="bg-surface-container-low p-4 sm:p-8 rounded-2xl border border-outline-variant/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)] mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 sm:mb-10">
         <div>
           <h2 className="text-lg font-bold text-white tracking-tight">Request Volume Over Time</h2>
           <p className="text-xs text-secondary">Aggregated telemetry data for production cluster main</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button className="bg-surface border border-outline-variant/20 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-secondary hover:text-white transition-colors flex items-center gap-2">
             <Filter className="w-3.5 h-3.5" /> Filter
           </button>
@@ -18,7 +18,7 @@ export function RequestVolumeChart() {
         </div>
       </div>
 
-      <div className="h-[320px] w-full relative">
+      <div className="h-64 sm:h-80 w-full relative">
         {/* Chart Background Lines */}
         <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
           {[1, 2, 3, 4, 5].map((i) => (

@@ -1,4 +1,5 @@
 import { Globe, Share2, Zap, Link as LinkIcon } from 'lucide-react';
+import { GeoIpLeafletMap } from '@/shared/ui/GeoIpLeafletMap';
 
 type ReferrerRow = {
   referrer_source: string;
@@ -35,8 +36,6 @@ const typeFor = (source: string) => {
 };
 
 export function ReferrersMap({ referrers, geo }: ReferrersMapProps) {
-  const topRegion = geo[0];
-
   return (
     <div className="bg-[#131313] border border-[#242424] p-6 rounded-lg">
       <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-6">Top Referrers</h3>
@@ -63,18 +62,7 @@ export function ReferrersMap({ referrers, geo }: ReferrersMapProps) {
       </div>
 
       <div className="mt-10 p-4 border border-[#242424] bg-[#0A0A0A] rounded-lg">
-        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-3">Live Map Projection</p>
-        <div className="aspect-video bg-zinc-900 relative flex items-center justify-center rounded overflow-hidden">
-          {/* Abstract map pattern fallback */}
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at center, #71717a 1px, transparent 1px)', backgroundSize: '8px 8px' }}></div>
-          
-          <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 px-2 py-1 rounded backdrop-blur-sm border border-white/5">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#FF4500] animate-pulse"></div>
-            <span className="text-[8px] font-mono text-white">
-              {topRegion ? `${topRegion.country_code}/${topRegion.region_code}: ${format(topRegion.page_views)}` : 'NO GEO DATA'}
-            </span>
-          </div>
-        </div>
+        <GeoIpLeafletMap data={geo} title="Live Map Projection" />
       </div>
     </div>
   );

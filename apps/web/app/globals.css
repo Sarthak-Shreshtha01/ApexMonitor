@@ -79,4 +79,44 @@
     background: #262626;
     border-radius: 2px;
   }
+
+  .geo-ip-map .leaflet-pane,
+  .geo-ip-map .leaflet-top,
+  .geo-ip-map .leaflet-bottom {
+    z-index: 400;
+  }
+
+  .geo-ip-map .leaflet-tooltip {
+    background: rgba(5, 5, 5, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    box-shadow: none;
+  }
+
+  .geo-ip-map .leaflet-tooltip-top:before {
+    border-top-color: rgba(5, 5, 5, 0.9);
+  }
+
+  .geo-point-glow {
+    animation: geo-pulse 2.4s ease-in-out infinite;
+  }
+
+  .geo-point-core {
+    filter: drop-shadow(0 0 4px rgba(255, 98, 46, 0.75));
+  }
+
+  @keyframes geo-pulse {
+    0% {
+      opacity: 0.35;
+      transform: scale(0.86);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1);
+    }
+    100% {
+      opacity: 0.35;
+      transform: scale(0.86);
+    }
+  }
 }

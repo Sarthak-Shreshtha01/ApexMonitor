@@ -71,21 +71,21 @@ export function TracesExplorer() {
   };
 
   return (
-    <div className="p-8 max-w-[1500px] mx-auto space-y-6">
-      <header className="flex items-end justify-between gap-6 flex-wrap">
+    <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 sm:gap-6">
         <div>
-          <h1 className="text-4xl font-black tracking-tight text-white">Trace Explorer</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">Trace Explorer</h1>
           <p className="text-sm text-secondary mt-1">
             {activeProjectId ? `Trace timeline for ${activeProjectId}` : 'Select a project to view traces.'}
           </p>
         </div>
-        <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3">
+        <div className="bg-surface-container-low border border-outline-variant/20 rounded-xl px-4 py-3 w-fit">
           <p className="text-[10px] uppercase tracking-widest text-secondary">Total Traces</p>
           <p className="text-2xl font-bold text-primary">{total}</p>
         </div>
       </header>
 
-      <form onSubmit={onApply} className="flex flex-wrap gap-3 bg-surface-container p-3 rounded-xl border border-outline-variant/20">
+      <form onSubmit={onApply} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[auto_auto_1fr_auto] gap-3 bg-surface-container p-3 rounded-xl border border-outline-variant/20">
         <select
           value={statusClass}
           onChange={(e) => {
@@ -104,7 +104,7 @@ export function TracesExplorer() {
           value={searchDraft}
           onChange={(e) => setSearchDraft(e.target.value)}
           placeholder="Search trace id, endpoint, IP"
-          className="flex-1 min-w-[220px] bg-surface-container-high border border-outline-variant/20 rounded-lg px-3 py-2 text-xs text-white"
+          className="min-w-0 bg-surface-container-high border border-outline-variant/20 rounded-lg px-3 py-2 text-xs text-white sm:col-span-2 xl:col-span-1"
         />
         <button
           type="submit"
@@ -115,7 +115,49 @@ export function TracesExplorer() {
       </form>
 
       <div className="bg-surface-container-lowest border border-outline-variant/15 rounded-2xl overflow-hidden">
-        <table className="w-full min-w-[900px]">
+        <div className="md:hidden divide-y divide-outline-variant/10">
+          {tracesQuery.isLoading ? (
+            <div className="px-4 py-8 text-secondary text-sm">Loading traces...</div>
+          ) : tracesQuery.isError ? (
+            <div className="px-4 py-8 text-error text-sm">Failed to load traces.</div>
+          ) : traces.length === 0 ? (
+            <div className="px-4 py-8 text-secondary text-sm">No traces found.</div>
+          ) : (
+            traces.map((trace) => (
+              <article key={trace.traceId} className="p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-[10px] uppercase tracking-widest text-secondary">Trace ID</p>
+                    <p className="text-xs font-mono text-primary wrap-break-word">{trace.traceId}</p>
+                  </div>
+                  <Link href={ROUTES.dashboard.traceDetail(trace.traceId)} className="text-xs font-bold text-primary hover:underline shrink-0">
+                    View
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-secondary mb-1">Route</p>
+                    <p className="text-white wrap-break-word">{trace.endpoint}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-secondary mb-1">Status / Latency</p>
+                    <p className="text-secondary">{trace.statusCode} • {trace.latencyMs}ms</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-secondary mb-1">Method</p>
+                    <p className="text-secondary">{trace.method}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest text-secondary mb-1">Timestamp</p>
+                    <p className="text-secondary">{new Date(trace.timestamp).toLocaleString()}</p>
+                  </div>
+                </div>
+              </article>
+            ))
+          )}
+        </div>
+
+        <table className="hidden md:table w-full min-w-195 lg:min-w-225">
           <thead className="bg-surface-container-low border-b border-outline-variant/15">
             <tr>
               {['Trace ID', 'Route', 'Method', 'Status', 'Latency', 'Timestamp', 'Action'].map((label) => (
@@ -151,9 +193,9 @@ export function TracesExplorer() {
             )}
           </tbody>
         </table>
-        <div className="px-5 py-4 border-t border-outline-variant/10 flex justify-between items-center">
+        <div className="px-4 sm:px-5 py-4 border-t border-outline-variant/10 flex flex-col sm:flex-row gap-3 sm:justify-between sm:items-center">
           <span className="text-xs text-secondary">Page {page} of {totalPages}</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2 self-end sm:self-auto">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}

@@ -7,6 +7,7 @@ import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { useMetricsOverview } from '@/features/metrics/hooks/useMetrics';
 import { logsService } from '@/features/logs/api/logs.service';
+import { analyticsService } from '@/features/analytics/api/analytics.service';
 import { insightsService, InsightItem } from '../api/insights.service';
 
 interface LivePulsePayload {
@@ -46,6 +47,13 @@ export function useLiveTraffic() {
     queryFn: () => insightsService.list(projectId!, 8),
     enabled: !!projectId,
     refetchInterval: 10000,
+  });
+
+  const geoQuery = useQuery({
+    queryKey: ['traffic', 'geo', projectId, timeframe],
+    queryFn: () => analyticsService.getGeo(projectId!, timeframe, 12),
+    enabled: !!projectId,
+    refetchInterval: 12000,
   });
 
   const [pulse, setPulse] = useState<LivePulsePayload | null>(null);
@@ -116,10 +124,12 @@ export function useLiveTraffic() {
     overviewQuery,
     logsQuery,
     insightsQuery,
+    geoQuery,
     pulse,
     isSocketConnected,
     criticalLogs,
     mergedInsights,
+    geo: geoQuery.data ?? [],
   };
 }
 

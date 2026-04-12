@@ -55,7 +55,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="relative z-10 w-full max-w-md px-6">
+    <main className="relative z-10 w-full max-w-md px-4 sm:px-6">
       <div className="flex flex-col items-center mb-10">
         <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-[0_0_15px_2px_rgba(255,69,0,0.3)] mb-6 group transition-all duration-300">
           <Activity className="text-on-primary w-6 h-6 font-bold" />
@@ -64,7 +64,7 @@ export default function LoginPage() {
         <p className="text-sm font-medium text-outline uppercase tracking-widest opacity-60">Kinetic Observatory</p>
       </div>
 
-      <div className="bg-surface-container/70 backdrop-blur-xl border border-outline-variant/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+      <div className="bg-surface-container/70 backdrop-blur-xl border border-outline-variant/30 rounded-2xl p-5 sm:p-8 shadow-2xl relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/10 blur-3xl rounded-full"></div>
         
         <header className="mb-8">
@@ -162,7 +162,7 @@ export default function LoginPage() {
       </div>
 
       {/* Terminal-style meta info */}
-      <div className="mt-12 flex justify-between items-center opacity-40 px-2">
+      <div className="mt-10 sm:mt-12 hidden sm:flex justify-between items-center opacity-40 px-2">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-secondary"></div>

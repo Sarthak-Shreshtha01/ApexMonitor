@@ -9,7 +9,7 @@ const FLAGGED_ROUTES = [
 export function FlaggedRoutesTable() {
   return (
     <div className="bg-[#131313] border border-neutral-800 rounded-xl overflow-hidden flex-1 flex flex-col">
-      <div className="px-6 py-5 border-b border-neutral-800 flex justify-between items-center bg-neutral-950/50">
+      <div className="px-4 sm:px-6 py-5 border-b border-neutral-800 flex justify-between items-center gap-3 bg-neutral-950/50">
         <h3 className="text-xs font-bold uppercase tracking-widest text-neutral-200">AI-Flagged Route Performance</h3>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-neutral-500 italic hidden sm:block">Showing only anomalies</span>
@@ -19,8 +19,30 @@ export function FlaggedRoutesTable() {
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[600px]">
+      <div className="md:hidden p-3 space-y-3">
+        {FLAGGED_ROUTES.map((route) => (
+          <div key={route.path} className="rounded-lg border border-neutral-800 bg-neutral-950/40 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-[10px] uppercase tracking-widest text-neutral-500 mb-1">Route Path</div>
+                <div className="text-sm font-semibold text-white break-all">{route.path}</div>
+              </div>
+              <span className={`px-2 py-1 bg-${route.color}-500/10 text-${route.color}-500 border border-${route.color}-500/20 rounded text-[9px] font-bold uppercase tracking-wider shrink-0`}>
+                {route.severity}
+              </span>
+            </div>
+            <div className="flex gap-4 text-xs font-mono text-neutral-400">
+              <span>RPS: {route.rps}</span>
+            </div>
+            <p className={`text-xs leading-relaxed ${route.color === 'neutral' ? 'text-neutral-500 italic' : `text-${route.color}-400/90`}`}>
+              {route.insight}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-150">
           <thead>
             <tr className="border-b border-neutral-800 bg-neutral-950/30">
               {['Route Path', 'RPS', 'AI Insight', 'Severity'].map((h) => (

@@ -4,11 +4,11 @@ import { ROUTES } from '@/shared/routes/routes';
 
 export function HeroSection() {
   return (
-    <section className="relative pt-40 pb-24 overflow-hidden">
+    <section className="relative pt-24 sm:pt-32 lg:pt-40 pb-16 sm:pb-20 lg:pb-24 overflow-hidden">
       <div className="absolute inset-0 grid-blueprint pointer-events-none opacity-10"></div>
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[500px] bg-primary/10 blur-[140px] -z-10"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-125 bg-primary/10 blur-[140px] -z-10"></div>
       
-      <div className="max-w-7xl mx-auto px-8 relative z-10 text-center mb-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center mb-12 sm:mb-16">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-md">
           <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse"></span>
           <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-primary">
@@ -16,37 +16,37 @@ export function HeroSection() {
           </span>
         </div>
         
-        <h1 className="text-6xl md:text-8xl font-black tracking-tight mb-6 text-white leading-none">
+        <h1 className="text-4xl sm:text-5xl lg:text-7xl xl:text-8xl font-black tracking-tight mb-6 text-white leading-none">
           Observe Everything.<br/>
           <span className="text-primary">
             Miss Nothing.
           </span>
         </h1>
         
-        <p className="text-xl md:text-2xl text-secondary max-w-3xl mx-auto mb-12 font-light leading-relaxed">
+        <p className="text-base sm:text-lg lg:text-2xl text-secondary max-w-3xl mx-auto mb-10 sm:mb-12 font-light leading-relaxed">
           The ultimate command center for modern engineering. Complex telemetry simplified into real-time, actionable intelligence.
         </p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">
-          <Link href={ROUTES.auth.register} className="bg-primary text-white px-10 py-5 rounded-xl text-lg font-bold transition-all shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] hover:scale-[1.02] hover:bg-primary flex items-center justify-center">
+          <Link href={ROUTES.auth.register} className="bg-primary text-white px-6 sm:px-10 py-4 sm:py-5 rounded-xl text-base sm:text-lg font-bold transition-all shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] hover:scale-[1.02] hover:bg-primary flex items-center justify-center">
             Start Free Trial
           </Link>
-          <button className="bg-white/5 border border-white/10 text-white px-10 py-5 rounded-xl text-lg font-semibold transition-all hover:bg-white/10">
+          <button className="bg-white/5 border border-white/10 text-white px-6 sm:px-10 py-4 sm:py-5 rounded-xl text-base sm:text-lg font-semibold transition-all hover:bg-white/10">
             Explore Sandbox
           </button>
         </div>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 relative hidden lg:block">
-        <div className="grid grid-cols-12 gap-4 h-[650px]">
+      <div className="max-w-350 mx-auto px-4 relative hidden lg:block">
+        <div className="grid grid-cols-12 gap-4 min-h-140 xl:h-162.5">
           
           {/* Network Topology Panel */}
-          <div className="col-span-3 bg-surface-container/60 backdrop-blur-xl rounded-2xl border border-white/10 flex flex-col overflow-hidden">
+          <div className="col-span-3 bg-surface-container/60 backdrop-blur-xl rounded-2xl border border-white/10 flex flex-col overflow-hidden min-h-100">
             <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
               <span className="font-mono text-[10px] uppercase tracking-widest font-bold text-primary">Network Topology</span>
               <Network className="w-4 h-4 text-secondary" />
             </div>
-            <div className="flex-grow relative p-6 flex flex-col items-center justify-center">
+            <div className="grow relative p-6 flex flex-col items-center justify-center">
               <div className="relative w-full h-full">
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 rounded-full border border-primary/50 flex items-center justify-center text-primary bg-primary/10 shadow-[0_0_15px_currentColor]">
                   <Database className="w-6 h-6" />
@@ -75,7 +75,7 @@ export function HeroSection() {
           </div>
 
           {/* Main Dashboard Panel */}
-          <div className="col-span-6 bg-surface-container/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] flex flex-col overflow-hidden">
+          <div className="col-span-6 bg-surface-container/60 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)] flex flex-col overflow-hidden min-h-100">
             <div className="p-4 border-b border-white/10 flex justify-between items-center bg-white/5">
               <div className="flex gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
@@ -88,7 +88,7 @@ export function HeroSection() {
                 <MoreHorizontal className="w-4 h-4 text-secondary" />
               </div>
             </div>
-            <div className="flex-grow p-8 flex flex-col">
+            <div className="grow p-8 flex flex-col">
               <div className="flex gap-8 mb-8">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-mono text-secondary uppercase font-bold">P99 Latency</span>
@@ -104,7 +104,7 @@ export function HeroSection() {
                 </div>
               </div>
               
-              <div className="flex-grow relative">
+              <div className="grow relative">
                 <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 800 300">
                   <line stroke="white" strokeDasharray="4" strokeOpacity="0.05" x1="0" x2="800" y1="50" y2="50"></line>
                   <line stroke="white" strokeDasharray="4" strokeOpacity="0.05" x1="0" x2="800" y1="150" y2="150"></line>
@@ -115,7 +115,7 @@ export function HeroSection() {
                   <circle className="animate-ping" cx="400" cy="80" fill="#ff4500" r="4"></circle>
                   <circle cx="400" cy="80" fill="#ff4500" r="3"></circle>
                 </svg>
-                <div className="absolute left-1/2 top-[40px] -translate-x-1/2 bg-surface-container/80 backdrop-blur-xl p-3 rounded-lg border border-primary/40 text-[10px] font-mono z-10">
+                <div className="absolute left-1/2 top-10 -translate-x-1/2 bg-surface-container/80 backdrop-blur-xl p-3 rounded-lg border border-primary/40 text-[10px] font-mono z-10">
                   <div className="text-primary border-b border-white/10 pb-1 mb-1">T-12:00:42</div>
                   <div className="flex justify-between gap-4"><span>P99:</span> <span className="text-white">124ms</span></div>
                   <div className="flex justify-between gap-4"><span>P90:</span> <span className="text-secondary">82ms</span></div>
@@ -133,7 +133,7 @@ export function HeroSection() {
                 <span className="text-[9px] font-mono text-emerald-500 font-bold">CONNECTED</span>
               </span>
             </div>
-            <div className="flex-grow p-4 font-mono text-[10px] overflow-hidden">
+            <div className="grow p-4 font-mono text-[10px] overflow-hidden">
               <div className="space-y-3">
                 <div className="flex gap-2"><span className="text-muted">12:44:01</span><span className="text-emerald-400">[INFO]</span><span className="text-secondary">Handshake verified (node-7)</span></div>
                 <div className="flex gap-2"><span className="text-muted">12:44:03</span><span className="text-amber-400">[WARN]</span><span className="text-secondary">High cache miss on /v2/search</span></div>

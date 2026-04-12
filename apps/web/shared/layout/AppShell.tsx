@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import { 
-  Activity, LayoutDashboard, Radio, ScrollText, Key, GitBranch,
-  Bell, LineChart, CreditCard, Settings, Search, HelpCircle, LogOut, User
+  Activity, LayoutDashboard, Globe2, Radio, ScrollText, Key, GitBranch,
+  Bell, LineChart, CreditCard, Settings, Search, HelpCircle, LogOut, User, Menu, X
 } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useProjectStore } from '@/features/projects/state/project.store';
@@ -20,7 +20,7 @@ import { ROUTES } from '@/shared/routes/routes';
 
 const NAV_LINKS = [
   { name: 'Overview', href: ROUTES.dashboard.overview, icon: LayoutDashboard },
-  { name: 'Web Analytics', href: ROUTES.dashboard.webAnalytics, icon: LayoutDashboard },
+  { name: 'Web Analytics', href: ROUTES.dashboard.webAnalytics, icon: Globe2 },
   { name: 'Live Traffic', href: ROUTES.dashboard.liveTraffic, icon: Radio },
   { name: 'Logs', href: ROUTES.dashboard.logs, icon: ScrollText },
   { name: 'Traces', href: ROUTES.dashboard.traces, icon: GitBranch },
@@ -36,6 +36,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const projects = useProjectStore((state) => state.projects);
@@ -74,17 +75,41 @@ export function AppShell({ children }: { children: ReactNode }) {
       }
     }
 
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsMobileNavOpen(false);
+        setIsDropdownOpen(false);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
   }, []);
+
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [pathname]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0] ?? null;
   const userInitial = profileQuery.data?.name?.charAt(0).toUpperCase() ?? '?';
 
   return (
     <div className="bg-app text-on-surface font-sans selection:bg-primary/20 min-h-screen">
+      {isMobileNavOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation"
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setIsMobileNavOpen(false)}
+        />
+      )}
+
       {/* SideNavBar */}
-      <aside className="fixed left-0 top-0 h-full flex flex-col bg-app w-[220px] border-r border-outline-variant z-50">
+      <aside className={`fixed left-0 top-0 h-full flex flex-col bg-app w-55 border-r border-outline-variant z-50 transition-transform duration-200 ${isMobileNavOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
         <div className="p-4 border-b border-outline-variant">
           <div className="flex items-center gap-3">
             <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center text-on-primary">
@@ -121,27 +146,36 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="p-3 border-t border-outline-variant">
           <div className="flex items-center gap-3 p-2 rounded-md bg-surface border border-outline-variant">
             <div className="w-7 h-7 rounded-full bg-surface-container-highest flex items-center justify-center text-xs font-bold text-white">
-              AC
+              SS
             </div>
             <div className="overflow-hidden">
-              <p className="text-xs font-bold text-primary-foreground truncate">Alex Chen</p>
-              <p className="text-[10px] text-secondary truncate">System Architect</p>
+              <p className="text-[10px] text-secondary truncate">Made By </p>
+              <p className="text-xs font-bold text-primary-foreground truncate">Sarthak Shreshtha</p>
             </div>
           </div>
         </div>
       </aside>
 
       {/* TopNavBar */}
-      <header className="flex items-center justify-between px-5 ml-[220px] max-w-[calc(100%-220px)] bg-surface w-full h-12 border-b border-outline-variant sticky top-0 z-40">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between px-3 sm:px-5 lg:ml-55 lg:max-w-[calc(100%-220px)] bg-surface w-full h-14 border-b border-outline-variant sticky top-0 z-30">
+        <div className="flex items-center gap-3 sm:gap-6 min-w-0">
+          <button
+            type="button"
+            aria-label={isMobileNavOpen ? 'Close navigation' : 'Open navigation'}
+            className="lg:hidden p-1.5 text-secondary hover:text-on-surface hover:bg-surface-container-high rounded-md transition-colors"
+            onClick={() => setIsMobileNavOpen((open) => !open)}
+          >
+            {isMobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          <div className="flex items-center gap-2 min-w-0">
             <div className="text-xs font-medium uppercase tracking-widest text-secondary">Project:</div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <select
                 value={activeProject?.id ?? ''}
                 onChange={(event) => setActiveProjectId(event.target.value)}
                 disabled={projects.length === 0}
-                className="bg-surface-variant border border-outline-variant text-xs font-semibold text-white rounded-md px-3 py-1 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-surface-variant border border-outline-variant text-xs font-semibold text-white rounded-md px-2 sm:px-3 py-1 focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed max-w-44 sm:max-w-[16rem]"
               >
                 {projects.length === 0 ? (
                   <option value="">No Projects</option>
@@ -160,7 +194,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               ) : null}
             </div>
           </div>
-          <div className="h-4 w-px bg-outline-variant"></div>
+
+          <div className="hidden lg:block h-4 w-px bg-outline-variant"></div>
           <div className="hidden xl:flex items-center bg-surface-variant rounded-md px-3 py-1 border border-outline-variant focus-within:ring-1 focus-within:ring-primary/50 transition-all">
             <Search className="text-secondary w-4 h-4 mr-2" />
             <input 
@@ -171,8 +206,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
         
-        <div className="flex items-center gap-4">
-          <nav className="flex items-center gap-1 bg-surface-variant border border-outline-variant rounded-md p-1">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <nav className="hidden md:flex items-center gap-1 bg-surface-variant border border-outline-variant rounded-md p-1">
             {(['1h', '6h', '24h', '7d'] as DashboardTimeframe[]).map((time) => (
               <button 
                 key={time} 
@@ -187,18 +222,18 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             ))}
           </nav>
-          <div className="flex items-center gap-2 ml-1">
+          <div className="flex items-center gap-1 sm:gap-2 ml-1">
             <button className="p-1.5 text-secondary hover:bg-surface-container-high rounded-md transition-colors">
               <Bell className="w-5 h-5" />
             </button>
-            <button className="p-1.5 text-secondary hover:bg-surface-container-high rounded-md transition-colors">
+            <button className="hidden sm:inline-flex p-1.5 text-secondary hover:bg-surface-container-high rounded-md transition-colors">
               <HelpCircle className="w-5 h-5" />
             </button>
             {/* User Profile Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-[#ff8a6b] flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-primary/50 transition-all"
+                className="w-8 h-8 rounded-full bg-linear-to-br from-primary to-[#ff8a6b] flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-primary/50 transition-all"
               >
                 {userInitial}
               </button>
@@ -235,7 +270,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </header>
 
       {/* Main Content Area */}
-      <main className="ml-[220px] p-5 min-h-[calc(100vh-3rem)] relative bg-app">
+      <main className="lg:ml-55 p-3 sm:p-5 min-h-[calc(100vh-3.5rem)] relative bg-app">
         <div className="absolute inset-0 pointer-events-none opacity-[0.02] grid-blueprint"></div>
         <div className="relative z-10">
           {children}

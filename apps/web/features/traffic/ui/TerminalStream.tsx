@@ -9,7 +9,7 @@ interface TerminalStreamProps {
 
 export function TerminalStream({ logs, isLoading }: TerminalStreamProps) {
   return (
-    <section className="h-48 border-t border-outline-variant bg-app flex flex-col">
+    <section className="h-60 sm:h-56 md:h-48 border-t border-outline-variant bg-app flex flex-col min-h-0">
       <div className="px-4 py-2 border-b border-surface-container-low flex justify-between items-center bg-surface">
         <span className="text-[9px] font-bold text-tertiary uppercase tracking-widest">Critical Event Stream (4xx/5xx)</span>
         <span className="text-[9px] font-mono text-secondary">LIVE FEED</span>
@@ -26,12 +26,12 @@ export function TerminalStream({ logs, isLoading }: TerminalStreamProps) {
             const rowTone = isServerError ? 'text-primary font-bold' : 'text-tertiary';
 
             return (
-              <div key={log.reqId} className={`${rowTone} hover:bg-surface-container-high px-2 py-0.5 flex gap-4`}>
-                <span className="w-20 text-muted">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}</span>
-                <span className="w-12">{log.method}</span>
-                <span className="flex-1 truncate">{log.endpoint}</span>
-                <span className="w-16 text-right">{log.statusCode}</span>
-                <span className="w-12 text-right">{log.latencyMs}ms</span>
+              <div key={log.reqId} className={`${rowTone} hover:bg-surface-container-high px-2 py-2 rounded md:rounded-none grid grid-cols-[72px_44px_minmax(0,1fr)] md:grid-cols-[72px_44px_minmax(0,1fr)_54px_54px] gap-x-3 gap-y-1 items-center`}>
+                <span className="text-muted text-[9px] md:text-[10px]">{new Date(log.timestamp).toLocaleTimeString([], { hour12: false })}</span>
+                <span className="text-[10px] md:w-12">{log.method}</span>
+                <span className="min-w-0 truncate text-[10px] md:text-xs">{log.endpoint}</span>
+                <span className="hidden md:block w-16 text-right text-[10px]">{log.statusCode}</span>
+                <span className="hidden md:block w-12 text-right text-[10px]">{log.latencyMs}ms</span>
               </div>
             );
           })

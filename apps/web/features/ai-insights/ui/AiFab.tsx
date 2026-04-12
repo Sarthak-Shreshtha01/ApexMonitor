@@ -3,7 +3,7 @@ import { Sparkles } from 'lucide-react';
 export function AiFab() {
   return (
     <button 
-      className="fixed bottom-8 right-8 w-14 h-14 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:bg-orange-500 hover:scale-110 transition-all active:scale-95 group z-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
+      className="fixed bottom-4 right-4 sm:bottom-8 sm:right-8 w-12 h-12 sm:w-14 sm:h-14 bg-orange-600 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(234,88,12,0.4)] hover:bg-orange-500 hover:scale-110 transition-all active:scale-95 group z-50 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0a]"
       aria-label="Ask AI Agent"
     >
       <Sparkles className="text-white w-6 h-6" />

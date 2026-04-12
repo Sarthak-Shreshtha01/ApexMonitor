@@ -64,6 +64,8 @@ export function LiveThroughputCard({
   const activePoint = chart.points.length > 0
     ? chart.points[hoveredIndex ?? chart.points.length - 1]
     : null;
+  const activeXPercent = activePoint ? (activePoint.x / 1000) * 100 : 0;
+  const tooltipLeftPercent = Math.min(86, Math.max(8, activeXPercent));
 
   const requestVelocity = liveRps ?? summary?.rps ?? 0;
   const avgLatency = summary?.avgLatency ?? 0;
@@ -104,10 +106,10 @@ export function LiveThroughputCard({
       </div>
 
       <div className="flex-1 bg-surface relative overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-outline-variant flex justify-between items-center bg-app">
-          <div className="flex items-center gap-4">
+        <div className="p-3 sm:p-4 border-b border-outline-variant flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-app">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
             <span className="text-[10px] font-bold text-white uppercase tracking-widest">Unified Performance Monitor</span>
-            <div className="flex gap-4 text-[9px] font-mono">
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] font-mono">
               <span className="flex items-center gap-1.5 text-primary"><div className="w-2 h-0.5 bg-primary"></div> VELOCITY</span>
               <span className="flex items-center gap-1.5 text-primary-foreground"><div className="w-2 h-0.5 bg-primary-foreground"></div> LATENCY</span>
               <span className="flex items-center gap-1.5 text-tertiary"><div className="w-2 h-0.5 bg-tertiary"></div> ERROR RATE</span>
@@ -116,15 +118,15 @@ export function LiveThroughputCard({
           <span className="text-[9px] font-mono text-secondary uppercase">T-{series.length * 5}s window</span>
         </div>
 
-        <div className="flex-1 relative p-4 grid-blueprint">
+        <div className="flex-1 relative p-4 grid-blueprint overflow-hidden" onMouseLeave={() => setHoveredIndex(null)}>
           {chart.points.length === 0 ? (
             <div className="h-full w-full grid place-items-center text-secondary text-sm">No live chart points available.</div>
           ) : (
             <>
               <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 400">
-                <path d={chart.velocityPath} fill="none" stroke="#FF4500" strokeWidth="2" className="animate-[fadeSlideUp_220ms_ease-out]" />
-                <path d={chart.latencyPath} fill="none" stroke="#FFFFFF" strokeDasharray="4" strokeWidth="1.5" className="opacity-70" />
-                <path d={chart.errorPath} fill="none" stroke="#F59E0B" strokeWidth="1.5" className="opacity-80" />
+                <path d={chart.velocityPath} fill="none" stroke="#FF4500" strokeWidth="2" className="transition-all duration-300 ease-out" />
+                <path d={chart.latencyPath} fill="none" stroke="#FFFFFF" strokeDasharray="4" strokeWidth="1.5" className="opacity-70 transition-all duration-300 ease-out" />
+                <path d={chart.errorPath} fill="none" stroke="#F59E0B" strokeWidth="1.5" className="opacity-80 transition-all duration-300 ease-out" />
                 <line x1="0" y1="380" x2="1000" y2="380" stroke="#242424" strokeWidth="0.6" />
                 <line x1="0" y1="300" x2="1000" y2="300" stroke="#242424" strokeWidth="0.6" />
                 <line x1="0" y1="200" x2="1000" y2="200" stroke="#242424" strokeWidth="0.6" />
@@ -133,10 +135,10 @@ export function LiveThroughputCard({
 
               {activePoint ? (
                 <>
-                  <div className="absolute top-0 bottom-0 w-px bg-primary/70" style={{ left: `${(activePoint.x / 1000) * 100}%` }} />
+                  <div className="absolute top-0 bottom-0 w-px bg-primary/70 transition-all duration-150" style={{ left: `${activeXPercent}%` }} />
                   <div
-                    className="absolute top-6 bg-surface-container border border-outline-variant px-2 py-1 rounded-md text-[10px] font-mono z-20"
-                    style={{ left: `calc(${(activePoint.x / 1000) * 100}% - 40px)` }}
+                    className="absolute top-3 bg-surface-container border border-outline-variant px-2 py-1 rounded-md text-[10px] font-mono z-20 max-w-38 wrap-break-word transition-all duration-150"
+                    style={{ left: `calc(${tooltipLeftPercent}% - 48px)` }}
                   >
                     <div className="text-primary">REQ: {activePoint.requestCount}</div>
                     <div className="text-primary-foreground">LAT: {activePoint.avgLatency.toFixed(1)}ms</div>
@@ -180,13 +182,13 @@ function StatTile({
   accent: string;
 }) {
   return (
-    <div className="p-4 border-r border-outline-variant flex flex-col relative overflow-hidden">
+    <div className="p-3 sm:p-4 border-r border-outline-variant flex flex-col relative overflow-hidden min-w-0">
       <span className="text-[9px] font-bold text-secondary uppercase tracking-widest mb-1">{title}</span>
       <div className="flex items-baseline gap-2 z-10">
-        <span className="text-3xl font-black font-mono text-white tracking-tighter">{value}</span>
+        <span className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tighter">{value}</span>
         <span className={`text-[10px] font-mono ${accent}`}>{unit}</span>
       </div>
-      <span className={`absolute top-4 right-4 text-[9px] font-mono ${accent}`}>{delta}</span>
+      <span className={`absolute top-3 right-3 text-[9px] font-mono ${accent}`}>{delta}</span>
     </div>
   );
 }

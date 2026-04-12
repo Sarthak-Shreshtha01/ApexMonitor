@@ -55,6 +55,8 @@ export function OverviewExplorer() {
   const displayedPoint = chartModel.points.length > 0
     ? chartModel.points[hoveredIndex ?? chartModel.points.length - 1]
     : null;
+  const displayedXPercent = displayedPoint ? (displayedPoint.x / 1000) * 100 : 0;
+  const overviewTooltipLeftPercent = Math.min(86, Math.max(8, displayedXPercent));
 
   const latencyDistribution = useMemo(() => {
     const values = [...series.map((point) => point.avgLatency)].sort((a, b) => a - b);
@@ -93,7 +95,7 @@ export function OverviewExplorer() {
 
   if (!activeProjectId) {
     return (
-      <div className="max-w-[1400px] mx-auto w-full p-8">
+      <div className="max-w-350 mx-auto w-full p-8">
         <div className="bg-surface-container p-6 border border-outline-variant rounded-lg text-primary-foreground">
           Select a project from the navbar to view overview metrics.
         </div>
@@ -102,10 +104,10 @@ export function OverviewExplorer() {
   }
 
   return (
-    <div className="max-w-[1500px] mx-auto w-full space-y-6 custom-scrollbar">
-      <div className="flex items-center justify-between">
+    <div className="max-w-375 mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 custom-scrollbar">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-white uppercase">Overview</h2>
+          <h2 className="text-lg sm:text-xl font-semibold tracking-tight text-white uppercase">Overview</h2>
           <p className="text-xs text-secondary font-mono">Project {activeProjectId} · Timeframe {timeframe}</p>
         </div>
         <button
@@ -138,13 +140,13 @@ export function OverviewExplorer() {
             <MetricCard title="Apdex" value={summary.apdex.toFixed(2)} sub={summary.apdex >= 0.85 ? 'Healthy' : 'Needs attention'} accent="neutral" />
           </div>
 
-          <section className="bg-surface-container p-6 border border-outline-variant rounded-lg">
+          <section className="bg-surface-container p-4 sm:p-6 border border-outline-variant rounded-lg">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <h3 className="text-sm font-bold tracking-widest text-white uppercase">Traffic Overview</h3>
                 <p className="text-[11px] text-secondary font-mono">Real-time composite metric stream (RPS + Errors)</p>
               </div>
-              <div className="flex gap-4">
+              <div className="flex flex-wrap gap-x-4 gap-y-2">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 bg-primary"></span>
                   <span className="text-[10px] uppercase font-bold text-secondary">RPS Area</span>
@@ -156,7 +158,7 @@ export function OverviewExplorer() {
               </div>
             </div>
 
-            <div className="h-64 relative w-full border-l border-b border-outline-variant">
+            <div className="h-56 sm:h-64 relative w-full border-l border-b border-outline-variant overflow-hidden" onMouseLeave={() => setHoveredIndex(null)}>
               {chartModel.points.length === 0 ? (
                 <div className="h-full w-full grid place-items-center text-secondary text-sm">No chart points available for selected timeframe.</div>
               ) : (
@@ -168,8 +170,8 @@ export function OverviewExplorer() {
                         <stop offset="100%" stopColor="#ff4500" stopOpacity="0" />
                       </linearGradient>
                     </defs>
-                    <path d={chartModel.areaPath} fill="url(#overviewReqGrad)" />
-                    <path d={chartModel.linePath} fill="none" stroke="#ff4500" strokeWidth="2" />
+                    <path d={chartModel.areaPath} fill="url(#overviewReqGrad)" className="transition-all duration-300 ease-out" />
+                    <path d={chartModel.linePath} fill="none" stroke="#ff4500" strokeWidth="2" className="transition-all duration-300 ease-out" />
                     {chartModel.points.map((point) => (
                       <rect
                         key={`err-${point.bucket}`}
@@ -179,6 +181,7 @@ export function OverviewExplorer() {
                         height={Math.max(point.errorHeight, 2)}
                         fill="rgba(245, 158, 11, 0.3)"
                         stroke="rgba(245, 158, 11, 0.45)"
+                        className="transition-all duration-200 ease-out"
                       />
                     ))}
                   </svg>
@@ -187,13 +190,13 @@ export function OverviewExplorer() {
                     <>
                       <div
                         className="absolute top-0 bottom-0 w-px bg-white/40 transition-all duration-150"
-                        style={{ left: `${(displayedPoint.x / 1000) * 100}%` }}
+                        style={{ left: `${displayedXPercent}%` }}
                       >
                         <div className="absolute top-[32%] -translate-y-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-white ring-4 ring-white/20" />
                       </div>
                       <div
-                        className="absolute -top-11 bg-surface-container-high border border-outline-variant px-2 py-1 rounded-md text-[10px] whitespace-nowrap z-20"
-                        style={{ left: `calc(${(displayedPoint.x / 1000) * 100}% - 30px)` }}
+                        className="absolute top-2 bg-surface-container-high border border-outline-variant px-2 py-1 rounded-md text-[10px] whitespace-nowrap z-20 transition-all duration-150"
+                        style={{ left: `calc(${overviewTooltipLeftPercent}% - 56px)` }}
                       >
                         <div className="font-mono text-primary">Requests: {formatCount(displayedPoint.requestCount)}</div>
                         <div className="font-mono text-tertiary">Err: {displayedPoint.errorRatio.toFixed(2)}%</div>
@@ -225,14 +228,16 @@ export function OverviewExplorer() {
               </div>
             </div>
 
-            <div className="flex justify-between mt-4 text-[10px] font-mono text-muted uppercase">
-              {chartModel.points.slice(0, 5).map((point) => (
-                <span key={`label-${point.bucket}`}>{new Date(point.bucket).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="grid grid-cols-3 sm:grid-cols-5 mt-4 gap-2 text-[10px] font-mono text-muted uppercase">
+              {chartModel.points.slice(0, 5).map((point, idx, arr) => (
+                <span key={`label-${point.bucket}`} className={`${idx === 0 ? 'text-left' : idx === arr.length - 1 ? 'text-right' : 'text-center'} truncate`}>
+                  {new Date(point.bucket).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
               ))}
             </div>
           </section>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
             <div className="bg-surface-container p-5 border border-outline-variant rounded-lg">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-[11px] font-bold uppercase tracking-widest text-white">Latency Distribution</h3>
@@ -269,7 +274,7 @@ export function OverviewExplorer() {
                       <td className="py-2">
                         <span className="px-2 py-1 rounded-sm bg-primary/20 text-primary border border-primary/20">{row.method}</span>
                       </td>
-                      <td className="py-2 text-primary-foreground truncate max-w-[180px]">{row.endpoint}</td>
+                      <td className="py-2 text-primary-foreground truncate max-w-45">{row.endpoint}</td>
                       <td className="py-2 text-right font-bold text-white">{formatCount(row.requests)}</td>
                     </tr>
                   ))}
@@ -289,7 +294,7 @@ export function OverviewExplorer() {
                       background: `conic-gradient(#ff4500 0 ${statusModel.ok}%, #f59e0b ${statusModel.ok}% ${statusModel.ok + statusModel.client}%, #737373 ${statusModel.ok + statusModel.client}% ${statusModel.ok + statusModel.client + statusModel.redirect}%, #ef4444 ${statusModel.ok + statusModel.client + statusModel.redirect}% 100%)`,
                     }}
                   />
-                  <div className="absolute inset-[14px] bg-surface-container rounded-full flex items-center justify-center flex-col">
+                  <div className="absolute inset-3.5 bg-surface-container rounded-full flex items-center justify-center flex-col">
                     <span className="text-xs font-mono font-bold text-white">100%</span>
                     <span className="text-[8px] text-secondary uppercase tracking-tighter">Total</span>
                   </div>

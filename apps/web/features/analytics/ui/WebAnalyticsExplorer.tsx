@@ -56,17 +56,17 @@ export function WebAnalyticsExplorer() {
 
   return (
     <div className="bg-[#0A0A0A] text-white min-h-[calc(100vh-4rem)] p-4 sm:p-8 selection:bg-orange-500/30 font-sans">
-      <div className="max-w-400 mx-auto space-y-8">
+      <div className="max-w-400 mx-auto space-y-6 sm:space-y-8">
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-white mb-1">Web Analytics (RUM)</h1>
             <p className="text-zinc-500 text-sm font-mono uppercase tracking-widest">Real-time user monitoring & experience metrics</p>
           </div>
-          <div className="flex items-center gap-2 bg-[#131313] border border-[#242424] px-4 py-2 cursor-default rounded-lg">
+          {/* <div className="flex items-center gap-2 bg-[#131313] border border-[#242424] px-4 py-2 cursor-default rounded-lg w-fit">
             <Clock className="w-4 h-4 text-orange-500" />
             <span className="text-xs font-mono text-white">{timeframe.toUpperCase()}</span>
             <ChevronDown className="w-4 h-4 text-zinc-600" />
-          </div>
+          </div> */}
           <button
             type="button"
             onClick={() => {
@@ -102,7 +102,7 @@ export function WebAnalyticsExplorer() {
 
         <TrafficChart points={series} timeframe={timeframe} />
 
-        <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <section className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
           <TopPagesTable rows={paths} />
           <DeviceStats rows={devices} />
           <ReferrersMap referrers={referrers} geo={geo} />

@@ -90,27 +90,27 @@ export function LogsExplorer() {
   const canNext = page < totalPages;
 
   return (
-    <div className="p-8 max-w-[1600px] mx-auto w-full space-y-6">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-400 mx-auto w-full space-y-5 sm:space-y-6">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-white mb-1">Logs Explorer</h2>
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white mb-1">Logs Explorer</h2>
           <p className="text-on-surface-variant text-sm font-medium">
             {activeProjectId ? `Monitoring project ${activeProjectId}` : 'Select a project to view logs.'}
           </p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full md:w-auto">
+          <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Error Rate</p>
             <p className="text-2xl font-semibold text-error tracking-tight">{logsQuery.data?.summary.errorRate ?? 0}%</p>
           </div>
-          <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-[140px]">
+          <div className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/10 min-w-0">
             <p className="text-[10px] uppercase tracking-widest text-secondary font-bold mb-1">Avg Latency</p>
             <p className="text-2xl font-semibold text-secondary tracking-tight">{logsQuery.data?.summary.avgLatency ?? 0}ms</p>
           </div>
         </div>
       </div>
 
-      <form onSubmit={onApplyFilters} className="bg-surface-container rounded-2xl p-2 flex flex-wrap items-center gap-2 border border-outline-variant/5">
+      <form onSubmit={onApplyFilters} className="bg-surface-container rounded-2xl p-3 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[auto_auto_auto_1fr_auto] gap-2 border border-outline-variant/5">
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20">
           <span className="text-secondary">Method:</span>
           <select
@@ -143,7 +143,7 @@ export function LogsExplorer() {
           </select>
         </div>
 
-        <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20 min-w-[220px]">
+        <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20 min-w-0">
           <span className="text-secondary">Endpoint:</span>
           <input
             value={draft.endpoint}
@@ -153,7 +153,7 @@ export function LogsExplorer() {
           />
         </div>
 
-        <div className="flex-1 min-w-[200px] flex items-center bg-surface-container-lowest rounded-lg px-3 py-2 border border-outline-variant/20">
+        <div className="flex items-center bg-surface-container-lowest rounded-lg px-3 py-2 border border-outline-variant/20 min-w-0 xl:col-span-1">
           <Search className="text-secondary w-4 h-4 mr-2" />
           <input
             value={draft.search}
@@ -164,14 +164,14 @@ export function LogsExplorer() {
           />
         </div>
 
-        <button type="submit" className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-xs hover:shadow-[0_0_20px_rgba(255,69,0,0.4)] transition-all">
+        <button type="submit" className="bg-primary text-on-primary font-bold px-4 py-2 rounded-lg text-xs hover:shadow-[0_0_20px_rgba(255,69,0,0.4)] transition-all w-full sm:w-auto">
           Apply Filters
         </button>
       </form>
 
       <div className="bg-surface-container-lowest rounded-2xl border border-outline-variant/15 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[900px]">
+          <table className="w-full text-left border-collapse min-w-195 lg:min-w-225">
             <thead>
               <tr className="bg-surface-container-low border-b border-outline-variant/10">
                 {['Status', 'Method', 'Path', 'Duration', 'Timestamp', 'Action'].map((header) => (
@@ -208,7 +208,7 @@ export function LogsExplorer() {
           </table>
         </div>
 
-        <div className="bg-surface-container-low px-6 py-4 flex items-center justify-between border-t border-outline-variant/10">
+        <div className="bg-surface-container-low px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-t border-outline-variant/10">
           <p className="text-xs text-secondary">Showing {logs.length} of {total} logs</p>
           <div className="flex gap-2 items-center">
             <button

@@ -17,14 +17,14 @@ export function TraceWaterfall() {
     <section className="flex-1 flex flex-col min-w-0 border-r border-outline-variant/20 overflow-hidden relative z-10">
       
       {/* Waterfall Header */}
-      <div className="p-6 border-b border-outline-variant/20 bg-surface-container-lowest/50">
-        <div className="flex justify-between items-end mb-6">
+      <div className="p-4 sm:p-6 border-b border-outline-variant/20 bg-surface-container-lowest/50">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-on-surface mb-1">POST /api/v1/checkout</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-on-surface mb-1 wrap-break-word">POST /api/v1/checkout</h1>
             <p className="text-xs text-secondary font-mono">Initiated at 2023-10-24 14:32:01.045 UTC</p>
           </div>
-          <div className="text-right">
-            <div className="text-3xl font-black text-secondary tracking-tighter font-mono">225ms</div>
+          <div className="text-left sm:text-right">
+            <div className="text-2xl sm:text-3xl font-black text-secondary tracking-tighter font-mono">225ms</div>
             <div className="text-[10px] text-secondary uppercase tracking-widest font-bold">Total Duration</div>
           </div>
         </div>
@@ -46,11 +46,11 @@ export function TraceWaterfall() {
           {SPANS_DATA.map((span) => (
             <div 
               key={span.id} 
-              className={`group border-b border-outline-variant/10 transition-colors flex ${span.isSelected ? 'bg-app/80 hover:bg-surface' : 'hover:bg-surface-container-low'}`}
+              className={`group border-b border-outline-variant/10 transition-colors flex flex-col md:flex-row ${span.isSelected ? 'bg-app/80 hover:bg-surface' : 'hover:bg-surface-container-low'}`}
             >
               {/* Left Column: Span Tree Info */}
               <div 
-                className={`w-80 p-3 border-r border-outline-variant/10 flex items-center gap-3 shrink-0`}
+                className={`w-full md:w-80 p-3 border-b md:border-b-0 md:border-r border-outline-variant/10 flex items-center gap-3 shrink-0`}
                 style={{ paddingLeft: span.indent > 0 ? `${(span.indent * 1.5) + 0.75}rem` : '0.75rem' }}
               >
                 {span.isParent ? (
@@ -74,7 +74,7 @@ export function TraceWaterfall() {
               </div>
 
               {/* Right Column: Timeline Visualization */}
-              <div className="flex-1 relative h-12 p-2">
+              <div className="flex-1 relative h-14 sm:h-12 p-2 min-w-0">
                 <div 
                   className={`absolute h-3 top-1/2 -translate-y-1/2 ${span.bgLine} border-l border-r ${span.border}`} 
                   style={{ left: span.left, width: span.width }}
@@ -87,7 +87,7 @@ export function TraceWaterfall() {
                 {/* Optional Extra SQL/Query Text */}
                 {span.extraText && (
                   <div 
-                    className={`absolute top-8 text-[9px] font-mono text-secondary truncate max-w-sm ${span.alignRight ? 'right-4 text-right' : 'left-[15%]'}`}
+                    className={`absolute top-8 text-[9px] font-mono text-secondary wrap-break-word max-w-sm ${span.alignRight ? 'right-4 text-right' : 'left-[15%]'}`}
                   >
                     {span.extraText}
                   </div>

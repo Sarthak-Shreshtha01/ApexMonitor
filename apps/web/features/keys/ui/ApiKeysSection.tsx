@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Copy, Eye, EyeOff, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Copy, Eye, EyeOff, Plus, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
@@ -128,9 +128,9 @@ export function ApiKeysSection() {
 
   return (
     <section className="space-y-10">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight mb-2">API Keys</h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
+        <div className="min-w-0">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">API Keys</h1>
           <p className="text-secondary max-w-xl text-sm">
             Manage access keys for your project nodes and services. Key rotation is recommended every 90 days.
           </p>
@@ -162,8 +162,8 @@ export function ApiKeysSection() {
 
         {groupedKeys.map((group) => (
           <section key={group.projectId} className="relative">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+              <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                 <h2 className="text-xl font-bold font-mono tracking-tighter uppercase">{group.projectName}</h2>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold border uppercase ${group.plan === 'free' ? 'bg-surface-container-high text-secondary border-outline-variant' : 'bg-primary/10 text-primary border-primary/20'}`}>
                   {group.plan === 'free' ? 'Non-Prod' : 'Critical'}
@@ -179,8 +179,12 @@ export function ApiKeysSection() {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-[1px] bg-outline-variant border border-outline-variant rounded-xl overflow-hidden shadow-2xl shadow-black/40">
-              <div className="grid grid-cols-12 bg-surface-container px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-secondary">
+            <div className="grid grid-cols-1 gap-px bg-outline-variant border border-outline-variant rounded-xl overflow-hidden shadow-2xl shadow-black/40">
+              <div className="md:hidden bg-surface-container px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-secondary">
+                Key details
+              </div>
+
+              <div className="hidden md:grid grid-cols-12 bg-surface-container px-6 py-3 text-[11px] font-bold uppercase tracking-widest text-secondary">
                 <div className="col-span-3">Key Name</div>
                 <div className="col-span-4">Access Key</div>
                 <div className="col-span-2">Created</div>
@@ -189,7 +193,7 @@ export function ApiKeysSection() {
               </div>
 
               {group.keys.length === 0 ? (
-                <div className="bg-surface px-6 py-5 text-sm text-secondary">No keys yet for this project.</div>
+                <div className="bg-surface px-4 sm:px-6 py-5 text-sm text-secondary">No keys yet for this project.</div>
               ) : (
                 group.keys.map((key) => {
                   const canReveal = Boolean(plaintextMap[key.id]);
@@ -197,50 +201,108 @@ export function ApiKeysSection() {
                   const masked = `${key.keyPrefix}••••••••••••`;
 
                   return (
-                    <div key={key.id} className="grid grid-cols-12 bg-surface px-6 py-5 items-center hover:bg-surface-container-low transition-colors group">
-                      <div className="col-span-3">
-                        <span className="font-semibold text-white block">{key.label}</span>
-                        <span className="text-[10px] text-secondary font-mono">ID: {key.id}-{key.projectId.slice(0, 4)}</span>
+                    <div key={key.id} className="bg-surface px-4 sm:px-6 py-5 hover:bg-surface-container-low transition-colors group">
+                      <div className="md:hidden space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <span className="font-semibold text-white block wrap-break-word">{key.label}</span>
+                            <span className="text-[10px] text-secondary font-mono block mt-1">ID: {key.id}-{key.projectId.slice(0, 4)}</span>
+                          </div>
+                          <button
+                            onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
+                            disabled={revokeKeyMutation.isPending}
+                            className="text-secondary hover:text-error transition-colors shrink-0"
+                            type="button"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="rounded-lg border border-outline-variant bg-app px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-widest text-secondary mb-1">Access Key</div>
+                          <div className="flex items-center gap-2 min-w-0">
+                            <code className="font-mono text-[11px] text-primary-foreground break-all min-w-0 flex-1">
+                              {isVisible ? plaintextMap[key.id] : masked}
+                            </code>
+                            <button
+                              onClick={() => setShowPlaintextFor(isVisible ? null : key.id)}
+                              className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors shrink-0"
+                              type="button"
+                              title={canReveal ? 'Toggle visibility' : 'Key plaintext is only available right after generation'}
+                            >
+                              {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              onClick={async () => {
+                                const valueToCopy = canReveal ? plaintextMap[key.id] : masked;
+                                await navigator.clipboard.writeText(valueToCopy);
+                              }}
+                              className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors shrink-0"
+                              type="button"
+                              title="Copy key"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-xs font-mono text-secondary">
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1">Created</div>
+                            <div>{new Date(key.createdAt).toISOString().slice(0, 10)}</div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-widest mb-1">Last Used</div>
+                            <div>{key.lastUsedAt ? new Date(key.lastUsedAt).toISOString().slice(0, 10) : 'Never'}</div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="col-span-4 flex items-center gap-3">
-                        <code className="font-mono text-sm text-primary-foreground bg-app px-3 py-1.5 rounded border border-outline-variant">
-                          {isVisible ? plaintextMap[key.id] : masked}
-                        </code>
-                        <button
-                          onClick={() => setShowPlaintextFor(isVisible ? null : key.id)}
-                          className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
-                          type="button"
-                          title={canReveal ? 'Toggle visibility' : 'Key plaintext is only available right after generation'}
-                        >
-                          {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                        <button
-                          onClick={async () => {
-                            const valueToCopy = canReveal ? plaintextMap[key.id] : masked;
-                            await navigator.clipboard.writeText(valueToCopy);
-                          }}
-                          className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
-                          type="button"
-                          title="Copy key"
-                        >
-                          <Copy className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="col-span-2 font-mono text-xs text-secondary">
-                        {new Date(key.createdAt).toISOString().slice(0, 10)}
-                      </div>
-                      <div className="col-span-2 font-mono text-xs text-secondary">
-                        {key.lastUsedAt ? new Date(key.lastUsedAt).toISOString().slice(0, 10) : 'Never'}
-                      </div>
-                      <div className="col-span-1 text-right">
-                        <button
-                          onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
-                          disabled={revokeKeyMutation.isPending}
-                          className="text-secondary hover:text-error transition-colors"
-                          type="button"
-                        >
-                          <Trash2 className="w-4 h-4 inline" />
-                        </button>
+
+                      <div className="hidden md:grid grid-cols-12 items-center">
+                        <div className="col-span-3">
+                          <span className="font-semibold text-white block">{key.label}</span>
+                          <span className="text-[10px] text-secondary font-mono">ID: {key.id}-{key.projectId.slice(0, 4)}</span>
+                        </div>
+                        <div className="col-span-4 flex items-center gap-3">
+                          <code className="font-mono text-sm text-primary-foreground bg-app px-3 py-1.5 rounded border border-outline-variant">
+                            {isVisible ? plaintextMap[key.id] : masked}
+                          </code>
+                          <button
+                            onClick={() => setShowPlaintextFor(isVisible ? null : key.id)}
+                            className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
+                            type="button"
+                            title={canReveal ? 'Toggle visibility' : 'Key plaintext is only available right after generation'}
+                          >
+                            {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const valueToCopy = canReveal ? plaintextMap[key.id] : masked;
+                              await navigator.clipboard.writeText(valueToCopy);
+                            }}
+                            className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
+                            type="button"
+                            title="Copy key"
+                          >
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="col-span-2 font-mono text-xs text-secondary">
+                          {new Date(key.createdAt).toISOString().slice(0, 10)}
+                        </div>
+                        <div className="col-span-2 font-mono text-xs text-secondary">
+                          {key.lastUsedAt ? new Date(key.lastUsedAt).toISOString().slice(0, 10) : 'Never'}
+                        </div>
+                        <div className="col-span-1 text-right">
+                          <button
+                            onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
+                            disabled={revokeKeyMutation.isPending}
+                            className="text-secondary hover:text-error transition-colors"
+                            type="button"
+                          >
+                            <Trash2 className="w-4 h-4 inline" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -272,9 +334,9 @@ export function ApiKeysSection() {
         </div>
       </div>
 
-      <footer className="pt-8 border-t border-outline-variant flex justify-between items-center text-secondary text-[10px] font-mono uppercase tracking-[0.2em]">
+      <footer className="pt-8 border-t border-outline-variant flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center text-secondary text-[10px] font-mono uppercase tracking-[0.2em]">
         <div>ApexMonitor Systems 2024</div>
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
           <Link href={ROUTES.dashboard.logs} className="hover:text-white transition-colors">API Status</Link>
           <Link href={ROUTES.dashboard.insights} className="hover:text-white transition-colors">Insights</Link>
           <Link href={ROUTES.dashboard.settings} className="hover:text-white transition-colors">Security</Link>
@@ -345,7 +407,9 @@ function DialogShell({
       <div className="w-full max-w-md bg-surface-container border border-outline-variant rounded-lg p-5" onClick={(event) => event.stopPropagation()}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="text-secondary hover:text-white" type="button">x</button>
+          <button onClick={onClose} className="text-secondary hover:text-white" type="button" aria-label="Close dialog">
+            <X className="w-4 h-4" />
+          </button>
         </div>
         {children}
       </div>

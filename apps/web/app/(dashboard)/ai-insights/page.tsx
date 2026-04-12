@@ -8,11 +8,9 @@ import { AiFab } from '@/features/ai-insights/ui/AiFab';
 
 export default function AiInsightsPage() {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-4 sm:p-8 selection:bg-orange-500/30">
-      <div className="max-w-[1600px] mx-auto w-full">
-        
-        {/* Page Header */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-10 gap-6">
+    <div className="min-h-[calc(100vh-3rem)] bg-[#0a0a0a] text-white p-4 sm:p-8 selection:bg-orange-500/30 overflow-x-hidden">
+      <div className="w-full mx-auto space-y-8">
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-6">
           <div>
             <nav className="flex gap-2 text-[10px] font-mono text-neutral-500 uppercase tracking-widest mb-3">
               <span>Cluster Node 01</span>
@@ -31,30 +29,20 @@ export default function AiInsightsPage() {
           </div>
         </div>
 
-        {/* Grid Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-          
-          {/* Top Full-Width Hero */}
-          <div className="col-span-1 lg:col-span-12">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.85fr)] gap-6 md:gap-8 items-start">
+          <div className="space-y-6 md:space-y-8 min-w-0">
             <NeuralSummaryCard />
-          </div>
-
-          {/* Left Column (Main Content) */}
-          <div className="col-span-1 lg:col-span-8 flex flex-col gap-6 md:gap-8">
             <HealthForecastMetrics />
             <FlaggedRoutesTable />
           </div>
 
-          {/* Right Column (Sidebar/Chat) */}
-          <div className="col-span-1 lg:col-span-4 flex flex-col gap-6 md:gap-8">
+          <div className="space-y-6 md:space-y-8 min-w-0">
             <AiAnalysisBot />
             <ActionableSuggestions />
           </div>
-
-          {/* Bottom Full-Width Banner */}
-          <ModelLoadBanner />
-          
         </div>
+
+        <ModelLoadBanner />
       </div>
 
       <AiFab />

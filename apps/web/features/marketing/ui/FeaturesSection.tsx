@@ -2,10 +2,10 @@ import { Activity, BarChart2, CheckCircle2, ExternalLink } from 'lucide-react';
 
 export function FeaturesSection() {
   return (
-    <section className="py-32 max-w-7xl mx-auto px-8 space-y-32">
+    <section className="py-20 sm:py-24 lg:py-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-20 sm:space-y-24 lg:space-y-32">
       
       {/* Multi-Metrics Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-center">
         <div className="lg:col-span-4">
           <h2 className="text-4xl font-black mb-6 tracking-tight">Real-time Multi-Metrics</h2>
           <p className="text-secondary text-lg leading-relaxed mb-8">
@@ -33,17 +33,17 @@ export function FeaturesSection() {
           </div>
         </div>
         
-        <div className="lg:col-span-8 bg-surface-container/60 backdrop-blur-xl rounded-2xl p-8 border border-white/10 relative overflow-hidden h-[400px]">
+        <div className="lg:col-span-8 bg-surface-container/60 backdrop-blur-xl rounded-2xl p-5 sm:p-6 lg:p-8 border border-white/10 relative overflow-hidden min-h-80 sm:min-h-90 lg:min-h-100">
           <div className="absolute inset-0 bg-primary/5"></div>
           <div className="relative h-full flex flex-col">
-            <div className="flex justify-between mb-8">
-              <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between gap-4 mb-8">
+              <div className="flex flex-wrap gap-3 sm:gap-4">
                 <div className="px-3 py-1 rounded bg-primary/10 border border-primary/30 text-[10px] font-mono text-primary font-bold tracking-tighter">NODE_CPU_USAGE</div>
                 <div className="px-3 py-1 rounded bg-surface-container-high border border-white/10 text-[10px] font-mono text-secondary font-bold tracking-tighter">MEMORY_RESIDENT</div>
               </div>
               <span className="text-[10px] font-mono text-secondary uppercase">Live: US-EAST-1 Cluster</span>
             </div>
-            <div className="flex-grow flex items-end gap-1 px-2">
+            <div className="grow flex items-end gap-1 px-2">
               <div className="w-2 bg-primary/20 rounded-t-sm h-[30%]"></div>
               <div className="w-2 bg-primary/40 rounded-t-sm h-[45%]"></div>
               <div className="w-2 bg-primary/20 rounded-t-sm h-[20%]"></div>
@@ -70,9 +70,9 @@ export function FeaturesSection() {
       </div>
 
       {/* Traces Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-        <div className="lg:col-span-7 bg-surface-container/60 backdrop-blur-xl rounded-2xl p-10 border border-white/10 order-2 lg:order-1">
-          <div className="mb-10 flex justify-between items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 xl:gap-12 items-center">
+        <div className="lg:col-span-7 bg-surface-container/60 backdrop-blur-xl rounded-2xl p-5 sm:p-6 lg:p-10 border border-white/10 order-2 lg:order-1">
+          <div className="mb-8 sm:mb-10 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div>
               <h3 className="font-mono text-lg font-bold text-white mb-1">Trace ID: 7c2a-89b1-ff02</h3>
               <div className="flex gap-4">
@@ -123,8 +123,8 @@ export function FeaturesSection() {
         </div>
         
         <div className="lg:col-span-5 order-1 lg:order-2">
-          <h2 className="text-4xl font-black mb-6 tracking-tight">Zero-Config Distributed Traces</h2>
-          <p className="text-secondary text-lg leading-relaxed mb-8">
+          <h2 className="text-3xl sm:text-4xl font-black mb-6 tracking-tight">Zero-Config Distributed Traces</h2>
+          <p className="text-secondary text-base sm:text-lg leading-relaxed mb-8">
             Connect the dots across complex microservices. Our automatic instrumentation follows the request flow through every database call, cache hit, and third-party API.
           </p>
           <ul className="space-y-4">

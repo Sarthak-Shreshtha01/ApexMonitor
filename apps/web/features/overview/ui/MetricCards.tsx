@@ -49,9 +49,9 @@ const METRICS_DATA = [
 
 export function MetricCards() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6 mb-8">
       {METRICS_DATA.map((metric) => (
-        <div key={metric.id} className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)]">
+        <div key={metric.id} className="bg-surface-container-low p-4 sm:p-6 rounded-2xl border border-outline-variant/10 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.5)] min-w-0">
           <div className="flex justify-between items-start mb-4">
             <span className="text-[10px] uppercase tracking-widest text-secondary font-bold">{metric.title}</span>
             <span className={`${metric.color} text-xs font-bold flex items-center gap-1`}>
@@ -61,7 +61,7 @@ export function MetricCards() {
             </span>
           </div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-3xl font-bold tracking-tight text-on-surface">{metric.value}</span>
+            <span className="text-2xl sm:text-3xl font-bold tracking-tight text-on-surface">{metric.value}</span>
           </div>
           <div className="h-10 w-full relative">
             <svg className="w-full h-full" viewBox="0 0 100 20" preserveAspectRatio="none">

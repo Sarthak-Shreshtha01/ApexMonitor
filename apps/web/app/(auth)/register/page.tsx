@@ -67,8 +67,8 @@ export default function RegisterPage() {
   };
 
   return (
-    <main className="grow flex items-center justify-center p-6 relative z-10 w-full">
-      <div className="w-full max-w-110 grow">
+    <main className="grow flex items-center justify-center p-4 sm:p-6 relative z-10 w-full">
+      <div className="w-full max-w-xl grow">
         
         <div className="flex flex-col items-center mb-10">
           <div className="w-12 h-12 bg-surface-container-highest rounded-xl flex items-center justify-center border border-outline-variant/30 drop-shadow-[0_0_8px_rgba(255,69,0,0.4)] mb-6">
@@ -78,7 +78,7 @@ export default function RegisterPage() {
           <p className="text-on-surface-variant text-sm font-medium tracking-wide">OBSERVATORY ACCESS</p>
         </div>
 
-        <div className="bg-surface-container/70 backdrop-blur-xl border border-outline-variant/20 rounded-2xl p-8 md:p-10 shadow-2xl">
+        <div className="bg-surface-container/70 backdrop-blur-xl border border-outline-variant/20 rounded-2xl p-5 sm:p-8 md:p-10 shadow-2xl">
           
           {error && (
             <div className="mb-6 p-3 bg-error/10 border border-error/30 rounded-lg text-error text-sm font-medium">
@@ -132,7 +132,8 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
               <label className="block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Company</label>
               <input
                 type="text"
@@ -154,7 +155,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-[11px] font-bold uppercase tracking-widest text-on-surface-variant mb-2 ml-1">Timezone</label>
               <input
                 type="text"
@@ -163,6 +164,7 @@ export default function RegisterPage() {
                 className="w-full bg-surface-container-lowest border border-outline-variant/20 rounded-lg px-4 py-3 text-on-surface placeholder:text-outline-variant focus:outline-none focus:ring-2 focus:ring-primary/10 focus:border-primary transition-all text-sm"
                 placeholder="Asia/Kolkata"
               />
+            </div>
             </div>
 
             <div className="pt-4">
