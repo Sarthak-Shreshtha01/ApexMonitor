@@ -9,7 +9,10 @@
   ],
   "scripts": {
     "dev:server": "npm run dev --workspace=apps/server",
-    "dev:web": "npm run dev --workspace=apps/web"
+    "dev:web": "npm run dev --workspace=apps/web",
+    "build:sdk": "npm run build --workspace=@apexmonitor/sdk",
+    "build:browser-sdk": "npm run build --workspace=@apexmonitor/browser-sdk",
+    "build:sdks": "npm run build:sdk && npm run build:browser-sdk"
   },
   "keywords": [],
   "author": "",

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "apexmonitor-sdk"
+version = "0.1.0"
+description = "Official Python SDK for ApexMonitor"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "ISC"
+authors = [{ name = "ApexMonitor" }]
+dependencies = [
+  "requests>=2.31.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/pulseapi"
+Repository = "https://github.com/your-org/pulseapi"
+Issues = "https://github.com/your-org/pulseapi/issues"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
