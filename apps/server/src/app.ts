@@ -2,6 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import crypto from 'crypto';
 import { config } from '@config';
 import { ingestRouter } from '@modules/ingest';
 import { metricsRouter } from '@modules/metrics/metrics.router';
@@ -15,6 +16,7 @@ import { keysRouter } from '@modules/keys/keys.router';
 import { tracesRouter } from '@modules/traces/traces.router';
 import { rumRouter } from '@modules/rum';
 import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants/endpoints';
+import { errorHandler, notFoundHandler } from '@shared/middleware/error-handler';
 
 export function createApp(): Application {
   const app = express();
@@ -23,6 +25,13 @@ export function createApp(): Application {
   app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
   app.use(compression());
   app.use(express.json({ limit: '2mb' })); // Max batch size protection
+
+  app.use((req, res, next) => {
+    const requestId = String(req.headers['x-request-id'] || crypto.randomUUID());
+    (req as express.Request & { id?: string }).id = requestId;
+    res.setHeader('x-request-id', requestId);
+    next();
+  });
 
   app.get(HEALTH_ENDPOINT, (_, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -44,15 +53,8 @@ export function createApp(): Application {
   
   app.use(API_PREFIX, v1);
 
-  // Fallback Error Handler (We will build a proper one in a later step)
-  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (err.name === 'ZodError') {
-      res.status(400).json({ error: 'VALIDATION_ERROR', details: err.errors });
-    } else {
-      console.error(err);
-      res.status(500).json({ error: 'INTERNAL_ERROR' });
-    }
-  });
+  app.use(notFoundHandler);
+  app.use(errorHandler);
 
   return app;
 }

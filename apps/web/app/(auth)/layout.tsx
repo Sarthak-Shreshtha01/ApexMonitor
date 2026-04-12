@@ -1,4 +1,14 @@
+import type { Metadata } from 'next';
 import { ReactNode } from 'react';
+
+export const metadata: Metadata = {
+  title: 'Authentication',
+  description: 'Sign in or register to access ApexMonitor workspaces.',
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (

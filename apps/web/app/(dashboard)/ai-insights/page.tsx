@@ -1,3 +1,10 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'AI Insights',
+  description: 'AI-assisted anomaly insights and recommendations for your telemetry data.',
+};
+
 /*
 import { NeuralSummaryCard } from '@/features/ai-insights/ui/NeuralSummaryCard';
 import { HealthForecastMetrics } from '@/features/ai-insights/ui/HealthForecastMetrics';

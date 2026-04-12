@@ -1,5 +1,3 @@
-'use client';
-
 import { AlertTriangle, ShieldAlert, Sparkles } from 'lucide-react';
 import type { InsightItem } from '../api/insights.service';
 import type { RumGeoRow } from '@/features/analytics/api/analytics.service';

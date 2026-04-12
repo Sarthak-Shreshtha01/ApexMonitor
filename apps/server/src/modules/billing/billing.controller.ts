@@ -6,13 +6,16 @@ export class BillingController {
 
   public checkout = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.id; 
+      const userId = req.user?.id;
+      if (!userId) {
+        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        return;
+      }
+
       const paymentUrl = await this.service.createCheckoutSession(userId);
       res.status(200).json({ url: paymentUrl });
-    } catch (error: any) {
-      // NEW: Log it to terminal and send it to curl
-      console.error('❌ [Checkout Error]', error.message);
-      res.status(500).json({ error: error.message }); 
+    } catch (error) {
+      next(error);
     }
   };
 
@@ -21,14 +24,16 @@ export class BillingController {
       const xVerify = req.headers['x-verify'] as string;
       const { response } = req.body; // PhonePe sends a base64 string inside the 'response' key
       
-      if (!xVerify || !response) return res.status(400).send();
+      if (!xVerify || !response) {
+        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Missing webhook signature or payload' });
+        return;
+      }
 
       await this.service.handlePhonePeWebhook(response, xVerify);
       
       res.status(200).send('OK');
     } catch (error) {
-      console.error('❌ [Webhook Error]', error);
-      res.status(400).send('Webhook Failed');
+      next(error);
     }
   };
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import type { LogItem } from '@/features/logs/api/logs.service';
 
 interface TerminalStreamProps {

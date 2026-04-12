@@ -1,4 +1,10 @@
+import type { Metadata } from 'next';
 import { SupportQrCard } from '@/features/billing/ui/SupportQrCard';
+
+export const metadata: Metadata = {
+  title: 'Billing',
+  description: 'Review billing status, plan access, and support payment options.',
+};
 
 /*
 import { BillingHeader } from '@/features/billing/ui/BillingHeader';

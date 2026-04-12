@@ -15,8 +15,29 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ApexMonitor",
-  description: "ApexMonitor developer command center",
+  metadataBase: new URL('https://apexmonitor.tech'),
+  title: {
+    default: 'ApexMonitor',
+    template: '%s | ApexMonitor',
+  },
+  description: 'ApexMonitor command center for logs, traces, analytics, and live traffic monitoring.',
+  keywords: ['observability', 'monitoring', 'apm', 'logs', 'traces', 'real-time analytics'],
+  applicationName: 'ApexMonitor',
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    title: 'ApexMonitor',
+    description: 'Real-time observability for modern systems.',
+    type: 'website',
+    siteName: 'ApexMonitor',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ApexMonitor',
+    description: 'Real-time observability for modern systems.',
+  },
 };
 
 export default function RootLayout({
