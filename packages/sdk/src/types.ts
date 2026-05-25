@@ -8,6 +8,14 @@ export interface ApexErrorPayload {
   requestId?: string;
 }
 
+export interface ApiSuccessEnvelope<T> {
+  data: T;
+  meta: {
+    requestId: string;
+    timestamp: string;
+  };
+}
+
 export interface ApiListResponse<T> {
   data: T[];
   nextCursor?: string;

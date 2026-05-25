@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { RumService } from './rum.service';
 import { RumIngestBatchDto } from './dto/rum-ingest.dto';
 import { RumQueryDto } from './dto/rum-query.dto';
+import { errorBody, successBody } from '@shared/http/api-contract';
 
 export class RumController {
   private service = new RumService();
@@ -9,13 +10,13 @@ export class RumController {
   ingest = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!req.is('application/json')) {
-        res.status(415).json({ error: 'UNSUPPORTED_MEDIA_TYPE', message: 'Expected application/json payload' });
+        res.status(415).json(errorBody(res, 'UNSUPPORTED_MEDIA_TYPE', 'Expected application/json payload'));
         return;
       }
 
       const projectId = req.project?.id;
       if (!projectId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing ingest key' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing ingest key'));
         return;
       }
 
@@ -31,10 +32,10 @@ export class RumController {
         idempotencyKey: this.resolveIdempotencyKey(req),
       });
 
-      res.status(202).json({ status: 'queued', ...result });
+      res.status(202).json(successBody(res, { status: 'queued', ...result }));
     } catch (error) {
       if (error instanceof Error && error.message === 'RATE_LIMITED') {
-        res.status(429).json({ error: 'RATE_LIMIT_EXCEEDED', message: 'RUM ingest limit exceeded' });
+        res.status(429).json(errorBody(res, 'RATE_LIMIT_EXCEEDED', 'RUM ingest limit exceeded'));
         return;
       }
 
@@ -75,16 +76,16 @@ export class RumController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
       const query = RumQueryDto.parse(req.query);
       const data = await action(userId, query);
-      res.status(200).json({ data });
+      res.status(200).json(successBody(res, { data }));
     } catch (error) {
       if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project RUM analytics' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'No access to project RUM analytics'));
         return;
       }
 

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { CreateKeyDto, KeysStatsQueryDto, ListKeysQueryDto, RevokeKeyQueryDto } from './dto/keys.dto';
 import { KeysService } from './keys.service';
+import { errorBody, successBody } from '@shared/http/api-contract';
 
 export class KeysController {
   private service = new KeysService();
@@ -9,16 +10,16 @@ export class KeysController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
       const query = KeysStatsQueryDto.parse(req.query);
       const result = await this.service.stats(userId, query);
-      res.status(200).json(result);
+      res.status(200).json(successBody(res, result));
     } catch (error) {
       if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'No access to project keys'));
         return;
       }
 
@@ -30,16 +31,16 @@ export class KeysController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
       const query = ListKeysQueryDto.parse(req.query);
       const result = await this.service.list(userId, query);
-      res.status(200).json(result);
+      res.status(200).json(successBody(res, result));
     } catch (error) {
       if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'No access to project keys'));
         return;
       }
 
@@ -51,20 +52,20 @@ export class KeysController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
       const body = CreateKeyDto.parse(req.body);
       const created = await this.service.create(userId, body);
 
-      res.status(201).json({
+      res.status(201).json(successBody(res, {
         message: 'Store this key securely. It will not be shown again.',
         ...created,
-      });
+      }));
     } catch (error) {
       if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'No access to project keys'));
         return;
       }
 
@@ -76,13 +77,13 @@ export class KeysController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
       const keyId = Number(req.params.keyId);
       if (!Number.isInteger(keyId) || keyId <= 0) {
-        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Invalid key id' });
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'Invalid key id'));
         return;
       }
 
@@ -91,12 +92,12 @@ export class KeysController {
       res.status(204).send();
     } catch (error) {
       if (error instanceof Error && error.message === 'PROJECT_ACCESS_DENIED') {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'No access to project keys' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'No access to project keys'));
         return;
       }
 
       if (error instanceof Error && error.message === 'KEY_NOT_FOUND') {
-        res.status(404).json({ error: 'NOT_FOUND', message: 'Key not found' });
+        res.status(404).json(errorBody(res, 'NOT_FOUND', 'Key not found'));
         return;
       }
 

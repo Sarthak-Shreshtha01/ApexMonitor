@@ -2,6 +2,7 @@ import { ApexApiError, ApexNetworkError } from './errors.js';
 import type {
   ApexClientOptions,
   ApexErrorPayload,
+  ApiSuccessEnvelope,
   HttpMethod,
   HttpResponseMeta,
   RequestOptions,
@@ -75,7 +76,7 @@ export class HttpClient {
         if (response.ok) {
           const requestId = response.headers.get('x-request-id') ?? undefined;
           return {
-            data: payload as T,
+            data: this.unwrapSuccessEnvelope<T>(payload),
             meta: {
               status: response.status,
               requestId,
@@ -161,7 +162,7 @@ export class HttpClient {
       };
     }
 
-    const headerName = this.auth.headerName ?? 'x-api-key';
+    const headerName = this.auth.headerName ?? (this.auth.type === 'rumKey' ? 'x-rum-key' : 'x-api-key');
     return {
       [headerName]: await resolveValue(this.auth.key),
     };
@@ -185,6 +186,14 @@ export class HttpClient {
     return {
       message: typeof payload === 'string' ? payload : 'Request failed',
     };
+  }
+
+  private unwrapSuccessEnvelope<T>(payload: unknown): T {
+    if (payload && typeof payload === 'object' && 'data' in payload) {
+      return (payload as ApiSuccessEnvelope<T>).data;
+    }
+
+    return payload as T;
   }
 
   private isRetryableError(error: unknown): boolean {

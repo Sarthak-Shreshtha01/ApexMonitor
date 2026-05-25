@@ -3,6 +3,22 @@ import { ENDPOINTS } from './endpoints';
 import { store } from '@/lib/redux/store';
 import { setTokens } from '@/features/auth/state/auth.slice';
 
+type ApiSuccessEnvelope<T> = {
+  data: T;
+  meta?: {
+    requestId?: string;
+    timestamp?: string;
+  };
+};
+
+const unwrapApiData = <T>(payload: unknown): T => {
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return (payload as ApiSuccessEnvelope<T>).data;
+  }
+
+  return payload as T;
+};
+
 export const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL, // [cite: 750]
   withCredentials: true, // Crucial for httpOnly refresh cookies [cite: 751]
@@ -60,7 +76,10 @@ const isAuthEndpoint = (url?: string): boolean => {
 
 // Response Interceptor: Handle 401 Auto-Refresh
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    response.data = unwrapApiData(response.data);
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
@@ -92,13 +111,14 @@ apiClient.interceptors.response.use(
           throw new Error('MISSING_REFRESH_TOKEN');
         }
 
-        const { data } = await axios.post<RefreshResponse>(ENDPOINTS.auth.refresh, { refreshToken: storedRefreshToken }, {
+        const { data } = await axios.post<ApiSuccessEnvelope<RefreshResponse> | RefreshResponse>(ENDPOINTS.auth.refresh, { refreshToken: storedRefreshToken }, {
           baseURL: process.env.NEXT_PUBLIC_API_URL,
           withCredentials: true // [cite: 778]
         });
 
-        const newAccessToken = data.accessToken;
-        const newRefreshToken = data.refreshToken;
+        const refreshData = unwrapApiData<RefreshResponse>(data);
+        const newAccessToken = refreshData.accessToken;
+        const newRefreshToken = refreshData.refreshToken;
 
         store.dispatch(setTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken }));
 

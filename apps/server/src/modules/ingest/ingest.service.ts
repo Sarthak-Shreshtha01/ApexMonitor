@@ -13,6 +13,24 @@ export class IngestService {
     const redis = getRedis();
     const channel = getChannel();
     const pg = getPg();
+    const batchId = crypto.randomUUID();
+    const idempotencyKey = this.normalizeIdempotencyKey(dto.projectId, dto.idempotencyKey);
+
+    if (idempotencyKey) {
+      const cachedBatchKey = `ingest:idempotency:${idempotencyKey}`;
+      const cachedResult = await redis.get(cachedBatchKey);
+      if (cachedResult) {
+        return JSON.parse(cachedResult) as { received: number; batchId: string };
+      }
+
+      const lockResult = await redis.set(cachedBatchKey, JSON.stringify({ received: 0, batchId }), 'EX', 300, 'NX');
+      if (lockResult !== 'OK') {
+        const existing = await redis.get(cachedBatchKey);
+        if (existing) {
+          return JSON.parse(existing) as { received: number; batchId: string };
+        }
+      }
+    }
 
     // ====================================================================
     // 1. DYNAMIC RATE LIMITING (Phase 7: Billing Integration)
@@ -57,8 +75,6 @@ export class IngestService {
 
     // 2. Normalize Log Entries
     const dailySalt = new Date().toISOString().split('T')[0]; // Rotates daily
-    const batchId = crypto.randomUUID();
-
     const normalizedLogs = dto.logs.map(log => ({
       reqId: crypto.randomUUID(),
       projectId: dto.projectId,
@@ -79,7 +95,17 @@ export class IngestService {
       'logs.exchange',
       'log.ingest',
       Buffer.from(JSON.stringify(normalizedLogs)),
-      { persistent: true }
+      {
+        persistent: true,
+        contentType: 'application/json',
+        messageId: batchId,
+        correlationId: batchId,
+        headers: {
+          projectId: dto.projectId,
+          sdkVersion: dto.sdkVersion,
+          idempotencyKey: idempotencyKey ?? undefined,
+        },
+      }
     );
 
     // 4. Increment Live WebSocket Counters
@@ -101,7 +127,13 @@ export class IngestService {
     }
     await redis.expire(endpointKey, 8);
 
-    return { received: normalizedLogs.length, batchId };
+    const result = { received: normalizedLogs.length, batchId };
+
+    if (idempotencyKey) {
+      await redis.set(`ingest:idempotency:${idempotencyKey}`, JSON.stringify(result), 'EX', 300);
+    }
+
+    return result;
   }
 
   /**
@@ -118,5 +150,18 @@ export class IngestService {
    */
   private hashIp(ip: string, projectId: string, salt: string): string {
     return crypto.createHash('sha256').update(`${ip}:${projectId}:${salt}`).digest('hex');
+  }
+
+  private normalizeIdempotencyKey(projectId: string, key?: string): string | undefined {
+    if (!key) {
+      return undefined;
+    }
+
+    const trimmed = key.trim();
+    if (!trimmed) {
+      return undefined;
+    }
+
+    return `${projectId}:${trimmed}`;
   }
 }

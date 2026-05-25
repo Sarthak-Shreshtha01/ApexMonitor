@@ -15,6 +15,7 @@ export interface BrowserRumOptions {
   flushIntervalMs?: number;
   maxQueueSize?: number;
   defaultContext?: Record<string, unknown>;
+  fetcher?: typeof fetch;
 }
 
 export class ApexBrowserRumClient {
@@ -32,7 +33,9 @@ export class ApexBrowserRumClient {
       auth: {
         type: 'rumKey',
         key: options.rumKey,
+        headerName: 'x-rum-key',
       },
+      fetcher: options.fetcher,
     });
     this.projectId = options.projectId;
     this.flushIntervalMs = options.flushIntervalMs ?? 5000;

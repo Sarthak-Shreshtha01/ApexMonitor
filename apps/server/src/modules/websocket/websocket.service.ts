@@ -3,6 +3,8 @@ import { Server, Socket } from 'socket.io';
 import { getRedis } from '@infrastructure/redis';
 import { config } from '@config';
 import { eventBus } from '@events/event-bus';
+import jwt from 'jsonwebtoken';
+import { UserService } from '@modules/users/user.service';
 
 export class WebSocketService {
   private io: Server;
@@ -10,6 +12,7 @@ export class WebSocketService {
   private broadcastInterval: NodeJS.Timeout | null = null;
 
   private latestInsights: Map<string, any> = new Map();
+  private usersService = new UserService();
 
   constructor(server: HttpServer) {
     this.io = new Server(server, {
@@ -39,15 +42,35 @@ export class WebSocketService {
     this.io.on('connection', (socket: Socket) => {
       console.log(`🔌 [WebSocket] Client connected: ${socket.id}`);
 
-      // Client requests to join a project room (cite: 751-752)
+      // Client requests to join a project room.
       socket.on('join', async (payload: { projectId: string; token?: string }) => {
-        const { projectId } = payload;
-        
-        // In a full production env, we validate the JWT token here.
-        // For Phase 4, we will just allow them to join the room.
-        socket.join(projectId);
-        this.activeRooms.add(projectId);
-        console.log(`👥 [WebSocket] Client ${socket.id} joined room: ${projectId}`);
+        try {
+          const user = await this.resolveUser(payload.token);
+          if (!user) {
+            socket.emit('join:error', { message: 'Unauthorized websocket join' });
+            return;
+          }
+
+          const hasAccess = await this.userCanAccessProject(user.id, payload.projectId);
+          if (!hasAccess) {
+            socket.emit('join:error', { message: 'No access to this project' });
+            return;
+          }
+
+          socket.join(payload.projectId);
+          this.activeRooms.add(payload.projectId);
+          socket.data.userId = user.id;
+          socket.data.projectId = payload.projectId;
+
+          socket.emit('join:ok', {
+            projectId: payload.projectId,
+            userId: user.id,
+          });
+
+          console.log(`👥 [WebSocket] Client ${socket.id} joined room: ${payload.projectId}`);
+        } catch (error) {
+          socket.emit('join:error', { message: 'Join failed' });
+        }
       });
 
       socket.on('disconnect', () => {
@@ -55,6 +78,28 @@ export class WebSocketService {
         // We could clean up empty rooms here for optimization
       });
     });
+  }
+
+  private async resolveUser(token?: string): Promise<{ id: string; email: string } | null> {
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const decoded = jwt.verify(token, config.JWT_SECRET) as { sub?: string; email?: string };
+      if (!decoded.sub || !decoded.email) {
+        return null;
+      }
+
+      return { id: decoded.sub, email: decoded.email };
+    } catch {
+      return null;
+    }
+  }
+
+  private async userCanAccessProject(userId: string, projectId: string): Promise<boolean> {
+    const projects = await this.usersService.listProjects(userId);
+    return projects.some((project) => project.id === projectId);
   }
 
   /**

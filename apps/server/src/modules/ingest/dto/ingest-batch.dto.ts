@@ -14,6 +14,7 @@ export const LogEntrySchema = z.object({
 export const IngestBatchDto = z.object({
   projectId:  z.string().regex(/^proj_[A-Za-z0-9_-]{16,}/),
   sdkVersion: z.string().regex(/^\d+\.\d+\.\d+$/).default('1.0.0'),
+  idempotencyKey: z.string().trim().min(8).max(128).optional(),
   logs:       z.array(LogEntrySchema).min(1).max(500),
 });
 

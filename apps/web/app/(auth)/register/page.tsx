@@ -28,8 +28,8 @@ export default function RegisterPage() {
 
   const getErrorMessage = (value: unknown, fallback: string) => {
     if (typeof value === 'object' && value !== null && 'response' in value) {
-      const response = value as { response?: { data?: { message?: string } } };
-      return response.response?.data?.message || fallback;
+      const response = value as { response?: { data?: { message?: string; error?: string } } };
+      return response.response?.data?.message || response.response?.data?.error || fallback;
     }
 
     return fallback;

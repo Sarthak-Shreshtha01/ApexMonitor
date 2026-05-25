@@ -4,6 +4,7 @@ export { ApexApiError, ApexNetworkError } from './errors.js';
 export type {
 	ApexClientOptions,
 	ApiListResponse,
+	ApiSuccessEnvelope,
 	AuthStrategy,
 	HttpResponseMeta,
 	RequestOptions,

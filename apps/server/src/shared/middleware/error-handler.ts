@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import { ZodError } from 'zod';
+import { errorBody } from '@shared/http/api-contract';
 
 const knownErrorMap: Record<string, { status: number; code: string; message: string }> = {
   EMAIL_IN_USE: { status: 409, code: 'CONFLICT', message: 'Email is already in use' },
@@ -17,33 +18,20 @@ function getRequestId(req: Request): string {
 }
 
 export function notFoundHandler(req: Request, res: Response): void {
-  res.status(404).json({
-    error: 'NOT_FOUND',
-    message: `Route ${req.method} ${req.originalUrl} not found`,
-    requestId: getRequestId(req),
-  });
+  res.status(404).json(errorBody(res, 'NOT_FOUND', `Route ${req.method} ${req.originalUrl} not found`));
 }
 
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
   const requestId = getRequestId(req);
 
   if (err instanceof ZodError) {
-    res.status(400).json({
-      error: 'VALIDATION_ERROR',
-      message: 'Request validation failed',
-      details: err.flatten(),
-      requestId,
-    });
+    res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'Request validation failed', err.flatten()));
     return;
   }
 
   if (err instanceof Error && knownErrorMap[err.message]) {
     const mapped = knownErrorMap[err.message];
-    res.status(mapped.status).json({
-      error: mapped.code,
-      message: mapped.message,
-      requestId,
-    });
+    res.status(mapped.status).json(errorBody(res, mapped.code, mapped.message));
     return;
   }
 
@@ -54,9 +42,5 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     error: err instanceof Error ? { message: err.message, stack: err.stack } : String(err),
   });
 
-  res.status(500).json({
-    error: 'INTERNAL_ERROR',
-    message: 'Unexpected server error',
-    requestId,
-  });
+  res.status(500).json(errorBody(res, 'INTERNAL_ERROR', 'Unexpected server error'));
 }

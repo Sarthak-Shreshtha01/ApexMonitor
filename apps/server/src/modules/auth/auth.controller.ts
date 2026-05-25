@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
+import { errorBody, successBody } from '@shared/http/api-contract';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -41,11 +42,11 @@ export class AuthController {
       res.redirect(authorizeUrl);
     } catch (error) {
       if (error instanceof Error && error.message === 'OAUTH_NOT_CONFIGURED') {
-        res.status(503).json({ error: 'OAUTH_NOT_CONFIGURED', message: 'OAuth provider is not configured' });
+        res.status(503).json(errorBody(res, 'SERVICE_UNAVAILABLE', 'OAuth provider is not configured'));
         return;
       }
       if (error instanceof Error && error.message === 'UNSUPPORTED_PROVIDER') {
-        res.status(400).json({ error: 'UNSUPPORTED_PROVIDER', message: 'Unsupported OAuth provider' });
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'Unsupported OAuth provider'));
         return;
       }
 
@@ -60,7 +61,7 @@ export class AuthController {
       const state = String(req.query.state || '');
 
       if (!code || !state) {
-        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'Missing OAuth code/state' });
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'Missing OAuth code/state'));
         return;
       }
 
@@ -75,11 +76,11 @@ export class AuthController {
       res.redirect(redirectUrl.toString());
     } catch (error) {
       if (error instanceof Error && error.message === 'OAUTH_NOT_CONFIGURED') {
-        res.status(503).json({ error: 'OAUTH_NOT_CONFIGURED', message: 'OAuth provider is not configured' });
+        res.status(503).json(errorBody(res, 'SERVICE_UNAVAILABLE', 'OAuth provider is not configured'));
         return;
       }
       if (error instanceof Error && (error.message === 'INVALID_OAUTH_STATE' || error.message === 'OAUTH_EXCHANGE_FAILED' || error.message === 'OAUTH_EMAIL_UNAVAILABLE' || error.message === 'UNSUPPORTED_PROVIDER')) {
-        res.status(400).json({ error: error.message, message: 'OAuth sign-in failed' });
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'OAuth sign-in failed'));
         return;
       }
 
@@ -92,10 +93,10 @@ export class AuthController {
       const { email, password } = req.body;
       const result = await this.service.login(email, password);
       setAuthCookies(res, result.accessToken, result.refreshToken);
-      res.status(200).json(result);
+      res.status(200).json(successBody(res, result));
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_CREDENTIALS') {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid email or password' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Invalid email or password'));
         return;
       }
 
@@ -110,16 +111,16 @@ export class AuthController {
       const refreshToken = cookies.refresh_token || bodyRefreshToken;
 
       if (!refreshToken) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing refresh token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing refresh token'));
         return;
       }
 
       const result = await this.service.refreshSession(refreshToken);
       setAuthCookies(res, result.accessToken, result.refreshToken);
-      res.status(200).json({ accessToken: result.accessToken, refreshToken: result.refreshToken });
+      res.status(200).json(successBody(res, { accessToken: result.accessToken, refreshToken: result.refreshToken }));
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_REFRESH_TOKEN') {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid refresh token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Invalid refresh token'));
         return;
       }
 
@@ -139,10 +140,10 @@ export class AuthController {
       // In a full implementation, we'd verify the requesting user has 'admin' rights to this project
       const plaintextKey = await this.service.generateApiKey(projectId, label);
       
-      res.status(201).json({ 
+      res.status(201).json(successBody(res, {
         message: 'Store this key securely. It will not be shown again.',
-        key: plaintextKey 
-      });
+        key: plaintextKey,
+      }));
     } catch (error) {
       next(error);
     }
@@ -152,7 +153,7 @@ export class AuthController {
     try {
       const userId = req.user?.id;
       if (!userId) {
-        res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
         return;
       }
 
@@ -163,19 +164,19 @@ export class AuthController {
       };
 
       if (!projectId) {
-        res.status(400).json({ error: 'VALIDATION_ERROR', message: 'projectId is required' });
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'projectId is required'));
         return;
       }
 
       try {
         await this.service.assertProjectOwner(projectId, userId);
       } catch {
-        res.status(403).json({ error: 'FORBIDDEN', message: 'Only project owners can issue RUM keys' });
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'Only project owners can issue RUM keys'));
         return;
       }
 
       const key = await this.service.generateRumWriteKey(projectId, label, allowedOrigins);
-      res.status(201).json({ message: 'Store this key securely. It will not be shown again.', key });
+      res.status(201).json(successBody(res, { message: 'Store this key securely. It will not be shown again.', key }));
     } catch (error) {
       next(error);
     }

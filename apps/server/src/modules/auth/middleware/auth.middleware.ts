@@ -4,7 +4,7 @@ import { AuthService } from '../auth.service';
 declare global {
   namespace Express {
     interface Request {
-      project?: { id: string };
+      project?: { id: string; role?: string };
     }
   }
 }
