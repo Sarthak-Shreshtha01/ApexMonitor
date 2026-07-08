@@ -13,7 +13,9 @@
     "build:sdk": "npm run build --workspace=@apexmonitor/sdk",
     "build:browser-sdk": "npm run build --workspace=@apexmonitor/browser-sdk",
     "build:sdks": "npm run build:sdk && npm run build:browser-sdk",
-    "conformance:sdks": "node scripts/sdk-conformance.mjs"
+    "conformance:sdks": "node scripts/sdk-conformance.mjs",
+    "validate:migrations": "node scripts/validate-migrations.mjs",
+    "check:release-version": "node scripts/check-release-version.mjs"
   },
   "keywords": [],
   "author": "",

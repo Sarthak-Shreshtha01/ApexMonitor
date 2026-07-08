@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
 import { serializeCookie } from '@shared/utils/cookie.utils';
+import { auditLogService } from '@shared/services/audit-log.service';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -39,6 +40,15 @@ export class UserController {
       const data = RegisterDto.parse(req.body);
       const result = await this.service.register(data);
       setAuthCookies(res, result.accessToken, result.refreshToken);
+      void auditLogService.recordSafe({
+        actorUserId: result.user.id,
+        action: 'user.registered',
+        resourceType: 'user',
+        resourceId: result.user.id,
+        metadata: { email: result.user.email },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(201).json(result);
     } catch (error: any) {
       if (error.message === 'EMAIL_IN_USE') return res.status(409).json({ error: error.message });
@@ -51,6 +61,15 @@ export class UserController {
       const data = LoginDto.parse(req.body);
       const result = await this.service.login(data);
       setAuthCookies(res, result.accessToken, result.refreshToken);
+      void auditLogService.recordSafe({
+        actorUserId: result.user.id,
+        action: 'user.logged_in',
+        resourceType: 'user_session',
+        resourceId: result.user.id,
+        metadata: { email: result.user.email },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(200).json(result);
     } catch (error: any) {
       if (error.message === 'INVALID_CREDENTIALS') return res.status(401).json({ error: error.message });
@@ -58,7 +77,15 @@ export class UserController {
     }
   };
 
-  public logout = async (_req: Request, res: Response): Promise<void> => {
+  public logout = async (req: Request, res: Response): Promise<void> => {
+    void auditLogService.recordSafe({
+      actorUserId: req.user?.id ?? null,
+      action: 'auth.logout',
+      resourceType: 'user_session',
+      resourceId: req.user?.id ?? null,
+      ipAddress: req.ip,
+      userAgent: req.get('user-agent') ?? null,
+    });
     clearAuthCookies(res);
     res.status(204).send();
   };
@@ -96,6 +123,15 @@ export class UserController {
         payload.jobTitle,
         payload.timezone,
       );
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        action: 'user.profile_updated',
+        resourceType: 'user',
+        resourceId: userId,
+        metadata: { email: profile.email },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(200).json({ profile });
     } catch (error: any) {
       if (error.message === 'EMAIL_IN_USE') return res.status(409).json({ error: error.message });
@@ -114,6 +150,15 @@ export class UserController {
 
       const projectId = req.params.projectId as string;
       const members = await this.service.listProjectMembers(userId, projectId);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId,
+        action: 'project.members_listed',
+        resourceType: 'project',
+        resourceId: projectId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(200).json({ members });
     } catch (error: any) {
       if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
@@ -138,6 +183,16 @@ export class UserController {
       }
 
       const member = await this.service.addProjectMember(userId, projectId, email, role);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId,
+        action: 'project.member_added',
+        resourceType: 'project_member',
+        resourceId: member.userId,
+        metadata: { email, role },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(201).json({ member });
     } catch (error: any) {
       if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
@@ -164,6 +219,16 @@ export class UserController {
       }
 
       const member = await this.service.updateMemberRole(userId, projectId, memberId, role);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId,
+        action: 'project.member_role_updated',
+        resourceType: 'project_member',
+        resourceId: memberId,
+        metadata: { role },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(200).json({ member });
     } catch (error: any) {
       if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
@@ -183,6 +248,15 @@ export class UserController {
       const memberId = req.params.memberId as string;
 
       await this.service.removeMember(userId, projectId, memberId);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId,
+        action: 'project.member_removed',
+        resourceType: 'project_member',
+        resourceId: memberId,
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(204).send();
     } catch (error: any) {
       if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });

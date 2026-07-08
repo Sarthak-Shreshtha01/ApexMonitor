@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
 import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
 import { errorBody, successBody } from '@shared/http/api-contract';
+import { auditLogService } from '@shared/services/audit-log.service';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -93,6 +94,15 @@ export class AuthController {
       const { email, password } = req.body;
       const result = await this.service.login(email, password);
       setAuthCookies(res, result.accessToken, result.refreshToken);
+      void auditLogService.recordSafe({
+        actorUserId: result.user.id,
+        action: 'auth.login',
+        resourceType: 'user_session',
+        resourceId: result.user.id,
+        metadata: { email: result.user.email },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(200).json(successBody(res, result));
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_CREDENTIALS') {
@@ -129,6 +139,14 @@ export class AuthController {
   };
 
   public logout = async (_req: Request, res: Response): Promise<void> => {
+    void auditLogService.recordSafe({
+      actorUserId: _req.user?.id ?? null,
+      action: 'auth.logout',
+      resourceType: 'user_session',
+      resourceId: _req.user?.id ?? null,
+      ipAddress: _req.ip,
+      userAgent: _req.get('user-agent') ?? null,
+    });
     clearAuthCookies(res);
     res.status(204).send();
   };
@@ -139,6 +157,15 @@ export class AuthController {
       
       // In a full implementation, we'd verify the requesting user has 'admin' rights to this project
       const plaintextKey = await this.service.generateApiKey(projectId, label);
+      void auditLogService.recordSafe({
+        actorUserId: req.user?.id ?? null,
+        projectId,
+        action: 'key.created',
+        resourceType: 'api_key',
+        metadata: { label: label ?? null, source: 'auth.generateKey' },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       
       res.status(201).json(successBody(res, {
         message: 'Store this key securely. It will not be shown again.',
@@ -176,6 +203,15 @@ export class AuthController {
       }
 
       const key = await this.service.generateRumWriteKey(projectId, label, allowedOrigins);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId,
+        action: 'rum_key.created',
+        resourceType: 'rum_key',
+        metadata: { label: label ?? null, allowedOrigins: allowedOrigins ?? [] },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(201).json(successBody(res, { message: 'Store this key securely. It will not be shown again.', key }));
     } catch (error) {
       next(error);

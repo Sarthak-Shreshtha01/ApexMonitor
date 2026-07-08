@@ -62,10 +62,6 @@ export default function RegisterPage() {
     }
   };
 
-  const startOAuth = (provider: 'google' | 'github') => {
-    window.location.href = authService.oauthStartUrl(provider, 'register');
-  };
-
   return (
     <main className="grow flex items-center justify-center p-4 sm:p-6 relative z-10 w-full">
       <div className="w-full max-w-xl grow">
@@ -187,17 +183,21 @@ export default function RegisterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => startOAuth('google')}
-                  className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                  disabled
+                  aria-disabled="true"
+                  title="OAuth sign-up is coming soon"
+                  className="py-3 px-4 border border-outline-variant/20 rounded-lg text-sm font-semibold text-on-surface/50 bg-surface-container-lowest/60 cursor-not-allowed"
                 >
-                  Google
+                  Google (soon)
                 </button>
                 <button
                   type="button"
-                  onClick={() => startOAuth('github')}
-                  className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                  disabled
+                  aria-disabled="true"
+                  title="OAuth sign-up is coming soon"
+                  className="py-3 px-4 border border-outline-variant/20 rounded-lg text-sm font-semibold text-on-surface/50 bg-surface-container-lowest/60 cursor-not-allowed"
                 >
-                  GitHub
+                  GitHub (soon)
                 </button>
               </div>
             </div>

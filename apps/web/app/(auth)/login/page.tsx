@@ -30,10 +30,6 @@ export default function LoginPage() {
     return fallback;
   };
 
-  const startOAuth = (provider: 'google' | 'github') => {
-    window.location.href = authService.oauthStartUrl(provider, 'login');
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -135,17 +131,21 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <button
                 type="button"
-                onClick={() => startOAuth('google')}
-                className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                disabled
+                aria-disabled="true"
+                title="OAuth sign-in is coming soon"
+                className="py-3 px-4 border border-outline-variant/20 rounded-lg text-sm font-semibold text-on-surface/50 bg-surface-container-lowest/60 cursor-not-allowed"
               >
-                Google
+                Google (soon)
               </button>
               <button
                 type="button"
-                onClick={() => startOAuth('github')}
-                className="py-3 px-4 border border-outline-variant/30 hover:border-primary/60 rounded-lg text-sm font-semibold text-on-surface transition-colors"
+                disabled
+                aria-disabled="true"
+                title="OAuth sign-in is coming soon"
+                className="py-3 px-4 border border-outline-variant/20 rounded-lg text-sm font-semibold text-on-surface/50 bg-surface-container-lowest/60 cursor-not-allowed"
               >
-                GitHub
+                GitHub (soon)
               </button>
             </div>
           </div>

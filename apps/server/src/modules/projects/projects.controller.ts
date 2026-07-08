@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto } from './dto/project.dto';
 import { errorBody, successBody } from '@shared/http/api-contract';
+import { auditLogService } from '@shared/services/audit-log.service';
 
 export class ProjectsController {
   private service = new ProjectsService();
@@ -31,6 +32,16 @@ export class ProjectsController {
 
       const data = CreateProjectDto.parse(req.body);
       const project = await this.service.createUserProject(userId, data);
+      void auditLogService.recordSafe({
+        actorUserId: userId,
+        projectId: project.id,
+        action: 'project.created',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: { name: project.name },
+        ipAddress: req.ip,
+        userAgent: req.get('user-agent') ?? null,
+      });
       res.status(201).json(successBody(res, { project }));
     } catch (error) {
       next(error);
