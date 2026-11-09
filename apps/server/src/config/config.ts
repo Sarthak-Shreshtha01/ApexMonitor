@@ -3,17 +3,15 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-// 1. Reliably resolve the .env file from the root directory
+// 1. Resolve the optional .env file at the repository root
 const envPath = path.resolve(__dirname, '../../../../.env');
 
-// 2. Fail fast if the file physically doesn't exist
-if (!fs.existsSync(envPath)) {
-  console.error(`❌ CRITICAL: .env file missing. Looked in: ${envPath}`);
-  process.exit(1);
+// 2. Load it when present (local development). Containers, CI and tests provide
+//    variables through the environment instead; values already set are never overridden.
+//    Tests never read .env so they are deterministic regardless of local files.
+if (process.env.NODE_ENV !== 'test' && fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath, quiet: true });
 }
-
-// 3. Load the variables
-dotenv.config({ path: envPath });
 
 // 4. Validate with Zod
 const ConfigSchema = z.object({

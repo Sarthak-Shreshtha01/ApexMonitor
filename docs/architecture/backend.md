@@ -4,7 +4,7 @@
 
 `src/bootstrap.ts`:
 
-1. `config/config.ts` loads `<repo-root>/.env` and validates it with Zod. The process exits on a missing file or invalid values.
+1. `config/config.ts` loads `<repo-root>/.env` if present (not in tests) and validates the environment with Zod. The process exits on invalid or missing values.
 2. Connects MongoDB, PostgreSQL, Redis, RabbitMQ in parallel. RabbitMQ connect also asserts the exchange/queue topology (`infrastructure/rabbitmq.ts`).
 3. Starts consumers: `RawLogWorker`, `AggregationWorker`, `AnomalyWorker`, `RumWorker`; starts `AlertWorker` interval loop (not awaited).
 4. Builds the Express app (`createApp()` in `app.ts`), wraps it in `http.createServer`, attaches `WebSocketService`.

@@ -90,7 +90,7 @@ There is no `npm test` yet; see [testing-strategy.md](testing-strategy.md).
 
 | Symptom | Cause / fix |
 |---|---|
-| `CRITICAL: .env file missing` | `.env` must be at the repo root |
+| `Invalid environment variables` listing every var | No `.env` at the repo root and nothing exported |
 | `Invalid environment variables` | Check names (`MONGO_URI`, `PG_URI`) and 32-char secrets |
 | CORS errors in browser | Add the web origin to `CORS_ORIGINS` |
 | `relation "users" does not exist` | Migrations not applied (step 3) |

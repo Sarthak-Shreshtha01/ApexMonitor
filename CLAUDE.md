@@ -77,7 +77,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 
 ## Gotchas
 
-- `.env` lives at the **repo root** (not `apps/server/.env`); `config.ts` exits if the file is missing. Template: `.env.example`.
+- `.env` lives at the **repo root** (not `apps/server/.env`) and is optional: env vars win, and it's ignored when `NODE_ENV=test`. Template: `.env.example`.
 - `tsc` does not rewrite path aliases, so `node dist/bootstrap.js` currently fails; `tsx` in dev works. Fix tracked in plan.md Phase 1.
 - Workers run inside the API process; the event bus is in-process only.
 - Legacy name "PulseApi"/"pulse" still appears in infra credentials and old text; the product name is ApexMonitor.

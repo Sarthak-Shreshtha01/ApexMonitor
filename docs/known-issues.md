@@ -92,7 +92,6 @@ There are no unit, integration, or end-to-end tests. CI only builds.
 `packages/sdk/src/client.ts` defines `metrics.rps` and `metrics.endpoints` (`/api/v1/metrics/rps`, `/api/v1/metrics/endpoints`); the server only serves `overview`, `latency`, `operations`. Web `shared/api/endpoints.ts` lists them too.
 
 ### KI-14 Configuration loading
-- `config/config.ts` exits if the repo-root `.env` file is missing, even when all variables are present in the environment (breaks containers/K8s).
 - `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` are read from `process.env` directly and are not validated.
 - README previously documented wrong names (`MONGODB_URI`, `POSTGRES_URL`) and location (`apps/server/.env`).
 
