@@ -15,9 +15,72 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
       - run: npm ci
       - run: npm run validate:migrations
+      - run: npm run typecheck --workspace=apps/server
       - run: npm run build --workspace=apps/server
       - run: npm run build --workspace=apps/web
       - run: npm run build:sdks
       - run: npm run conformance:sdks
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install requests
+      - run: npm ci
+      # Server, web, TypeScript SDK, browser SDK (vitest) + Python SDK (unittest). No services needed.
+      - run: npm test
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    # Host ports match docker-compose.yml so the test defaults work unchanged.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: apexmonitor
+          POSTGRES_USER: pulse
+          POSTGRES_PASSWORD: pulse_dev_password
+        ports: ['9999:5432']
+        options: >-
+          --health-cmd "pg_isready -U pulse -d apexmonitor"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      mongo:
+        image: mongo:7
+        ports: ['27018:27017']
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: pulse
+          RABBITMQ_DEFAULT_PASS: pulse_dev
+        ports: ['5672:5672', '15672:15672']
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s --health-timeout 10s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      # Creates isolated test databases / vhost, applies migrations, boots the API + workers in-process.
+      - run: npm run test:integration

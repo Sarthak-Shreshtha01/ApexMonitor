@@ -57,6 +57,10 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `src/shared/middleware/` | `require-auth`, `require-project-access`, `async-handler`, `error-handler` |
 | `src/shared/services/audit-log.service.ts` | Writes `audit_logs` |
 | `src/shared/services/platform-health.service.ts` | Dependency + queue health |
+| `test/unit/` | Vitest unit tests (in-memory fakes, no network) |
+| `test/integration/` | Vitest integration tests against real services; `harness.ts` boots the stack |
+| `test/setup/`, `test/helpers/` | Test env, isolated-DB global setup, fakes, `knownBug()` helper |
+| `vitest.config.ts`, `vitest.integration.config.ts` | Unit / integration runner configs |
 | `src/shared/utils/` | `logger` (pino), `math.utils` (percentiles), `anomaly.utils` (z-score), `cookie.utils`, `phonepe.utils` |
 
 ## `apps/web`: Next.js dashboard
@@ -77,6 +81,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `shared/ui/` | Leaflet GeoIP map |
 | `lib/redux/` | Store, hooks, persist storage |
 | `middleware.ts` | Next middleware (no-op) |
+| `test/` | Vitest tests for API client, auth state, routes |
 
 ## `packages`: SDKs
 
@@ -87,6 +92,8 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `packages/sdk/src/types.ts`, `errors.ts` | Types, `ApexApiError`, `ApexNetworkError` |
 | `packages/browser-sdk/src/index.ts` | `ApexBrowserRumClient` / `createBrowserRumClient` |
 | `packages/python-sdk/src/apexmonitor_sdk/client.py` | Python `ApexClient` |
+| `packages/sdk/test/`, `packages/browser-sdk/test/` | Vitest SDK tests |
+| `packages/python-sdk/tests/` | unittest tests for the Python SDK |
 | `packages/python-sdk/pyproject.toml` | PyPI metadata (`apexmonitor-sdk`) |
 
 ## `scripts`

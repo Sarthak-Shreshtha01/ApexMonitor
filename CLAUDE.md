@@ -34,9 +34,14 @@ npm run build --workspace=apps/web
 npm run build:sdks                         # @apexmonitor/sdk + @apexmonitor/browser-sdk
 npm run conformance:sdks                   # SDK wire-contract checks (mocked transport)
 npm run validate:migrations                # sanity check of scripts/*.sql
+npm test                                   # all suites that need no services (server unit, web, SDKs, Python SDK)
+npm run test:integration                   # server against real infra (docker compose up -d first; uses isolated *_test DBs)
 ```
 
-There is no test runner yet (see plan.md Phase 2). Do not claim tests pass; say what you ran.
+Testing rules (details: `docs/guides/testing-strategy.md`):
+- Every bug fix ships with a test that fails before the fix. Run `npm test`, and `npm run test:integration` for anything touching SQL, Mongo, Redis, RabbitMQ or workers. Report exactly what you ran.
+- Known defects have expected-failure tests (`knownBug('KI-n', …)` / `it.fails('[known bug KI-n] …')` / `@unittest.expectedFailure`). When you fix one, convert its test to a normal test. `SHOW_KNOWN_BUGS=1` shows why each fails.
+- Unit tests must not hit the network or read `.env`; stub `fetch` with `vi.stubGlobal`.
 
 ## Layout
 
