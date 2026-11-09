@@ -50,6 +50,7 @@
 | ID | Gap |
 |---|---|
 | KI-4 | OAuth tokens in redirect URL |
+| KI-35 | Access and refresh tokens written to request logs |
 | KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |
 | KI-6 | Webhook SSRF |
 | KI-7 | Payment sandbox fallbacks |

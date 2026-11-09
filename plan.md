@@ -47,7 +47,10 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 - [ ] **Dead-letter queues:** bind each `*_dlq` queue to `dlq.exchange` so rejected messages are kept instead of dropped. (KI-32)
 - [ ] **Python SDK:** `rumKey` auth must default to `x-rum-key`. Remove `metrics.rps` / `metrics.endpoints` from the TS SDK or implement them on the server. (KI-11, KI-12)
 
-**Exit criteria:** every P0 item in known-issues is closed; each fix has a regression test (can be added in Phase 2 if the harness doesn't exist yet, but track it).
+- [ ] **Redact tokens from request logs.** (KI-35)
+- [ ] **PhonePe upgrades never applied** (truncated user id). (KI-36)
+
+**Exit criteria:** every P0 item in known-issues is closed; each fix converts its expected-failure test into a regular test.
 
 ---
 
@@ -94,11 +97,11 @@ Goal: code layout that supports independent scaling and testing. Do this before 
 - [ ] Add API deprecation: old paths return `Deprecation` + `Link` headers for one minor version, then 410.
 
 ### 2d. Tests
-- [ ] Vitest workspace config for all TS packages; `npm test` at root.
-- [ ] Unit: `math.utils`, aggregation merge logic, anomaly z-score, alert rule evaluation, endpoint normalisation, key generation/verification, Zod DTOs.
-- [ ] Integration (Testcontainers: Postgres, Mongo, Redis, RabbitMQ): ingest → workers → query APIs; RUM ingest → aggregates; key revoke takes effect immediately.
-- [ ] Security suite: for every project-scoped route, assert a user from project A gets 403 for project B; assert API key for A cannot write to B.
-- [ ] Contract: SDK conformance runs against a real API container, not only mocks; Python SDK tests with `pytest`.
+- [x] Vitest config for all TS packages; `npm test` at root.
+- [x] Unit: `math.utils`, aggregation merge logic, anomaly z-score, alert rule evaluation, endpoint normalisation, key generation/verification, Zod DTOs.
+- [x] Integration (real Postgres, Mongo, Redis, RabbitMQ via compose / CI service containers, isolated DBs): ingest → workers → query APIs; RUM ingest → aggregates; key revoke takes effect immediately.
+- [x] Security suite: for every project-scoped route, assert a user from project A gets 403 for project B; assert API key for A cannot write to B.
+- [x] Contract: TS + browser SDK run against the live server in the integration suite; Python SDK unit tests (live-server Python tests still open).
 - [ ] Web: Playwright smoke (login, overview renders, create key, logs page).
 - [ ] Coverage gate: start at 60% for `packages/core`, raise over time.
 

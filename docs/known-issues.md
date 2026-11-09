@@ -1,6 +1,8 @@
 # Known Issues
 
-_Audited: 2026-11-10 against commit `debac85`._
+_Audited: 2026-11-10 against commit `debac85`; KI-33 to KI-40 found by the test suite._
+
+Every issue that can be expressed as a test has an expected-failure test (see `docs/guides/testing-strategy.md#known-bug-tests`). Fixing an issue makes its test pass, which the runner flags until the test is converted to a normal one.
 
 Each issue has an ID referenced from [`plan.md`](../plan.md). When you fix one, delete its entry in the same PR (git history keeps the record) and update the plan checkbox.
 
@@ -78,10 +80,17 @@ Each issue has an ID referenced from [`plan.md`](../plan.md). When you fix one, 
 ### KI-22 Server Dockerfile is not monorepo-aware
 `apps/server/Dockerfile` runs `npm ci` with `apps/server/package*.json`, but the lockfile is at the repo root. The image build fails (or installs unpinned deps).
 
-### KI-28 No automated tests
-There are no unit, integration, or end-to-end tests. CI only builds.
+### KI-26 API key prefixes collide; colliding keys can never authenticate
+Keys are looked up by their first 10 characters and `findKeyByPrefix` returns only `rows[0]`. Keys from `POST /keys` are `pk_live_` + random, so the prefix has only **2 random characters** (4,096 values). A test generating 500 keys measured **37 collisions** (463 distinct prefixes). Any key whose prefix matches an older key fails verification forever. (`proj_` keys from the legacy route have 5 random chars, still collision-prone.)
+**Fix:** store a longer prefix (e.g. 16 chars after the type marker) or look up by a deterministic hash (HMAC-SHA256 of the key) and keep argon2 only for verification; handle multiple rows.
 
----
+### KI-35 Issued tokens are written to request logs
+`pino-http` serialises response headers, so every login, register and refresh logs the `set-cookie` (refresh token) and `x-access-token` headers. Anyone with log access can impersonate users for 30 days.
+**Fix:** configure pino-http serializers / `redact` for `res.headers["set-cookie"]`, `res.headers["x-access-token"]`, `req.headers.authorization`, `req.headers["x-api-key"]`, `req.headers["x-rum-key"]`, `req.headers.cookie`.
+
+### KI-36 Successful payments can never upgrade the account
+`PhonePeUtils.generateCheckoutPayload` truncates `merchantUserId` to 34 characters, but user ids are `usr_` + 32 hex = 36 characters. The webhook upserts `subscriptions` for the truncated id, which violates the `subscriptions.user_id → users.id` foreign key, so the upgrade fails after the customer has paid.
+**Fix:** map the transaction id to the user server-side (store the checkout with `merchantTransactionId`) instead of round-tripping the user id.
 
 ## P2
 
@@ -117,6 +126,28 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 
 ---
 
+### KI-33 SDK transport defects
+- TS and Python SDKs send idempotency keys as `idempotency-key`; the server reads `x-idempotency-key`, so SDK retries are never deduplicated.
+- 409 Conflict is treated as retryable (e.g. register with a taken email is sent 3 times).
+- TS SDK retries requests the caller cancelled (`AbortError` is treated as retryable).
+
+### KI-34 Python `revoke_key()` always fails
+`ApexClient.revoke_key(key_id)` sends no `projectId` query parameter, which `DELETE /api/v1/keys/:id` requires (400).
+
+### KI-37 Endpoint normalisation is too aggressive and too lax
+`ingest.service.ts#normalizeEndpoint` replaces any `/` followed by digits, so `/auth/2fa/setup` becomes `/auth/:idfa/setup`, and it keeps query strings, so `/search?q=…` creates one endpoint per query (cardinality explosion in `hourly_metrics`).
+**Fix:** split on `/`, replace whole segments that are numeric/UUID/ObjectId/long hex; strip `?…` and `#…`.
+
+### KI-38 Member roles are not validated
+`POST/PATCH /users/:projectId/members` store any `role` string (no Zod DTO). Only `owner` is recognised elsewhere, so typos silently create members with no defined permissions.
+
+### KI-39 Malformed or missing request bodies return 500
+- `errorHandler` ignores the `status` of body-parser errors: malformed JSON → 500 (should be 400), body over 2 MB → 500 (should be 413).
+- Express 5 leaves `req.body` undefined when no body is sent; `/auth/login`, member add and the billing webhook destructure it and crash with 500.
+
+### KI-40 Web client keeps stale tokens after a failed refresh
+`apps/web/shared/api/apiClient.ts` rejects queued requests when `/auth/refresh` fails but never clears the persisted tokens or redirects to `/login`, leaving the UI in a broken signed-in state.
+
 ## P3
 
 ### KI-23 Duplicate and misplaced routes
@@ -130,9 +161,6 @@ The table and index exist; nothing populates it. README claimed it powers recent
 
 ### KI-25 "Traces" are single request logs
 `modules/traces/traces.repository.ts` reads the Mongo `api_logs` collection; `traceId` is the server-generated `reqId`. There are no spans, parent/child relationships, or cross-service propagation.
-
-### KI-26 API key prefix collisions reject valid keys
-Keys are looked up by a 10-char prefix (`proj_` + 5 random chars) and `findKeyByPrefix` returns only `rows[0]`. If two keys share a prefix, the second always fails verification.
 
 ### KI-27 Anomaly baseline is per batch, not per time window
 `workers/anomaly.worker.ts` pushes the p99 of each incoming batch into a 20-item Redis list. Baselines depend on SDK batch size and flush rate rather than time; small batches produce noisy p99s and false positives. Endpoint key is not method-qualified.

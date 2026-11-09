@@ -2,7 +2,7 @@
 
 Priority-ordered: **top = do first**. Pick from the top of **Now**.
 
-- When an item is finished, move it to **Done** with the date (newest first) and remove its entry from `docs/known-issues.md` / tick it in `plan.md`.
+- When an item is finished, move it to **Done** with the date (newest first), remove its entry from `docs/known-issues.md`, tick it in `plan.md`, and turn its expected-failure test into a normal test.
 - When new work is discovered, insert it at the right priority, not at the bottom.
 - `KI-n` = entry in [`docs/known-issues.md`](docs/known-issues.md). `Pn` = phase in [`plan.md`](plan.md).
 
@@ -10,53 +10,56 @@ _Last updated: 2026-11-10_
 
 ---
 
-## Now: security and data loss (P0)
+## Now: security and data loss (P0 + urgent P1)
 
-1. [ ] **Commit the docs + `.gitignore` work** on a `docs/` branch and merge, so the ignore rules and docs are in history.
-4. [ ] **Webhook SSRF guard:** https only, block private/loopback/link-local IPs after DNS resolve, no redirects, 5 s timeout. `workers/alert.worker.ts` (KI-6)
-5. [ ] **Bind dead-letter queues** to `dlq.exchange` so rejected messages are kept. `infrastructure/rabbitmq.ts` (KI-32)
-6. [ ] **Key revocation:** cache by `sha256(key)`, delete cache entry on revoke (API + RUM keys). `modules/auth/auth.service.ts`, `modules/keys/*` (KI-5)
-7. [ ] **OAuth callback:** stop passing tokens in the redirect URL; httpOnly cookie + one-time code. `modules/auth/auth.controller.ts` (KI-4)
+1. [ ] **Webhook SSRF guard:** https only, block private/loopback/link-local IPs after DNS resolve, no redirects, 5 s timeout. `workers/alert.worker.ts` (KI-6)
+2. [ ] **Redact secrets from request logs:** pino-http `redact` for `set-cookie`, `x-access-token`, `authorization`, `x-api-key`, `x-rum-key`, `cookie`. `app.ts`, `shared/utils/logger.ts` (KI-35)
+3. [ ] **Bind dead-letter queues** to `dlq.exchange` so rejected messages are kept. `infrastructure/rabbitmq.ts` (KI-32)
+4. [ ] **Key revocation:** cache by `sha256(key)`, delete cache entry on revoke (API + RUM keys). `modules/auth/auth.service.ts`, `modules/keys/*` (KI-5)
+5. [ ] **OAuth callback:** stop passing tokens in the redirect URL; httpOnly cookie + one-time code. `modules/auth/auth.controller.ts` (KI-4)
+6. [ ] **Payments that never upgrade:** map PhonePe `merchantTransactionId` → user server-side instead of the truncated user id. `modules/billing/*` (KI-36)
 
 ## Next: launch blockers (P1)
 
-8. [ ] **Test harness (minimal):** Vitest in `apps/server`, `npm test` at root, wired into CI; add regression tests for items 2–7. (KI-28, P2d)
-9. [ ] **Publisher confirms + reconnect:** confirm channel, await confirms before 202, 503 on backpressure, separate publish/consume channels, reconnect with backoff. (KI-16)
-10. [ ] **Production build:** resolve path aliases (`tsup` or `tsc-alias`); verify `node dist/bootstrap.js` boots. (KI-13)
-11. [ ] **Monorepo-aware Dockerfile** built from repo root. (KI-22)
-12. [ ] **Aggregation math:** weighted average (store sum), stop `GREATEST()` for percentiles, update `p50`, UTC buckets. `workers/aggregation.worker.ts` (KI-8, KI-9)
-13. [ ] **Browser SDK contract:** send the server's RUM schema; conformance test validates SDK output with the server Zod schema. (KI-10)
-14. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, fail boot in production without real credentials. (KI-7)
-15. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
+7. [ ] **API key prefix collisions:** longer prefix or HMAC lookup; handle multiple rows. (KI-26)
+8. [ ] **Publisher confirms + reconnect:** confirm channel, await confirms before 202, 503 on backpressure, separate publish/consume channels, reconnect with backoff. (KI-16)
+9. [ ] **Production build:** resolve path aliases (`tsup` or `tsc-alias`); verify `node dist/bootstrap.js` boots. (KI-13)
+10. [ ] **Monorepo-aware Dockerfile** built from repo root. (KI-22)
+11. [ ] **Aggregation math:** weighted average (store sum), mergeable percentiles, update `p50`, UTC buckets. `workers/aggregation.worker.ts` (KI-8, KI-9)
+12. [ ] **Browser SDK contract:** send the server's RUM schema. (KI-10)
+13. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
+14. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
 
 ## Soon: before real traffic (P2)
 
-16. [ ] **Config from env only:** `.env` optional; validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14)
-17. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-18. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-19. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-20. [ ] **SDK fixes:** Python RUM header `x-rum-key`; remove or implement `metrics.rps` / `metrics.endpoints`. (KI-11, KI-12)
-21. [ ] **Web auth hardening:** stop persisting tokens in localStorage; httpOnly cookies. (KI-17)
-22. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-23. [ ] **CI:** lint + typecheck + test + docker build; ESLint/Prettier for server and SDKs; `.nvmrc`. (P1)
-24. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+15. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
+16. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+17. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+18. [ ] **Validate member roles** with a Zod enum. (KI-38)
+19. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
+20. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+21. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+22. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+23. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+24. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+25. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, docker build job, `.nvmrc`, coverage report. (P1)
+26. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-25. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-26. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-27. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-28. [ ] Split `apps/api` and `apps/worker`.
-29. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-30. [ ] Integration + tenant-isolation security suites with Testcontainers. (P2d)
+27. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+28. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+29. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+30. [ ] Split `apps/api` and `apps/worker`.
+31. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+32. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-31. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-32. [ ] Fix key prefix collisions (longer prefix or handle multiple rows). (KI-26)
-33. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-34. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-35. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+33. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+34. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+35. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+36. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -68,17 +71,21 @@ _Last updated: 2026-11-10_
 - [ ] OpenAPI spec + cursor pagination (P4e)
 - [ ] Usage metering, plans in DB, org subscriptions (P5)
 - [ ] Self-instrumentation, backups, Helm chart, security scanning (P6)
+- [ ] Load tests with k6 (P3)
 - [ ] Docs site, SDK 1.0 publish, branding, terms/privacy, beta program (P7)
 
 ---
 
 ## Done
 
+- [x] 2026-11-10: Test suites: server unit (381) and integration (79, real infra), web (12), TS SDK (58), browser SDK (7), Python SDK (14); CI unit + integration jobs; expected-failure tests for every known defect (KI-28)
+- [x] 2026-11-10: `.env` file optional; env vars validated by Zod (KI-14, part)
 - [x] 2026-11-10: Refresh/OAuth-state tokens rejected as access tokens; per-type signing keys in `shared/auth/tokens.ts` (KI-3)
 - [x] 2026-11-10: Ingest tenant isolation: project taken from API key, mismatching body `projectId` → 403 (KI-2)
+- [x] 2026-11-10: Docs, plan, todo and `.gitignore` committed and merged to `main`
 - [x] 2026-11-10: Root `.gitignore` added (KI-1)
 - [x] 2026-11-10: `.env.example` added at repo root
-- [x] 2026-11-10: Root `CLAUDE.md` with conventions and git attribution rules
+- [x] 2026-11-10: Root assistant instructions file with conventions and git attribution rules
 - [x] 2026-11-10: `plan.md` shipping roadmap
 - [x] 2026-11-10: `docs/` restructured: architecture, reference, guides, operations, ADRs, known issues
 - [x] 2026-11-10: `README.md` rewritten with correct env vars, ports, and paths

@@ -51,7 +51,7 @@ Two client-state libraries are in use; consolidating on one is in plan Phase 1.
 
 1. Base URL from `NEXT_PUBLIC_API_URL`.
 2. Request interceptor attaches `Authorization: Bearer <accessToken>`.
-3. On 401 (non-auth endpoints) it starts a single refresh (`POST /api/v1/auth/refresh`), queues concurrent requests, and replays them with the new token. If the refresh fails, it clears auth and redirects to `/login`.
+3. On 401 (non-auth endpoints) it starts a single refresh (`POST /api/v1/auth/refresh`), queues concurrent requests, and replays them with the new token. If the refresh fails, every queued request is rejected; stored tokens are **not** cleared and there is no redirect (KI-40).
 
 Endpoint paths are duplicated in `shared/api/endpoints.ts`. They'll move to `packages/contracts` (plan Phase 2).
 
