@@ -12,7 +12,8 @@ Loaded from **`<repo-root>/.env`** by `apps/server/src/config/config.ts` and val
 | `PG_URI` | **yes** | n/a | e.g. `postgresql://pulse:pulse_dev_password@localhost:9999/apexmonitor` |
 | `REDIS_URL` | **yes** | n/a | e.g. `redis://localhost:6379` |
 | `RABBITMQ_URL` | **yes** | n/a | e.g. `amqp://pulse:pulse_dev@localhost:5672` |
-| `JWT_SECRET` | **yes** | n/a | ≥32 chars. Signs access **and** refresh tokens |
+| `JWT_SECRET` | **yes** | n/a | ≥32 chars. Signs access tokens; refresh and OAuth-state keys are derived from it unless overridden |
+| `JWT_REFRESH_SECRET` | no | derived from `JWT_SECRET` | ≥32 chars. Dedicated refresh-token signing key; changing it logs everyone out |
 | `ARGON2_PEPPER` | **yes** | n/a | ≥32 chars. Appended to API keys before hashing; changing it invalidates all keys |
 | `CORS_ORIGINS` | **yes** | n/a | Comma-separated origins (HTTP + Socket.IO) |
 | `RATE_LIMIT_RPM` | no | `60000` | Base limit; RUM default is 2× this |

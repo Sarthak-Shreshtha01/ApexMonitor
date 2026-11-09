@@ -13,7 +13,6 @@ _Last updated: 2026-11-10_
 ## Now: security and data loss (P0)
 
 1. [ ] **Commit the docs + `.gitignore` work** on a `docs/` branch and merge, so the ignore rules and docs are in history.
-3. [ ] **Reject refresh tokens as access tokens:** check `tokenType === 'access'` in `require-auth.ts` and websocket `resolveUser`; split `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET`. (KI-3)
 4. [ ] **Webhook SSRF guard:** https only, block private/loopback/link-local IPs after DNS resolve, no redirects, 5 s timeout. `workers/alert.worker.ts` (KI-6)
 5. [ ] **Bind dead-letter queues** to `dlq.exchange` so rejected messages are kept. `infrastructure/rabbitmq.ts` (KI-32)
 6. [ ] **Key revocation:** cache by `sha256(key)`, delete cache entry on revoke (API + RUM keys). `modules/auth/auth.service.ts`, `modules/keys/*` (KI-5)
@@ -75,6 +74,7 @@ _Last updated: 2026-11-10_
 
 ## Done
 
+- [x] 2026-11-10: Refresh/OAuth-state tokens rejected as access tokens; per-type signing keys in `shared/auth/tokens.ts` (KI-3)
 - [x] 2026-11-10: Ingest tenant isolation: project taken from API key, mismatching body `projectId` → 403 (KI-2)
 - [x] 2026-11-10: Root `.gitignore` added (KI-1)
 - [x] 2026-11-10: `.env.example` added at repo root

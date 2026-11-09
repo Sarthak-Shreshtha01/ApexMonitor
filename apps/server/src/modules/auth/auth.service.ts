@@ -4,7 +4,7 @@ import { getRedis } from '@infrastructure/redis';
 import { AuthRepository } from './auth.repository';
 import crypto from 'crypto';
 import { UserService } from '@modules/users/user.service';
-import jwt from 'jsonwebtoken';
+import { signToken, verifyToken } from '@shared/auth/tokens';
 
 type OAuthProvider = 'google' | 'github';
 type OAuthMode = 'login' | 'register';
@@ -266,22 +266,17 @@ export class AuthService {
   }
 
   private signOAuthState(provider: OAuthProvider, mode: OAuthMode): string {
-    return jwt.sign(
-      {
-        provider,
-        mode,
-        tokenType: 'oauth_state',
-        nonce: crypto.randomBytes(8).toString('hex'),
-      },
-      config.JWT_SECRET,
-      { expiresIn: '10m' }
-    );
+    return signToken('oauth_state', {
+      provider,
+      mode,
+      nonce: crypto.randomBytes(8).toString('hex'),
+    });
   }
 
   private verifyOAuthState(provider: OAuthProvider, state: string): void {
     try {
-      const payload = jwt.verify(state, config.JWT_SECRET) as { provider?: string; tokenType?: string };
-      if (payload.tokenType !== 'oauth_state' || payload.provider !== provider) {
+      const payload = verifyToken('oauth_state', state) as { provider?: string };
+      if (payload.provider !== provider) {
         throw new Error('INVALID_OAUTH_STATE');
       }
     } catch {

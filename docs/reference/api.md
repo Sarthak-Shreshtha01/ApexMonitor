@@ -38,7 +38,7 @@ Base path: `/api/v1`. Default local base URL: `http://localhost:3000`.
 | 429 | `RATE_LIMIT_EXCEEDED` | Ingest/RUM rate limit |
 | 500 | `INTERNAL_ERROR` | Unhandled error |
 
-`requireAuth` and key middlewares currently return `{error, message}` **without** `requestId` (KI-23).
+The API/RUM key middlewares currently return `{error, message}` **without** `requestId` (KI-23). `requireAuth` accepts **access** tokens only; refresh tokens get 401.
 
 **Common headers**
 

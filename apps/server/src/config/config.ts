@@ -26,6 +26,8 @@ const ConfigSchema = z.object({
   RABBITMQ_URL: z.string().url(),
   
   JWT_SECRET: z.string().min(32),
+  // Optional dedicated key for refresh tokens; when unset a key is derived from JWT_SECRET.
+  JWT_REFRESH_SECRET: z.string().min(32).optional(),
   ARGON2_PEPPER: z.string().min(32),
   CORS_ORIGINS: z.string().transform(s => s.split(',')),
   

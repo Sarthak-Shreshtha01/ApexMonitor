@@ -4,7 +4,7 @@
 
 | Principal | Credential | Header | Verified in | Grants |
 |---|---|---|---|---|
-| Dashboard user | Access JWT (HS256, 15 min) | `Authorization: Bearer` | `shared/middleware/require-auth.ts` | User APIs; project APIs after membership check |
+| Dashboard user | Access JWT (HS256, 15 min, `tokenType: access`) | `Authorization: Bearer` | `shared/middleware/require-auth.ts` → `shared/auth/tokens.ts#verifyAccessToken` | User APIs; project APIs after membership check |
 | Dashboard user | Refresh JWT (30 days) | httpOnly cookie `refresh_token` or body | `modules/users/user.service.ts` | New token pair |
 | Backend service | Ingest API key `proj_…` | `x-api-key` | `modules/auth/middleware/auth.middleware.ts#validateApiKey` | Write to `/ingest` for the key's project |
 | Browser | RUM write key | `x-rum-key` + `Origin` | `#validateRumWriteKey` | Write to `/rum` from allowed origins |
@@ -25,7 +25,7 @@
 |---|---|
 | User passwords | argon2id |
 | API / RUM keys | argon2id(key + `ARGON2_PEPPER`) (64 MB memory cost); only a 10-char prefix stored in clear |
-| JWT signing | `JWT_SECRET` env (min 32 chars), shared by access and refresh tokens (KI-3) |
+| JWT signing | Access: `JWT_SECRET`. Refresh: `JWT_REFRESH_SECRET`, or a key derived from `JWT_SECRET` (HMAC) when unset. OAuth state: derived key. All HS256 with a `tokenType` claim checked on verify (`shared/auth/tokens.ts`) |
 | OAuth / PhonePe | env vars |
 
 ## Privacy
@@ -49,7 +49,6 @@
 
 | ID | Gap |
 |---|---|
-| KI-3 | Refresh tokens accepted as access tokens |
 | KI-4 | OAuth tokens in redirect URL |
 | KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |
 | KI-6 | Webhook SSRF |

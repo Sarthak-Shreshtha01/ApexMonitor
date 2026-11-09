@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { config } from '@config';
+import { verifyAccessToken } from '@shared/auth/tokens';
+import { errorBody } from '@shared/http/api-contract';
 
 // Extend Express Request type
 declare global {
@@ -11,20 +11,20 @@ declare global {
   }
 }
 
+/** Requires a valid **access** token. Refresh and OAuth-state tokens are rejected. */
 export const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Missing JWT Token' });
+    return res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing JWT Token'));
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.slice('Bearer '.length).trim();
 
   try {
-    const decoded = jwt.verify(token, config.JWT_SECRET) as any;
-    req.user = { id: decoded.sub, email: decoded.email };
+    req.user = verifyAccessToken(token);
     next();
-  } catch (err) {
-    return res.status(401).json({ error: 'UNAUTHORIZED', message: 'Invalid or expired token' });
+  } catch {
+    return res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Invalid or expired token'));
   }
 };

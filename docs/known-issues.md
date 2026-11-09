@@ -17,10 +17,6 @@ Each issue has an ID referenced from [`plan.md`](../plan.md). When you fix one, 
 
 ## P0
 
-### KI-3 Refresh tokens are accepted as access tokens
-`shared/middleware/require-auth.ts` and `modules/websocket/websocket.service.ts#resolveUser` verify JWTs with `JWT_SECRET` but never check `tokenType`. Refresh tokens (30-day expiry, `modules/users/user.service.ts`) are signed with the same secret, so a refresh token works as a 30-day access token.
-**Fix:** check `tokenType === 'access'`; use separate signing secrets.
-
 ### KI-6 Webhook SSRF
 `workers/alert.worker.ts#dispatchWebhook` POSTs to the user-supplied `alert_rules.notify_webhook` with no URL validation, so a user can make the server call `http://169.254.169.254/…`, `http://localhost:15672`, internal services, etc.
 **Fix:** allow-list scheme (https), resolve and block private/loopback/link-local IPs, disable redirects, add timeout.
@@ -128,7 +124,7 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 - `/auth/login` and `/users/login`, `/auth/logout` and `/users/logout` both exist.
 - Ingest-key issuance exists at both `POST /auth/keys` and `POST /keys`.
 - Member management lives at `/users/:projectId/members` instead of `/projects/:projectId/members`.
-- `require-auth.ts` and `auth.middleware.ts` return errors without the canonical envelope (`requestId` missing).
+- `auth.middleware.ts` (API/RUM key checks) returns errors without the canonical envelope (`requestId` missing).
 
 ### KI-24 `five_minute_metrics` is never written
 The table and index exist; nothing populates it. README claimed it powers recent charts.

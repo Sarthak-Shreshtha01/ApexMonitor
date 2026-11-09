@@ -1,7 +1,7 @@
 import argon2 from 'argon2';
 import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import { config } from '@config';
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@shared/auth/tokens';
 import { UserProjectRecord, UserRepository } from './user.repository';
 import { RegisterRequest, LoginRequest } from './dto/user.dto';
 
@@ -293,21 +293,20 @@ export class UserService {
   }
 
   private generateAccessToken(userId: string, email: string): string {
-    return jwt.sign({ sub: userId, email, tokenType: 'access' }, config.JWT_SECRET, { expiresIn: '15m' });
+    return signAccessToken({ id: userId, email });
   }
 
   private generateRefreshToken(userId: string, email: string): string {
-    return jwt.sign({ sub: userId, email, tokenType: 'refresh' }, config.JWT_SECRET, { expiresIn: '30d' });
+    return signRefreshToken({ id: userId, email });
   }
 
-  private verifyRefreshToken(rawToken: string): { sub: string; email: string; tokenType?: string } {
-    const payload = jwt.verify(rawToken, config.JWT_SECRET) as { sub?: string; email?: string; tokenType?: string };
-
-    if (!payload.sub || !payload.email || payload.tokenType !== 'refresh') {
+  private verifyRefreshToken(rawToken: string): { sub: string; email: string } {
+    try {
+      const user = verifyRefreshToken(rawToken);
+      return { sub: user.id, email: user.email };
+    } catch {
       throw new Error('INVALID_REFRESH_TOKEN');
     }
-
-    return { sub: payload.sub, email: payload.email, tokenType: payload.tokenType };
   }
 
   private generateProjectId(): string {

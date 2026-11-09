@@ -55,7 +55,7 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 ## Rotating `JWT_SECRET`
 
-Rotating logs every user out (access and refresh tokens share the secret). Announce, rotate, restart all API instances.
+Invalidates all access tokens (15 min) and, when `JWT_REFRESH_SECRET` is unset, all refresh tokens too, which logs every user out. Announce, rotate, restart all API instances. Set `JWT_REFRESH_SECRET` explicitly if you want to rotate access keys without forcing re-login.
 
 ## Rotating `ARGON2_PEPPER`
 

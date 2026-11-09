@@ -3,7 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { getRedis } from '@infrastructure/redis';
 import { config } from '@config';
 import { eventBus } from '@events/event-bus';
-import jwt from 'jsonwebtoken';
+import { verifyAccessToken } from '@shared/auth/tokens';
 import { UserService } from '@modules/users/user.service';
 
 export class WebSocketService {
@@ -86,12 +86,8 @@ export class WebSocketService {
     }
 
     try {
-      const decoded = jwt.verify(token, config.JWT_SECRET) as { sub?: string; email?: string };
-      if (!decoded.sub || !decoded.email) {
-        return null;
-      }
-
-      return { id: decoded.sub, email: decoded.email };
+      // Only access tokens may join live rooms; refresh/OAuth-state tokens are rejected.
+      return verifyAccessToken(token);
     } catch {
       return null;
     }

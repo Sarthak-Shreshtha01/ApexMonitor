@@ -136,7 +136,7 @@ There's no CRUD API, cooldown, resolution, or email delivery yet (KI-18), and no
 **Email/password**
 
 1. `POST /api/v1/users/register` or `POST /api/v1/auth/login`, which validates and hashes/verifies with argon2.
-2. Server issues an access JWT (15 min, `tokenType: access`) and a refresh JWT (30 days, `tokenType: refresh`), both HS256 with `JWT_SECRET`. It sets an httpOnly `refresh_token` cookie and also returns both tokens in the body.
+2. Server issues an access JWT (15 min, `tokenType: access`) and a refresh JWT (30 days, `tokenType: refresh`), signed with separate keys (see `shared/auth/tokens.ts`). Every verifier checks `tokenType`, so a refresh token is rejected by `requireAuth` and the websocket join. It sets an httpOnly `refresh_token` cookie and also returns both tokens in the body.
 3. Web stores tokens in Redux (persisted) and sends `Authorization: Bearer`.
 4. On 401 the web client calls `POST /api/v1/auth/refresh` (cookie or body `refreshToken`), queues concurrent requests, and replays them.
 
