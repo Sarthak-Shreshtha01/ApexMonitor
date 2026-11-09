@@ -13,6 +13,7 @@ sequenceDiagram
     participant PG as Postgres
     participant MQ as RabbitMQ (logs.exchange)
     SDK->>API: batch ≤500 logs, x-api-key, [x-idempotency-key]
+    API->>API: projectId := key's project (body projectId must match, else 403)
     API->>R: api_key_cache:<key>  (miss → PG prefix lookup + argon2 verify)
     API->>R: ingest:idempotency:<project>:<key> SET NX (5 min)
     API->>R: project_owner:<project>, tier:<owner> (miss → PG)
@@ -37,7 +38,7 @@ flowchart LR
     Q1 & Q2 & Q3 -. nack .-> DLQ[[*_dlq via dlq.exchange]]
 ```
 
-Known problems in this flow: KI-2 (body projectId), KI-8/9 (aggregation math, local time), KI-16 (no confirms), KI-19 (rate limit per batch).
+The project is always the one bound to the API key; a body `projectId` that differs is rejected with 403. Known problems in this flow: KI-8/9 (aggregation math, local time), KI-16 (no confirms), KI-19 (rate limit per batch).
 
 ## 2. Browser RUM ingest
 

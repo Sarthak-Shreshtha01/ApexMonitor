@@ -103,7 +103,7 @@ Key facts:
 
 | Attribute | Status |
 |---|---|
-| Tenant isolation | Enforced on dashboard reads; **not** on log ingest (KI-2) |
+| Tenant isolation | Enforced on dashboard reads and ingest (project from credential) |
 | Durability | Queues and messages durable; publisher confirms missing (KI-16) |
 | Correctness | Hourly percentiles/averages wrong when merged (KI-8) |
 | Scalability | Single process; in-process event bus; interval-based alert loop (KI-20) |

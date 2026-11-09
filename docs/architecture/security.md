@@ -17,7 +17,7 @@
 - Roles: `owner`, `developer` (in `project_members.role`).
 - Services for `keys` and `rum` reads do their own membership checks (throw `PROJECT_ACCESS_DENIED`).
 
-**Invariant to keep:** the project a request acts on must come from a verified credential. Dashboard routes satisfy this through `requireProjectAccess`. **Log ingest currently violates it** (KI-2).
+**Invariant to keep:** the project a request acts on must come from a verified credential. Dashboard routes satisfy this through `requireProjectAccess`; ingest uses the project bound to the API key and rejects a mismatching body `projectId` with 403.
 
 ## Secrets at rest
 
@@ -49,7 +49,6 @@
 
 | ID | Gap |
 |---|---|
-| KI-2 | Ingest trusts body `projectId` |
 | KI-3 | Refresh tokens accepted as access tokens |
 | KI-4 | OAuth tokens in redirect URL |
 | KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |

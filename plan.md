@@ -36,7 +36,7 @@ All of the following must be true before inviting external users:
 Goal: nothing in the current code leaks data across tenants or silently corrupts numbers. Small, surgical PRs.
 
 - [x] **Repo hygiene:** add root `.gitignore` (`node_modules`, `.env*` except `.env.example`, `dist`, `.next`, `*.tsbuildinfo`, `__pycache__`, `.venv`, `coverage`). (KI-1)
-- [ ] **Tenant isolation on ingest:** use `req.project.id` from the API key in `ingest.controller.ts`; reject body `projectId` that differs (403) or drop the field from the DTO. (KI-2)
+- [x] **Tenant isolation on ingest:** use `req.project.id` from the API key in `ingest.controller.ts`; reject body `projectId` that differs (403) or drop the field from the DTO. (KI-2)
 - [ ] **Token types:** `requireAuth` and the websocket `resolveUser` must reject tokens whose `tokenType !== 'access'`. Use separate secrets for access and refresh tokens (`JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`). (KI-3)
 - [ ] **OAuth callback:** stop putting tokens in the redirect query string. Set an httpOnly refresh cookie and redirect with a one-time code the web app exchanges. (KI-4)
 - [ ] **Key revocation:** on revoke, delete the Redis cache entry; cache by `sha256(rawKey)` instead of raw key. Same for RUM keys. (KI-5)

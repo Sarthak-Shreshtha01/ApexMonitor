@@ -105,11 +105,11 @@ Base path: `/api/v1`. Default local base URL: `http://localhost:3000`.
 
 | Method | Path | Auth | Response |
 |---|---|---|---|
-| POST | `/` | KEY | `202 {status:"queued", received, batchId}` |
+| POST | `/` | KEY | `202 {status:"queued", received, batchId}`; `403 FORBIDDEN` if body `projectId` ≠ key's project |
 
 ```jsonc
 {
-  "projectId": "proj_xxxxxxxxxxxxxxxx",   // must match the key's project (not enforced yet: KI-2)
+  "projectId": "proj_xxxxxxxxxxxxxxxx",   // optional; the key's project is always used. If sent and different → 403
   "sdkVersion": "1.0.0",                   // semver, default 1.0.0
   "logs": [                                // 1–500
     {

@@ -12,14 +12,26 @@ export class IngestController {
 
   public ingestBatch = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // Tenant identity comes only from the API key (validateApiKey), never from the body.
+      const keyProjectId = req.project?.id;
+      if (!keyProjectId) {
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing ingest key'));
+        return;
+      }
+
       // Validate request body using Zod
       const validatedData = IngestBatchDto.parse({
         ...req.body,
         idempotencyKey: this.resolveIdempotencyKey(req),
       });
-      
+
+      if (validatedData.projectId !== undefined && validatedData.projectId !== keyProjectId) {
+        res.status(403).json(errorBody(res, 'FORBIDDEN', 'API key does not belong to the requested projectId'));
+        return;
+      }
+
       // Process batch
-      const result = await this.service.processBatch(validatedData);
+      const result = await this.service.processBatch({ ...validatedData, projectId: keyProjectId });
       
       // 202 Accepted indicates async processing
       res.status(202).json(successBody(res, {

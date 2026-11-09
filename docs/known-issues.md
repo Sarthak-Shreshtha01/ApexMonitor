@@ -17,10 +17,6 @@ Each issue has an ID referenced from [`plan.md`](../plan.md). When you fix one, 
 
 ## P0
 
-### KI-2 Any API key can write telemetry into any project
-`apps/server/src/modules/ingest/ingest.controller.ts` validates `req.body` (including `projectId`) and passes it to `IngestService.processBatch`. The project resolved from the API key (`req.project.id`, set in `modules/auth/middleware/auth.middleware.ts`) is never compared. A customer with one valid key can inject data into, and exhaust the rate limit of, any other project whose ID they know or guess.
-**Fix:** derive `projectId` from `req.project.id`; reject a mismatching body value.
-
 ### KI-3 Refresh tokens are accepted as access tokens
 `shared/middleware/require-auth.ts` and `modules/websocket/websocket.service.ts#resolveUser` verify JWTs with `JWT_SECRET` but never check `tokenType`. Refresh tokens (30-day expiry, `modules/users/user.service.ts`) are signed with the same secret, so a refresh token works as a 30-day access token.
 **Fix:** check `tokenType === 'access'`; use separate signing secrets.
