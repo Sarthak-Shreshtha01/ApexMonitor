@@ -82,10 +82,6 @@ _None open._
 Keys are looked up by their first 10 characters and `findKeyByPrefix` returns only `rows[0]`. Keys from `POST /keys` are `pk_live_` + random, so the prefix has only **2 random characters** (4,096 values). A test generating 500 keys measured **37 collisions** (463 distinct prefixes). Any key whose prefix matches an older key fails verification forever. (`proj_` keys from the legacy route have 5 random chars, still collision-prone.)
 **Fix:** store a longer prefix (e.g. 16 chars after the type marker) or look up by a deterministic hash (HMAC-SHA256 of the key) and keep argon2 only for verification; handle multiple rows.
 
-### KI-35 Issued tokens are written to request logs
-`pino-http` serialises response headers, so every login, register and refresh logs the `set-cookie` (refresh token) and `x-access-token` headers. Anyone with log access can impersonate users for 30 days.
-**Fix:** configure pino-http serializers / `redact` for `res.headers["set-cookie"]`, `res.headers["x-access-token"]`, `req.headers.authorization`, `req.headers["x-api-key"]`, `req.headers["x-rum-key"]`, `req.headers.cookie`.
-
 ### KI-36 Successful payments can never upgrade the account
 `PhonePeUtils.generateCheckoutPayload` truncates `merchantUserId` to 34 characters, but user ids are `usr_` + 32 hex = 36 characters. The webhook upserts `subscriptions` for the truncated id, which violates the `subscriptions.user_id → users.id` foreign key, so the upgrade fails after the customer has paid.
 **Fix:** map the transaction id to the user server-side (store the checkout with `merchantTransactionId`) instead of round-tripping the user id.

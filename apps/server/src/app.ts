@@ -18,7 +18,7 @@ import { tracesRouter } from '@modules/traces/traces.router';
 import { rumRouter } from '@modules/rum';
 import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants/endpoints';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error-handler';
-import { logger } from '@shared/utils/logger';
+import { httpLoggerOptions } from '@shared/utils/logger';
 import { PlatformController } from '@shared/http/platform-controller';
 
 export function createApp(): Application {
@@ -29,7 +29,7 @@ export function createApp(): Application {
   app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
   app.use(compression());
   app.use(express.json({ limit: '2mb' })); // Max batch size protection
-  app.use(pinoHttp({ logger }));
+  app.use(pinoHttp(httpLoggerOptions())); // redacts tokens, keys and cookies
 
   app.use((req, res, next) => {
     const requestId = String(req.headers['x-request-id'] || crypto.randomUUID());

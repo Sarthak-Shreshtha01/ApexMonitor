@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { api, registerTenant, Tenant } from './harness';
-import { knownBug } from '../helpers/known-bug';
 
 describe('authentication (real stack)', () => {
   let t: Tenant;
@@ -77,7 +76,7 @@ describe('authentication (real stack)', () => {
     expect(rows.map((r) => r.action)).toEqual(expect.arrayContaining(['user.registered', 'auth.login', 'user.logged_in']));
   });
 
-  knownBug('KI-35', 'request logs never contain issued tokens (set-cookie / x-access-token)', async () => {
+  it('request logs never contain issued tokens (set-cookie / x-access-token) (KI-35)', async () => {
     const pino = (await import('pino')).default;
     const { logger } = await import('@shared/utils/logger');
     // Capture exactly what pino serialises to its destination.

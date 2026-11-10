@@ -62,7 +62,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `test/integration/` | Vitest integration tests against real services; `harness.ts` boots the stack |
 | `test/setup/`, `test/helpers/` | Test env, isolated-DB global setup, fakes, `knownBug()` helper |
 | `vitest.config.ts`, `vitest.integration.config.ts` | Unit / integration runner configs |
-| `src/shared/utils/` | `logger` (pino), `math.utils` (percentiles), `anomaly.utils` (z-score), `cookie.utils`, `phonepe.utils` |
+| `src/shared/utils/` | `logger` (pino; redacts credentials from request logs), `math.utils` (percentiles), `anomaly.utils` (z-score), `cookie.utils`, `phonepe.utils` |
 
 ## `apps/web`: Next.js dashboard
 

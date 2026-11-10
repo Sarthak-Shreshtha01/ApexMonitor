@@ -16,7 +16,7 @@ Order in `src/app.ts`:
 
 ```
 helmet → cors(CORS_ORIGINS, credentials) → compression → express.json({limit:'2mb'})
-→ pino-http → request-id (x-request-id in/out)
+→ pino-http (credentials redacted) → request-id (x-request-id in/out)
 → /health, /ready, /metrics/system           (PlatformController)
 → /api/v1/<module> routers                   (per-route auth middleware)
 → notFoundHandler → errorHandler

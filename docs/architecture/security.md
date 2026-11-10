@@ -41,6 +41,10 @@
 - JSON body limit 2 MB; ingest batch ≤ 500 logs; RUM batch ≤ 200 events.
 - Request ID on every response (`x-request-id`).
 
+## Logs
+
+Request logs (`shared/utils/logger.ts`) replace credentials with `[REDACTED]`: `Authorization`, `Cookie`, `x-api-key`, `x-rum-key`, `Set-Cookie`, `x-access-token`, redirect `Location`, and query parameters such as `code`, `state`, `token`, `key`. Add new credential headers to `REDACTED_LOG_PATHS`.
+
 ## Outbound webhooks
 
 Alert webhooks go to user-supplied URLs, so they are sent only through `shared/net/webhook.ts#sendWebhook`:
@@ -61,7 +65,6 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 | ID | Gap |
 |---|---|
 | KI-4 | OAuth tokens in redirect URL |
-| KI-35 | Access and refresh tokens written to request logs |
 | KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |
 | KI-7 | Payment sandbox fallbacks |
 | KI-17 | Tokens persisted in localStorage |

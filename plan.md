@@ -47,7 +47,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 - [ ] **Dead-letter queues:** bind each `*_dlq` queue to `dlq.exchange` so rejected messages are kept instead of dropped. (KI-32)
 - [ ] **Python SDK:** `rumKey` auth must default to `x-rum-key`. Remove `metrics.rps` / `metrics.endpoints` from the TS SDK or implement them on the server. (KI-11, KI-12)
 
-- [ ] **Redact tokens from request logs.** (KI-35)
+- [x] **Redact tokens from request logs.** (KI-35)
 - [ ] **PhonePe upgrades never applied** (truncated user id). (KI-36)
 
 **Exit criteria:** every P0 item in known-issues is closed; each fix converts its expected-failure test into a regular test.
