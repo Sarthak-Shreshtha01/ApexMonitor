@@ -123,7 +123,7 @@ describe('createApp route table', () => {
     expect(denied.headers['access-control-allow-origin']).toBeUndefined();
   });
 
-  knownBug('KI-39', 'POST endpoints without a body answer 4xx, not 500', async () => {
+  it('POST endpoints without a body answer 4xx, not 500 (KI-39)', async () => {
     const statuses: Record<string, number> = {};
     for (const url of ['/api/v1/auth/login', `/api/v1/users/${P}/members`, '/api/v1/billing/webhook/phonepe']) {
       statuses[url] = (await request(app).post(url).set('authorization', access)).status;
@@ -137,14 +137,32 @@ describe('createApp route table', () => {
     expect(res.body.error).not.toBe('EMAIL_IN_USE');
   });
 
-  knownBug('KI-39', 'body-parser errors keep their status (413 for > 2 MB)', async () => {
+  it('body-parser errors keep their status: 413 for > 2 MB, in the error envelope (KI-39)', async () => {
     const res = await request(app).post('/api/v1/users/login').set('content-type', 'application/json').send(`{"x":"${'a'.repeat(2.1 * 1024 * 1024)}"}`);
     expect(res.status).toBe(413);
+    expect(res.body).toMatchObject({ error: 'PAYLOAD_TOO_LARGE', requestId: expect.any(String) });
   });
 
-  knownBug('KI-39', 'malformed JSON is a 400, not a 500', async () => {
-    const res = await request(app).post('/api/v1/users/login').set('content-type', 'application/json').send('{"email":');
-    expect(res.status).toBe(400);
+  it('malformed JSON is a 400, not a 500 (KI-39)', async () => {
+    for (const url of ['/api/v1/users/login', '/api/v1/auth/login', '/api/v1/ingest']) {
+      const res = await request(app).post(url).set('content-type', 'application/json').set('x-api-key', 'k').send('{"email":');
+      expect(res.status, url).toBe(400); // parsed before any route, so even ingest never sees it
+    }
+    const res = await request(app).post('/api/v1/auth/login').set('content-type', 'application/json').send('{"email":');
+    expect(res.body).toMatchObject({ error: 'VALIDATION_ERROR', message: 'Request body is not valid JSON' });
+  });
+
+  it('an unsupported body charset is 415 (KI-39)', async () => {
+    const res = await request(app).post('/api/v1/auth/login').set('content-type', 'application/json; charset=klingon').send('{}');
+    expect(res.status).toBe(415);
+  });
+
+  it('login validates its body: missing or malformed fields are 400, never a 500 (KI-39)', async () => {
+    for (const body of [{}, { email: 'not-an-email', password: 'x' }, { email: 'a@b.co' }, { email: 'a@b.co', password: 'p'.repeat(201) }]) {
+      const res = await request(app).post('/api/v1/auth/login').send(body);
+      expect(res.status, JSON.stringify(body).slice(0, 60)).toBe(400);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    }
   });
 });
 

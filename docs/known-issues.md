@@ -72,10 +72,6 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 ### KI-38 Member roles are not validated
 `POST/PATCH /users/:projectId/members` store any `role` string (no Zod DTO). Only `owner` is recognised elsewhere, so typos silently create members with no defined permissions.
 
-### KI-39 Malformed or missing request bodies return 500
-- `errorHandler` ignores the `status` of body-parser errors: malformed JSON → 500 (should be 400), body over 2 MB → 500 (should be 413).
-- Express 5 leaves `req.body` undefined when no body is sent; `/auth/login`, member add and the billing webhook destructure it and crash with 500.
-
 ### KI-40 Web client keeps stale tokens after a failed refresh
 `apps/web/shared/api/apiClient.ts` rejects queued requests when `/auth/refresh` fails but never clears the persisted tokens or redirects to `/login`, leaving the UI in a broken signed-in state.
 

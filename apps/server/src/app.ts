@@ -30,6 +30,11 @@ export function createApp(): Application {
   app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
   app.use(compression());
   app.use(express.json({ limit: '2mb' })); // Max batch size protection
+  // Express 5 leaves req.body undefined when no body is sent; handlers and DTOs expect an object.
+  app.use((req, _res, next) => {
+    if (req.body === undefined) req.body = {};
+    next();
+  });
   app.use(pinoHttp(httpLoggerOptions())); // redacts tokens, keys and cookies
 
   app.use((req, res, next) => {

@@ -20,33 +20,32 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Soon: before real traffic (P2)
 
-1. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
-2. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-3. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-4. [ ] **Validate member roles** with a Zod enum. (KI-38)
-5. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-6. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-7. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-8. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-9. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-10. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-11. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+2. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+3. [ ] **Validate member roles** with a Zod enum. (KI-38)
+4. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+5. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+6. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+7. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+8. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+9. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+10. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-12. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-13. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-14. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-15. [ ] Split `apps/api` and `apps/worker`.
-16. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-17. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+11. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+12. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+13. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+14. [ ] Split `apps/api` and `apps/worker`.
+15. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+16. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-18. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-19. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-20. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-21. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+17. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+18. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+19. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+20. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -65,6 +64,7 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Done
 
+- [x] 2026-11-10: Malformed JSON → 400, body over 2 MB → 413, bad charset → 415; missing bodies treated as {}; login validated with Zod (KI-39)
 - [x] 2026-11-10: Alerts page in the dashboard: create rules, see ok/firing state and last value, pause/resume/delete, trigger history (KI-18 complete; email delivery stays in Phase 4b) (KI-18)
 - [x] 2026-11-10: Alerts backend: rules CRUD API, ok/firing state (notify on trigger and resolve only), evaluation over raw logs in the real window, owner-only writes (KI-18, backend)
 - [x] 2026-11-10: Billing config: no built-in sandbox credentials (billing off → 503), production boot guard, merchant/endpoint from config, redirect from `FRONTEND_URL`, bad webhook signature → 401 (KI-7, config part)

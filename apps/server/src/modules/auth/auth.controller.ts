@@ -4,6 +4,7 @@ import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
 import { errorBody, successBody } from '@shared/http/api-contract';
 import { auditLogService } from '@shared/services/audit-log.service';
 import { OAuthExchangeDto } from './dto/oauth.dto';
+import { LoginDto } from '@modules/users/dto/user.dto';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -114,7 +115,7 @@ export class AuthController {
 
   public login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const { email, password } = req.body;
+      const { email, password } = LoginDto.parse(req.body); // invalid → 400 via the error handler
       const result = await this.service.login(email, password);
       setAuthCookies(res, result.accessToken, result.refreshToken);
       void auditLogService.recordSafe({

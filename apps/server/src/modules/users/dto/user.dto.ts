@@ -10,8 +10,9 @@ export const RegisterDto = z.object({
 });
 
 export const LoginDto = z.object({
-  email: z.string().email(),
-  password: z.string(),
+  email: z.string().email().max(255),
+  // max bounds the argon2 work an unauthenticated caller can trigger
+  password: z.string().min(1).max(200),
 });
 
 export const UpdateProfileDto = z.object({

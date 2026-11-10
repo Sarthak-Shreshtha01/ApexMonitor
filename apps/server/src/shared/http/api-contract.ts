@@ -8,6 +8,7 @@ export type ApiErrorCode =
   | 'CONFLICT'
   | 'RATE_LIMIT_EXCEEDED'
   | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'PAYLOAD_TOO_LARGE'
   | 'SERVICE_UNAVAILABLE'
   | 'INTERNAL_ERROR'
   | string;

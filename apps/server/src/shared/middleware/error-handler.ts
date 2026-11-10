@@ -32,6 +32,14 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  // Errors from express.json() (body-parser) carry their own HTTP status: malformed JSON is
+  // a client error (400), an oversized body 413, an unsupported charset 415.
+  const parserError = bodyParserError(err);
+  if (parserError) {
+    res.status(parserError.status).json(errorBody(res, parserError.code, parserError.message));
+    return;
+  }
+
   // Message broker down or pushing back: the batch was NOT accepted, so the client should retry.
   if (err instanceof Error && err.name === 'BrokerUnavailableError') {
     res.setHeader('Retry-After', '5');
@@ -53,4 +61,18 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   });
 
   res.status(500).json(errorBody(res, 'INTERNAL_ERROR', 'Unexpected server error'));
+}
+
+function bodyParserError(err: unknown): { status: number; code: string; message: string } | null {
+  if (!(err instanceof Error)) return null;
+  const { type, status } = err as Error & { type?: string; status?: number };
+  if (typeof type !== 'string') return null;
+  if (!['entity.', 'charset.', 'encoding.'].some((prefix) => type.startsWith(prefix))) return null;
+  if (type === 'entity.parse.failed') return { status: 400, code: 'VALIDATION_ERROR', message: 'Request body is not valid JSON' };
+  if (type === 'entity.too.large') return { status: 413, code: 'PAYLOAD_TOO_LARGE', message: 'Request body is too large (limit 2 MB)' };
+  if (type === 'charset.unsupported' || type === 'encoding.unsupported') {
+    return { status: 415, code: 'UNSUPPORTED_MEDIA_TYPE', message: 'Unsupported request body encoding' };
+  }
+  const code = typeof status === 'number' && status >= 400 && status < 500 ? status : 400;
+  return { status: code, code: 'VALIDATION_ERROR', message: 'Request body could not be read' };
 }

@@ -29,12 +29,13 @@ Base path: `/api/v1`. Default local base URL: `http://localhost:3000`.
 
 | HTTP | `error` | When |
 |---|---|---|
-| 400 | `VALIDATION_ERROR` | Zod validation failed (`details` = flattened issues) |
+| 400 | `VALIDATION_ERROR` | Zod validation failed (`details` = flattened issues), or the body is not valid JSON |
 | 401 | `UNAUTHORIZED` | Missing/invalid JWT, key, or refresh token; bad credentials |
 | 403 | `FORBIDDEN` | Not a project member / not owner / RUM origin not allowed |
 | 404 | `NOT_FOUND` | Unknown route, user, key, trace |
 | 409 | `CONFLICT` | Email already in use |
-| 415 | `UNSUPPORTED_MEDIA_TYPE` | RUM ingest without `application/json` |
+| 413 | `PAYLOAD_TOO_LARGE` | JSON body over 2 MB |
+| 415 | `UNSUPPORTED_MEDIA_TYPE` | RUM ingest without `application/json`; unsupported body charset |
 | 429 | `RATE_LIMIT_EXCEEDED` | Ingest/RUM rate limit |
 | 500 | `INTERNAL_ERROR` | Unhandled error |
 
