@@ -20,6 +20,9 @@ jobs:
       - run: npm run validate:migrations
       - run: npm run typecheck --workspace=apps/server
       - run: npm run build --workspace=apps/server
+      - name: Server bundle has no unresolved path aliases (KI-13)
+        run: |
+          if grep -nE 'require\("@(modules|shared|infrastructure|workers|events|config)' apps/server/dist/bootstrap.js; then exit 1; fi
       - run: npm run build --workspace=apps/web
       - run: npm run build:sdks
       - run: npm run conformance:sdks

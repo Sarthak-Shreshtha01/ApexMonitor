@@ -25,6 +25,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `Dockerfile` | Multi-stage image (not monorepo-aware yet, KI-22) |
 | `package.json` | `dev` (tsx watch), `build` (tsc) |
 | `tsconfig.json` | Strict TS, path aliases |
+| `build.mjs` | Production build: esbuild bundle → `dist/bootstrap.js` |
 | `src/bootstrap.ts` | Process entry: connect infra, start workers, HTTP + Socket.IO |
 | `src/app.ts` | Express app factory, global middleware, router mounting |
 | `src/config/config.ts` | Zod env schema; loads `<root>/.env` |

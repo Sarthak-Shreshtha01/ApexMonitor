@@ -78,7 +78,8 @@ curl -X POST localhost:3000/api/v1/ingest \
 
 ```bash
 npm run validate:migrations
-npm run build --workspace=apps/server
+npm run build --workspace=apps/server   # type check + bundle to apps/server/dist/bootstrap.js
+npm start --workspace=apps/server       # run the production bundle (same env vars as dev)
 npm run build --workspace=apps/web
 npm run build:sdks
 npm run conformance:sdks
@@ -95,5 +96,4 @@ There is no `npm test` yet; see [testing-strategy.md](testing-strategy.md).
 | CORS errors in browser | Add the web origin to `CORS_ORIGINS` |
 | `relation "users" does not exist` | Migrations not applied (step 3) |
 | Ingest returns 202 but no data | Check RabbitMQ UI for consumers on `*_queue`; server logs for worker errors |
-| `node dist/bootstrap.js` fails with module not found | Known (KI-13); use `npm run dev:server` |
 | Browser SDK gets 400 | Known (KI-10) |

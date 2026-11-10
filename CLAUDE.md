@@ -29,7 +29,8 @@ docker compose up -d                       # Mongo :27018, Postgres :9999, Redis
 npm install
 npm run dev:server                         # API + all workers + Socket.IO (tsx watch), default PORT 3000
 npm run dev:web                            # Next.js dashboard
-npm run build --workspace=apps/server      # tsc → apps/server/dist (see gotcha: path aliases)
+npm run build --workspace=apps/server      # tsc --noEmit + esbuild bundle → apps/server/dist/bootstrap.js
+npm start --workspace=apps/server          # run the built server (node dist/bootstrap.js)
 npm run build --workspace=apps/web
 npm run build:sdks                         # @apexmonitor/sdk + @apexmonitor/browser-sdk
 npm run conformance:sdks                   # SDK wire-contract checks (mocked transport)
@@ -84,7 +85,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 ## Gotchas
 
 - `.env` lives at the **repo root** (not `apps/server/.env`) and is optional: env vars win, and it's ignored when `NODE_ENV=test`. Template: `.env.example`.
-- `tsc` does not rewrite path aliases, so `node dist/bootstrap.js` currently fails; `tsx` in dev works. Fix tracked in plan.md Phase 1.
+- The server build is an esbuild bundle (`apps/server/build.mjs`): our code is bundled with aliases resolved, `node_modules` stays external. Don't switch back to plain `tsc` output; it leaves `@modules/...` imports unresolved.
 - Workers run inside the API process; the event bus is in-process only.
 - Legacy name "PulseApi"/"pulse" still appears in infra credentials and old text; the product name is ApexMonitor.
 - `README.md`, `docs/`, and this file must stay accurate: update them in the same change as the behavior they describe.

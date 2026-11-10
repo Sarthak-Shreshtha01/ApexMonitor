@@ -2,7 +2,7 @@
 
 ## Server (`apps/server`)
 
-Read from the process environment and validated with Zod by `apps/server/src/config/config.ts`; the process exits with a list of problems if a value is missing or invalid. For local development, a **`<repo-root>/.env`** file is loaded when present (it never overrides variables already set, and is ignored when `NODE_ENV=test`). Copy `.env.example` to `.env` to start.
+Read from the process environment and validated with Zod by `apps/server/src/config/config.ts`; the process exits with a list of problems if a value is missing or invalid. For local development, a **`<repo-root>/.env`** file is loaded when present (it never overrides variables already set, and is ignored when `NODE_ENV=test`). Copy `.env.example` to `.env` to start. The file is found by walking up from the server code to the directory containing `package-lock.json`, so it works from `src/` and from the built `dist/`; set `ENV_FILE=/path/to/file` to load a different file.
 
 | Variable | Required | Default | Description |
 |---|---|---|---|

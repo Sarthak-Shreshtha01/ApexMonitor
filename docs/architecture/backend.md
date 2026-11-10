@@ -123,7 +123,7 @@ In-process only: this breaks as soon as workers run in a different process (KI-2
 
 ## Path aliases
 
-Defined in `apps/server/tsconfig.json`: `@modules/*`, `@shared/*`, `@infrastructure/*`, `@workers/*`, `@events/*`, `@config`. Resolved by `tsx` in dev only (see KI-13).
+Defined in `apps/server/tsconfig.json`: `@modules/*`, `@shared/*`, `@infrastructure/*`, `@workers/*`, `@events/*`, `@config`. Resolved by `tsx` in development and by esbuild in the production build (`apps/server/build.mjs` bundles `src/bootstrap.ts` into `dist/bootstrap.js`, leaving `node_modules` external).
 
 ## Testing seams (current limits)
 

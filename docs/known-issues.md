@@ -47,10 +47,6 @@ _None open._
 `packages/browser-sdk/src/index.ts` sends events shaped `{ type, timestamp, payload }` with `type ∈ page_view|error|custom|web_vitals`, and sends `projectId` in the body. The server (`modules/rum/dto/rum-ingest.dto.ts`) requires top-level `path`, accepts `type ∈ page_view|web_vital|heartbeat`, and reads metrics from `ttfbMs/fcpMs/lcpMs`. Real browser SDK batches fail validation (400). `scripts/sdk-conformance.mjs` only checks transport shape against a mock, so it doesn't catch this.
 **Fix:** align SDK to server contract (or extend server for `error`/`custom`); validate SDK output against the server Zod schema in conformance tests.
 
-### KI-13 Production build does not run
-`apps/server` builds with plain `tsc`, which leaves `@modules/...`, `@shared/...` imports untouched in `dist/`. `node dist/bootstrap.js` (Dockerfile `CMD`) fails with "Cannot find module". Dev works only because `tsx` resolves tsconfig paths.
-**Fix:** `tsup`/`esbuild` bundle or `tsc-alias` post-step.
-
 ### KI-18 Alerting is not usable
 - No HTTP routes for alert rules. `modules/alerts/` only has a repository; the web `AlertRuleBuilder` has nothing to call.
 - `alert_rules.notify_email` is stored but no email is ever sent.

@@ -58,7 +58,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 
 Goal: the code can be built and run as containers anywhere, configured only through the environment.
 
-- [ ] **Production build:** compile `apps/server` with `tsup` (or `tsc` + `tsc-alias`) so path aliases resolve in `dist/`. Verify `node dist/bootstrap.js` boots. (KI-13)
+- [x] **Production build:** compile `apps/server` with `tsup` (or `tsc` + `tsc-alias`) so path aliases resolve in `dist/`. Verify `node dist/bootstrap.js` boots. (KI-13)
 - [ ] **Config:** read config from `process.env` only; `.env` loading becomes optional and dev-only. Move `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` into the Zod schema. Add `.env.example` coverage check in CI. (KI-14)
 - [ ] **Dockerfiles:** one per app under `infra/docker/`, built from repo root using workspace-aware install (`npm ci --workspace=apps/server --include-workspace-root`). Non-root user, healthcheck, `NODE_ENV=production`.
 - [ ] **Compose files:** `infra/compose/docker-compose.dev.yml` (infra only, current file), `docker-compose.prod.yml` (infra + api + worker + web, with healthchecks and `depends_on: condition: service_healthy`). Remove hardcoded dev passwords from prod file.

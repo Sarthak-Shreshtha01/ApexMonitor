@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { eventBus } from '@events/event-bus';
 
@@ -46,6 +48,33 @@ describe('config loading', () => {
     ['non-numeric PORT', { PORT: 'abc' }],
   ])('exits 1 for %s', (_l, override) => {
     expect(loadConfig({ ...validEnv, ...override }).status).toBe(1);
+  });
+
+  it('loads the file named by ENV_FILE outside tests; variables already set still win', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'apex-env-'));
+    const file = path.join(dir, 'custom.env');
+    const { NODE_ENV: _n, ...rest } = validEnv;
+    fs.writeFileSync(file, Object.entries({ ...rest, PORT: '4321', LOG_LEVEL: 'warn' }).map(([k, v]) => `${k}=${v}`).join('\n'));
+    try {
+      const r = loadConfig({ NODE_ENV: 'development', ENV_FILE: file, LOG_LEVEL: 'error' });
+      expect(r.status).toBe(0);
+      const config = JSON.parse(r.stdout.trim().split('\n').pop()!);
+      expect(config).toMatchObject({ PORT: 4321, LOG_LEVEL: 'error', MONGO_URI: validEnv.MONGO_URI });
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('never reads ENV_FILE when NODE_ENV=test', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'apex-env-'));
+    const file = path.join(dir, 'custom.env');
+    fs.writeFileSync(file, 'PORT=4321');
+    try {
+      const r = loadConfig({ ...validEnv, ENV_FILE: file });
+      expect(JSON.parse(r.stdout.trim().split('\n').pop()!).PORT).toBe(3000);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

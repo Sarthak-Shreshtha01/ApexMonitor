@@ -3,13 +3,27 @@ import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 
-// 1. Resolve the optional .env file at the repository root
-const envPath = path.resolve(__dirname, '../../../../.env');
+// 1. Resolve the optional .env file at the repository root: the nearest ancestor of this
+//    file that holds package-lock.json. Works from src/ (tsx), from the bundled dist/, and
+//    finds nothing in a container image without the repo (where env vars are used instead).
+//    ENV_FILE overrides the location.
+function findRepoEnvFile(): string | null {
+  if (process.env.ENV_FILE) return path.resolve(process.env.ENV_FILE);
+  let dir = __dirname;
+  for (let depth = 0; depth < 8; depth++) {
+    if (fs.existsSync(path.join(dir, 'package-lock.json'))) return path.join(dir, '.env');
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return null;
+}
+const envPath = findRepoEnvFile();
 
 // 2. Load it when present (local development). Containers, CI and tests provide
 //    variables through the environment instead; values already set are never overridden.
 //    Tests never read .env so they are deterministic regardless of local files.
-if (process.env.NODE_ENV !== 'test' && fs.existsSync(envPath)) {
+if (process.env.NODE_ENV !== 'test' && envPath && fs.existsSync(envPath)) {
   dotenv.config({ path: envPath, quiet: true });
 }
 
