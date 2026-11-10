@@ -38,8 +38,9 @@ Base path: `/api/v1`. Default local base URL: `http://localhost:3000`.
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | RUM ingest without `application/json`; unsupported body charset |
 | 429 | `RATE_LIMIT_EXCEEDED` | Ingest/RUM events-per-minute limit; headers `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` |
 | 500 | `INTERNAL_ERROR` | Unhandled error |
+| 503 | `SERVICE_UNAVAILABLE` | Temporary: the batch couldn't be queued, an API/RUM key couldn't be checked (database or Redis unreachable), or billing isn't configured. Ingest responses carry `Retry-After`; retry with the same `x-idempotency-key` |
 
-The API/RUM key middlewares currently return `{error, message}` **without** `requestId` (KI-23). `requireAuth` accepts **access** tokens only; refresh tokens get 401.
+API/RUM key errors use the same envelope. A wrong key is `401` (don't retry); a key check that couldn't run is `503` (retry). `requireAuth` accepts **access** tokens only; refresh tokens get 401.
 
 **Common headers**
 

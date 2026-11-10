@@ -28,7 +28,7 @@ _All done (see Done)._
 2. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
 3. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
 4. [ ] Split `apps/api` and `apps/worker`.
-5. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+5. [ ] Merge auth + users flows (two login/logout implementations today); single key-issuance route (`POST /auth/keys` returns `{key}`, `POST /keys` returns `{keyId, plaintextKey, …}`: pick one shape and deprecate the other); members under `/projects/:id/members`. Changes the SDK contract. **Needs your decision on the canonical routes and deprecation policy.** (KI-23)
 
 ## Later: cleanup (P3)
 
@@ -51,6 +51,7 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: API/RUM key errors use the standard envelope with `requestId`; a key check that fails because the database or Redis is down is now a retryable `503` + `Retry-After` instead of a `401` that made SDKs drop the batch (KI-23, part)
 - [x] 2026-11-11: Web uses one client-state library: the auth session moved from Redux to a Zustand store (still memory-only); Redux packages and the empty `turbo.json` removed (KI-31)
 - [x] 2026-11-11: Anomaly detection uses time-based baselines: per-minute latency histograms per method + endpoint (by request timestamp), p99 vs a 30-minute baseline, noise floors, 5-minute cooldown per endpoint; a flat baseline no longer hides spikes (KI-27)
 - [x] 2026-11-11: Dropped the unused `five_minute_metrics` table (migration 0011); rollup tiers are planned with ClickHouse (KI-24)

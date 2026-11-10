@@ -37,7 +37,6 @@ _None open._
 - `/auth/login` and `/users/login`, `/auth/logout` and `/users/logout` both exist.
 - Ingest-key issuance exists at both `POST /auth/keys` and `POST /keys`.
 - Member management lives at `/users/:projectId/members` instead of `/projects/:projectId/members`.
-- `auth.middleware.ts` (API/RUM key checks) returns errors without the canonical envelope (`requestId` missing).
 
 ### KI-25 "Traces" are single request logs
 `modules/traces/traces.repository.ts` reads the Mongo `api_logs` collection; `traceId` is the server-generated `reqId`. There are no spans, parent/child relationships, or cross-service propagation.

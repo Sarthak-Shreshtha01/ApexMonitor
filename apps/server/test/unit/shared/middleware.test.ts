@@ -175,6 +175,31 @@ describe('API key middleware', () => {
     validateRumWriteKey.mockRejectedValueOnce(new Error('UNAUTHORIZED'));
     expect((await request(await app).post('/rum').set('x-rum-key', 'rum_x')).status).toBe(401);
   });
+
+  it('key errors use the canonical envelope with a requestId (KI-23)', async () => {
+    const missing = await request(await app).post('/ingest');
+    expect(missing.body).toEqual({ error: 'UNAUTHORIZED', message: 'Missing X-API-Key header', requestId: 'test-request-id' });
+    validateApiKey.mockRejectedValueOnce(new Error('UNAUTHORIZED'));
+    const bad = await request(await app).post('/ingest').set('x-api-key', 'bad');
+    expect(bad.body).toEqual({ error: 'UNAUTHORIZED', message: 'Invalid API Key', requestId: 'test-request-id' });
+    validateRumWriteKey.mockRejectedValueOnce(new Error('ORIGIN_NOT_ALLOWED'));
+    const origin = await request(await app).post('/rum').set('x-rum-key', 'rum_x');
+    expect(origin.body).toEqual({ error: 'FORBIDDEN', message: 'Origin not allowed for this RUM key', requestId: 'test-request-id' });
+  });
+
+  it('a key check that fails for another reason (database or Redis down) is a retryable 503, not a 401', async () => {
+    // SDKs treat 401 as permanent and drop the batch; 503 + Retry-After makes them retry.
+    validateApiKey.mockRejectedValueOnce(new Error('connect ECONNREFUSED 127.0.0.1:5432'));
+    const api = await request(await app).post('/ingest').set('x-api-key', 'pk_live_x');
+    expect(api.status).toBe(503);
+    expect(api.headers['retry-after']).toBe('5');
+    expect(api.body).toMatchObject({ error: 'SERVICE_UNAVAILABLE', requestId: 'test-request-id' });
+
+    validateRumWriteKey.mockRejectedValueOnce(new Error('Connection is closed.'));
+    const rum = await request(await app).post('/rum').set('x-rum-key', 'rum_x');
+    expect(rum.status).toBe(503);
+    expect(rum.headers['retry-after']).toBe('5');
+  });
 });
 
 describe('error handling', () => {
