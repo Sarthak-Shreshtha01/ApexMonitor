@@ -7,6 +7,7 @@ import { UserService } from '@modules/users/user.service';
 import { RumIngestBatch, RumEnrichedEvent } from './dto/rum-ingest.dto';
 import { RumQuery } from './dto/rum-query.dto';
 import { RumRepository } from './rum.repository';
+import { normalizeRoute } from '@shared/utils/route.utils';
 
 const RUM_INGEST_EXCHANGE = 'logs.exchange';
 const RUM_INGEST_KEY = 'rum.ingest';
@@ -167,16 +168,7 @@ export class RumService {
   }
 
   private normalizePath(path: string): string {
-    if (!path) return '/';
-
-    try {
-      const parsed = new URL(path, 'https://rum.local');
-      return parsed.pathname
-        .replace(/\/{2,}/g, '/')
-        .replace(/\/$/, '') || '/';
-    } catch {
-      return path.split('?')[0].split('#')[0].trim() || '/';
-    }
+    return normalizeRoute(path);
   }
 
   private normalizeReferrer(referrer: string): string {

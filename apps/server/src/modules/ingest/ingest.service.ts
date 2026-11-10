@@ -4,6 +4,7 @@ import { getPg } from '@infrastructure/db/postgres'; // <-- NEW IMPORT
 import { publish } from '@infrastructure/rabbitmq';
 import { config } from '@config';
 import { IngestBatch } from './dto/ingest-batch.dto';
+import { normalizeRoute } from '@shared/utils/route.utils';
 
 export class IngestService {
   /**
@@ -153,9 +154,7 @@ export class IngestService {
    * Converts dynamic URL paths into static templates (e.g., /users/123 -> /users/:id)
    */
   private normalizeEndpoint(path: string): string {
-    return path
-      .replace(/\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/g, '/:id') // UUIDs
-      .replace(/\/\d+/g, '/:id'); // Numbers
+    return normalizeRoute(path);
   }
 
   /**

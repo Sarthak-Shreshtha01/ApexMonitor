@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { api, createIngestKey, logEntry, mongoCount, pgQuery, redisClient, registerTenant, Tenant, waitFor } from './harness';
 
-// Path segments must not start with a digit, or the server's endpoint normaliser rewrites them (KI-37).
+// Unique path segments start with a letter so they are never mistaken for ids.
 const uniq = () => `x${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`;
 
 describe('ingest → workers → query APIs (real stack)', () => {

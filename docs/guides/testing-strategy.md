@@ -67,7 +67,7 @@ While the bug exists the suite stays green. **When you fix a bug, its test start
 - Prefer real dependencies (integration suite) for SQL, Mongo queries, Redis behaviour and AMQP.
 - Integration tests create their own tenants with `registerTenant()`; never depend on other files' data or order.
 - Use `waitFor()` for anything a worker produces; don't sleep for fixed times.
-- Path segments in test endpoints must not start with a digit, or the server's endpoint normaliser rewrites them (KI-37).
+- Unique path segments in test endpoints should start with a letter; whole numeric/UUID/hex segments become `:id`.
 
 ## CI
 

@@ -145,7 +145,7 @@ describe('IngestService.processBatch', () => {
     });
     const [first, second] = channel.published[0].body as any[];
     expect(first.endpoint).toBe('/users/:id/orders/:id');
-    expect(second.endpoint).toBe('/v1/items/:id?x=1');
+    expect(second.endpoint).toBe('/v1/items/:id'); // query string dropped (KI-37)
     const day = new Date().toISOString().split('T')[0];
     expect(first.ip).toBe(crypto.createHash('sha256').update(`1.2.3.4:${PROJECT_A}:${day}`).digest('hex'));
     expect(first.ip).not.toContain('1.2.3.4');
@@ -154,12 +154,12 @@ describe('IngestService.processBatch', () => {
     expect(first.reqId).not.toBe(second.reqId);
   });
 
-  knownBug('KI-37', 'only whole numeric segments are replaced (/2fa/setup is not an id)', async () => {
+  it('only whole numeric segments are replaced, /2fa/setup is not an id (KI-37)', async () => {
     await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry({ endpoint: '/auth/2fa/setup' })] as never });
     expect((channel.published[0].body as any[])[0].endpoint).toBe('/auth/2fa/setup');
   });
 
-  knownBug('KI-37', 'query strings are stripped so they do not explode endpoint cardinality', async () => {
+  it('query strings are stripped so they do not explode endpoint cardinality (KI-37)', async () => {
     await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry({ endpoint: '/search?q=shoes' })] as never });
     expect((channel.published[0].body as any[])[0].endpoint).toBe('/search');
   });
@@ -223,5 +223,24 @@ describe('IngestService.processBatch', () => {
     await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', idempotencyKey: '   ', logs: [logEntry()] as never });
     await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', idempotencyKey: '   ', logs: [logEntry()] as never });
     expect(channel.published).toHaveLength(2);
+  });
+});
+
+describe('normalizeRoute (KI-37)', async () => {
+  const { normalizeRoute } = await import('@shared/utils/route.utils');
+  it.each([
+    ['/orders/1042', '/orders/:id'],
+    ['/auth/2fa/setup', '/auth/2fa/setup'],
+    ['/v2/items', '/v2/items'],
+    ['/search?q=shoes#top', '/search'],
+    ['/users/9f8e7d6c-1a2b-4c3d-8e9f-0123456789ab/', '/users/:id'],
+    ['/docs/507f1f77bcf86cd799439011', '/docs/:id'],
+    ['/t/01ARZ3NDEKTSV4RRFFQ69G5FAV', '/t/:id'],
+    ['/files/3f2a9c1b8e7d6a5f4e3d', '/files/:id'],
+    ['//a///b//', '/a/b'],
+    ['https://shop.example/cart/7?x=1', '/cart/:id'],
+    ['', '/'],
+  ])('%s → %s', (input, expected) => {
+    expect(normalizeRoute(input)).toBe(expected);
   });
 });
