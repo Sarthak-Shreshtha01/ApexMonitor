@@ -70,7 +70,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 - Validate every input with Zod in `dto/`. Respond with `successBody(res, data)` / `errorBody(res, code, msg)` from `shared/http/api-contract.ts`. Throw known error strings (see `shared/middleware/error-handler.ts`) rather than writing ad-hoc status codes.
 - Use path aliases: `@modules/*`, `@shared/*`, `@infrastructure/*`, `@workers/*`, `@events/*`, `@config`.
 - SQL: parameterized queries only (`$1`, `$2`). Schema changes go in a new `scripts/migrate-vN.sql` and must also be reflected in `scripts/init-postgres.sql` and `scripts/validate-migrations.mjs`.
-- Outbound HTTP to user-supplied URLs (webhooks) must be SSRF-guarded.
+- Outbound HTTP to user-supplied URLs (webhooks) must go through `shared/net/webhook.ts#sendWebhook` (SSRF guard).
 - Time buckets must be computed in UTC.
 - When the wire contract changes, update all three SDKs, `scripts/sdk-conformance.mjs`, and `docs/reference/api.md` in the same change.
 

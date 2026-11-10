@@ -19,9 +19,7 @@ Each issue has an ID referenced from [`plan.md`](../plan.md). When you fix one, 
 
 ## P0
 
-### KI-6 Webhook SSRF
-`workers/alert.worker.ts#dispatchWebhook` POSTs to the user-supplied `alert_rules.notify_webhook` with no URL validation, so a user can make the server call `http://169.254.169.254/…`, `http://localhost:15672`, internal services, etc.
-**Fix:** allow-list scheme (https), resolve and block private/loopback/link-local IPs, disable redirects, add timeout.
+_None open._
 
 ---
 

@@ -55,6 +55,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `src/shared/http/api-contract.ts` | `successBody` / `errorBody` envelope helpers |
 | `src/shared/http/platform-controller.ts` | `/health`, `/ready`, `/metrics/system` |
 | `src/shared/middleware/` | `require-auth`, `require-project-access`, `async-handler`, `error-handler` |
+| `src/shared/net/webhook.ts` | SSRF-guarded outbound webhook sender |
 | `src/shared/services/audit-log.service.ts` | Writes `audit_logs` |
 | `src/shared/services/platform-health.service.ts` | Dependency + queue health |
 | `test/unit/` | Vitest unit tests (in-memory fakes, no network) |

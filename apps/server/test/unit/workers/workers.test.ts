@@ -18,6 +18,8 @@ vi.mock('@modules/insights/insights.repository', () => ({ InsightsRepository: cl
 
 const alertsRepo = { getActiveRules: vi.fn(), getRecentMetrics: vi.fn(), logAlertEvent: vi.fn() };
 vi.mock('@modules/alerts/alerts.repository', () => ({ AlertsRepository: class { constructor() { return alertsRepo; } } }));
+const sendWebhook = vi.fn();
+vi.mock('@shared/net/webhook', () => ({ sendWebhook: (...a: unknown[]) => sendWebhook(...a) }));
 
 const { RawLogWorker } = await import('@workers/raw-log.worker');
 const { AggregationWorker } = await import('@workers/aggregation.worker');
@@ -206,15 +208,13 @@ describe('AlertWorker', () => {
     id: 1, project_id: PROJECT_A, name: 'r', condition_type: 'error_rate_high', endpoint_filter: null, threshold: 5, window_minutes: 5, notify_webhook: null, ...o,
   });
   const worker = new AlertWorker() as unknown as { evaluateRules(): Promise<void>; start(): void; interval: NodeJS.Timeout | null };
-  let fetchMock: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     Object.values(alertsRepo).forEach((f) => f.mockReset());
-    fetchMock = vi.fn(async () => new Response('ok'));
-    vi.stubGlobal('fetch', fetchMock);
+    sendWebhook.mockReset();
+    sendWebhook.mockResolvedValue(200);
   });
   afterEach(() => {
-    vi.unstubAllGlobals();
     if (worker.interval) clearInterval(worker.interval);
   });
 
@@ -227,7 +227,7 @@ describe('AlertWorker', () => {
     expect(alertsRepo.getRecentMetrics).toHaveBeenCalledWith(PROJECT_A, null, 5);
     expect(alertsRepo.logAlertEvent).toHaveBeenCalledWith(1, PROJECT_A, expect.stringContaining('6.00%'));
     expect(emitted[0]).toMatchObject({ alertRuleId: 1, projectId: PROJECT_A, severity: 'critical' });
-    expect(fetchMock).toHaveBeenCalledWith('https://hooks.example/x', expect.objectContaining({ method: 'POST' }));
+    expect(sendWebhook).toHaveBeenCalledWith('https://hooks.example/x', { text: expect.stringContaining('6.00%'), source: 'ApexMonitor' });
   });
 
   it('does not fire at or below threshold, or with zero traffic', async () => {
@@ -251,15 +251,20 @@ describe('AlertWorker', () => {
     await expect(worker.evaluateRules()).resolves.toBeUndefined();
     alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x' })]);
     alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
-    fetchMock.mockRejectedValueOnce(new Error('ECONNREFUSED'));
+    sendWebhook.mockRejectedValueOnce(new Error('ECONNREFUSED'));
     await expect(worker.evaluateRules()).resolves.toBeUndefined();
   });
 
-  knownBug('KI-6', 'webhooks to private/loopback/metadata addresses are refused (SSRF)', async () => {
+  it('sends webhooks only through the SSRF-guarded sender (KI-6)', async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
     alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'http://169.254.169.254/latest/meta-data' })]);
     alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
+    sendWebhook.mockRejectedValueOnce(new Error('Webhook URL must use https'));
     await worker.evaluateRules();
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(sendWebhook).toHaveBeenCalledWith('http://169.254.169.254/latest/meta-data', expect.anything());
+    expect(fetchSpy).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
   });
 
   knownBug('KI-18', 'a rule that stays breached does not re-notify every minute (cooldown)', async () => {
@@ -267,6 +272,6 @@ describe('AlertWorker', () => {
     alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
     await worker.evaluateRules();
     await worker.evaluateRules();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(sendWebhook).toHaveBeenCalledTimes(1);
   });
 });

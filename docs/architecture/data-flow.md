@@ -129,7 +129,7 @@ sequenceDiagram
     end
 ```
 
-There's no CRUD API, cooldown, resolution, or email delivery yet (KI-18), and no SSRF guard (KI-6).
+The webhook is sent through the SSRF guard in `shared/net/webhook.ts` (https only, public addresses only, no redirects, 5 s timeout). There's no CRUD API, cooldown, resolution, or email delivery yet (KI-18).
 
 ## 6. Authentication
 

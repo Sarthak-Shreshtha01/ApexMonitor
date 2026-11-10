@@ -1,5 +1,6 @@
 import { AlertsRepository, AlertRule } from '@modules/alerts/alerts.repository';
 import { eventBus } from '@events/event-bus';
+import { sendWebhook } from '@shared/net/webhook';
 
 export class AlertWorker {
   private repo = new AlertsRepository();
@@ -67,19 +68,12 @@ export class AlertWorker {
       severity: 'critical'
     });
 
-    // 3. Dispatch Webhook (Fire & Forget)
+    // 3. Dispatch webhook (fire and forget). sendWebhook refuses non-https URLs and
+    //    private/internal addresses, and never follows redirects.
     if (rule.notify_webhook) {
-      this.dispatchWebhook(rule.notify_webhook, message).catch(err => 
-        console.error(`Failed to send webhook to ${rule.notify_webhook}`, err)
+      sendWebhook(rule.notify_webhook, { text: message, source: 'ApexMonitor' }).catch((err: Error) =>
+        console.error(`[AlertWorker] Webhook for rule ${rule.id} not sent: ${err.message}`)
       );
     }
-  }
-
-  private async dispatchWebhook(url: string, message: string) {
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: message, source: 'ApexMonitor' })
-    });
   }
 }

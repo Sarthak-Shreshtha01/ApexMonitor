@@ -41,6 +41,17 @@
 - JSON body limit 2 MB; ingest batch ≤ 500 logs; RUM batch ≤ 200 events.
 - Request ID on every response (`x-request-id`).
 
+## Outbound webhooks
+
+Alert webhooks go to user-supplied URLs, so they are sent only through `shared/net/webhook.ts#sendWebhook`:
+
+- `https:` only, no credentials in the URL
+- the target must be a public address: loopback, private, link-local (cloud metadata), CGNAT, multicast, reserved, NAT64/6to4 and IPv4-mapped forms of those are refused
+- literal IPs are checked before connecting; hostnames are checked inside the socket's DNS lookup, so the address that was checked is the one connected to (no DNS-rebinding gap)
+- redirects are not followed; 5 s timeout for the whole request
+
+Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same guards).
+
 ## Audit
 
 `audit_logs` records sign-in/up, key create/revoke, project create, member changes, profile updates (`shared/services/audit-log.service.ts`). There's no UI or export yet.
@@ -52,7 +63,6 @@
 | KI-4 | OAuth tokens in redirect URL |
 | KI-35 | Access and refresh tokens written to request logs |
 | KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |
-| KI-6 | Webhook SSRF |
 | KI-7 | Payment sandbox fallbacks |
 | KI-17 | Tokens persisted in localStorage |
 | KI-30 | No server-side route protection in web |
