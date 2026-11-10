@@ -41,11 +41,14 @@ export function ApiKeysSection() {
   const createProjectMutation = useMutation({
     mutationFn: (name: string) => projectsService.create(name),
     onSuccess: async () => {
+      // staleTime 0: the cached list (fresh for 30 s by default) doesn't have the new project yet.
       const projects = await queryClient.fetchQuery({
         queryKey: ['projects', 'mine', 'keys-page'],
         queryFn: projectsService.listMine,
+        staleTime: 0,
       });
       setProjectsInStore(projects);
+      await queryClient.invalidateQueries({ queryKey: ['projects'], exact: true });
       await queryClient.invalidateQueries({ queryKey: ['keys', 'stats'] });
       setProjectDialogOpen(false);
       setProjectNameInput('');
@@ -211,6 +214,7 @@ export function ApiKeysSection() {
                           <button
                             onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
                             disabled={revokeKeyMutation.isPending}
+                            aria-label={`Revoke key ${key.label}`}
                             className="text-secondary hover:text-error transition-colors shrink-0"
                             type="button"
                           >
@@ -229,6 +233,7 @@ export function ApiKeysSection() {
                               className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors shrink-0"
                               type="button"
                               title={canReveal ? 'Toggle visibility' : 'Key plaintext is only available right after generation'}
+                              aria-label={isVisible ? 'Hide key' : 'Show key'}
                             >
                               {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
@@ -240,6 +245,7 @@ export function ApiKeysSection() {
                               className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors shrink-0"
                               type="button"
                               title="Copy key"
+                              aria-label="Copy key"
                             >
                               <Copy className="w-4 h-4" />
                             </button>
@@ -272,6 +278,7 @@ export function ApiKeysSection() {
                             className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
                             type="button"
                             title={canReveal ? 'Toggle visibility' : 'Key plaintext is only available right after generation'}
+                            aria-label={isVisible ? 'Hide key' : 'Show key'}
                           >
                             {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -283,6 +290,7 @@ export function ApiKeysSection() {
                             className="p-1.5 hover:bg-surface-container-high rounded text-secondary hover:text-primary transition-colors"
                             type="button"
                             title="Copy key"
+                            aria-label="Copy key"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
@@ -297,6 +305,7 @@ export function ApiKeysSection() {
                           <button
                             onClick={() => revokeKeyMutation.mutate({ keyId: key.id, projectId: key.projectId })}
                             disabled={revokeKeyMutation.isPending}
+                            aria-label={`Revoke key ${key.label}`}
                             className="text-secondary hover:text-error transition-colors"
                             type="button"
                           >

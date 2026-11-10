@@ -237,6 +237,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                aria-label="Account menu"
+                aria-expanded={isDropdownOpen}
                 className="w-8 h-8 rounded-full bg-linear-to-br from-primary to-[#ff8a6b] flex items-center justify-center text-xs font-bold text-white hover:ring-2 hover:ring-primary/50 transition-all"
               >
                 {userInitial}
