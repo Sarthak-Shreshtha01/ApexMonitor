@@ -206,4 +206,29 @@ describe('ingest → workers → query APIs (real stack)', () => {
     const latency = await api('GET', `/api/v1/metrics/latency?projectId=${tenant.projectId}`, { token: tenant.accessToken });
     expect(latency.status).toBe(200);
   });
+
+  it('rate limits by events in a sliding window, with Retry-After (KI-19, real Redis)', async () => {
+    const { config } = await import('@config');
+    const original = config.RATE_LIMIT_RPM;
+    const tenant = await registerTenant('ratelimit');
+    const ownKey = (await createIngestKey(tenant)).key;
+    config.RATE_LIMIT_RPM = 20;
+    try {
+      const batch = (n: number) => ({ logs: Array.from({ length: n }, () => logEntry({ endpoint: '/limited' })) });
+      expect((await api('POST', '/api/v1/ingest', { apiKey: ownKey, body: batch(15) })).status).toBe(202);
+      const over = await api('POST', '/api/v1/ingest', { apiKey: ownKey, body: batch(10) });
+      expect(over.status).toBe(429);
+      expect(Number(over.headers.get('retry-after'))).toBeGreaterThan(0);
+      expect(over.headers.get('x-ratelimit-limit')).toBe('20');
+      expect((await api('POST', '/api/v1/ingest', { apiKey: ownKey, body: batch(5) })).status).toBe(202); // the refused batch used nothing
+      const redis = await redisClient();
+      const { windowKeys } = await import('@shared/rate-limit/sliding-window');
+      const k = windowKeys('ingest', tenant.projectId, Date.now());
+      // current + previous window: 20 events even if the test crossed a minute boundary
+      expect(Number((await redis.get(k.current)) ?? 0) + Number((await redis.get(k.previous)) ?? 0)).toBe(20);
+      expect(await redis.get(`live:${tenant.projectId}:requests`)).not.toBeNull(); // pipelined live counters landed
+    } finally {
+      config.RATE_LIMIT_RPM = original;
+    }
+  });
 });

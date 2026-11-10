@@ -2,7 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
 import { appWith, FakeChannel, FakePg, FakeRedis, logEntry, PROJECT_A, PROJECT_B, fakeRabbit } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
+import { windowKeys } from '@shared/rate-limit/sliding-window';
+
+const rateKey = (scope: string, id: string) => windowKeys(scope, id, Date.now()).current;
 
 const redis = new FakeRedis();
 const pg = new FakePg();
@@ -69,7 +71,7 @@ describe('POST /ingest (controller + router)', () => {
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({ error: 'FORBIDDEN', requestId: 'test-request-id' });
     expect(channel.published).toHaveLength(0);
-    expect(redis.store.get(`rate:${PROJECT_B}`)).toBeUndefined();
+    expect(redis.store.get(rateKey('ingest', PROJECT_B))).toBeUndefined();
     expect(redis.store.get(`live:${PROJECT_B}:requests`)).toBeUndefined();
   });
 
@@ -85,10 +87,13 @@ describe('POST /ingest (controller + router)', () => {
   });
 
   it('429 when the project is rate limited', async () => {
-    redis.store.set(`rate:${PROJECT_A}`, '60000');
+    redis.store.set(rateKey('ingest', PROJECT_A), '60000');
     const res = await request(await app).post('/ingest').set('x-api-key', 'key-a').send({ logs: [logEntry()] });
     expect(res.status).toBe(429);
     expect(res.body.error).toBe('RATE_LIMIT_EXCEEDED');
+    expect(Number(res.headers['retry-after'])).toBeGreaterThan(0);
+    expect(res.headers['x-ratelimit-limit']).toBe('60000');
+    expect(res.headers['x-ratelimit-remaining']).toBe('0');
   });
 
   it('passes x-idempotency-key (trimmed, ≤128 chars) to the service', async () => {
@@ -123,7 +128,7 @@ describe('POST /ingest (controller + router)', () => {
   });
 
   it('a rate-limited batch also frees its idempotency key', async () => {
-    redis.store.set(`rate:${PROJECT_A}`, '60000');
+    redis.store.set(rateKey('ingest', PROJECT_A), '60000');
     const res = await request(await app).post('/ingest').set('x-api-key', 'key-a').set('x-idempotency-key', 'limited-batch').send({ logs: [logEntry()] });
     expect(res.status).toBe(429);
     expect(redis.store.has(`ingest:idempotency:${PROJECT_A}:limited-batch`)).toBe(false);
@@ -195,21 +200,42 @@ describe('IngestService.processBatch', () => {
   it('PRO tier gets 10x the FREE limit', async () => {
     redis.store.set(`project_owner:${PROJECT_A}`, 'usr_owner');
     redis.store.set('tier:usr_owner', 'PRO');
-    redis.store.set(`rate:${PROJECT_A}`, '60000');
+    redis.store.set(rateKey('ingest', PROJECT_A), '60000');
     await expect(service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry()] as never })).resolves.toMatchObject({ received: 1 });
-    redis.store.set(`rate:${PROJECT_A}`, '600000');
+    redis.store.set(rateKey('ingest', PROJECT_A), '600000');
     await expect(service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry()] as never })).rejects.toThrow('RATE_LIMITED');
   });
 
-  it('sets the 60s window only on the first request', async () => {
-    await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry()] as never });
-    await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry()] as never });
-    expect(redis.expire.mock.calls.filter(([k]) => k === `rate:${PROJECT_A}`)).toHaveLength(1);
+  it('rate limit counts events, not batches (KI-19)', async () => {
+    await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: Array.from({ length: 10 }, () => logEntry()) as never });
+    expect(redis.store.get(rateKey('ingest', PROJECT_A))).toBe('10');
+    expect(redis.ttl.get(rateKey('ingest', PROJECT_A))).toBe(120);
   });
 
-  knownBug('KI-19', 'rate limit counts events, not batches', async () => {
-    await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: Array.from({ length: 10 }, () => logEntry()) as never });
-    expect(redis.store.get(`rate:${PROJECT_A}`)).toBe('10');
+  it('a batch that would cross the limit is refused whole and uses no budget (KI-19)', async () => {
+    redis.store.set(rateKey('ingest', PROJECT_A), String(60_000 - 5));
+    const ten = Array.from({ length: 10 }, () => logEntry()) as never;
+    await expect(service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: ten })).rejects.toThrow('RATE_LIMITED');
+    expect(redis.store.get(rateKey('ingest', PROJECT_A))).toBe(String(60_000 - 5));
+    await expect(service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: Array.from({ length: 5 }, () => logEntry()) as never })).resolves.toMatchObject({ received: 5 });
+  });
+
+  it('the free tier is cached too, so Postgres is asked once (KI-19)', async () => {
+    redis.store.set(`project_owner:${PROJECT_A}`, 'usr_free');
+    pg.calls = [];
+    for (let i = 0; i < 3; i++) await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs: [logEntry()] as never });
+    expect(pg.calls.filter((c) => c.sql.includes('FROM subscriptions'))).toHaveLength(1);
+    expect(redis.store.get('tier:usr_free')).toBe('FREE');
+  });
+
+  it('live counters are written in one pipeline, grouped per endpoint (KI-19)', async () => {
+    redis.pipeline.mockClear();
+    const logs = [logEntry({ endpoint: '/a' }), logEntry({ endpoint: '/a' }), logEntry({ endpoint: '/b', statusCode: 500 })] as never;
+    await service.processBatch({ projectId: PROJECT_A, sdkVersion: '1.0.0', logs });
+    expect(redis.pipeline).toHaveBeenCalledTimes(1);
+    expect(redis.zincrby.mock.calls.filter(([k]) => k === `live:${PROJECT_A}:endpoints`)).toHaveLength(2);
+    expect(redis.store.get(`live:${PROJECT_A}:requests`)).toBe('3');
+    expect(redis.store.get(`live:${PROJECT_A}:errors`)).toBe('1');
   });
 
   it('idempotency keys are scoped per project', async () => {

@@ -39,11 +39,7 @@ export class IngestController {
         ...result
       }));
     } catch (error: any) {
-      if (error.message === 'RATE_LIMITED') {
-        res.status(429).json(errorBody(res, 'RATE_LIMIT_EXCEEDED', 'Project RPM limit exceeded.'));
-        return;
-      }
-      next(error); // Pass Zod validation errors to global error handler
+      next(error); // Zod errors → 400; RATE_LIMITED → 429 with Retry-After (error handler)
     }
   };
 

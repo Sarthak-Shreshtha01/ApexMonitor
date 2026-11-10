@@ -17,7 +17,7 @@ sequenceDiagram
     API->>R: api_key:cache:<sha256(key)>  (miss → PG lookup by HMAC of the key + argon2 verify)
     API->>R: ingest:idempotency:<project>:<key> SET NX (5 min)
     API->>R: project_owner:<project>, tier:<owner> (miss → PG)
-    API->>R: INCR rate:<project> (60 s window, per batch)
+    API->>R: rate limit: Lua on rate:ingest:<project>:<minute> (events, sliding 60 s window)
     API->>API: normalise endpoint (/123 → /:id), hash IP (sha256 ip:project:day)
     API->>MQ: publish routing key log.ingest (persistent)
     API->>R: INCRBY live:<project>:requests|errors|latency_total, ZINCRBY endpoints
@@ -38,7 +38,7 @@ flowchart LR
     Q1 & Q2 & Q3 -. nack .-> DLQ[[*_dlq via dlq.exchange]]
 ```
 
-The project is always the one bound to the API key; a body `projectId` that differs is rejected with 403. Known problems in this flow: KI-19 (rate limit per batch).
+The project is always the one bound to the API key; a body `projectId` that differs is rejected with 403. The rate limit counts events (a 500-log batch costs 500) over a sliding 60 s window; an over-limit batch gets `429` with `Retry-After` and uses no budget.
 
 ## 2. Browser RUM ingest
 

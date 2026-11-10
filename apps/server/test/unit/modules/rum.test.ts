@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import { appWith, FakeChannel, FakeRedis, PROJECT_A, PROJECT_B, project, fakeRabbit } from '../../helpers/fakes';
+import { windowKeys } from '@shared/rate-limit/sliding-window';
 
 const redis = new FakeRedis();
 const channel = new FakeChannel();
@@ -135,8 +136,7 @@ describe('RumService.processBatch', () => {
   });
 
   it('rate limits per project per minute', async () => {
-    const minute = new Date().toISOString().slice(0, 16);
-    redis.store.set(`rate:rum:${PROJECT_A}:${minute}`, String(10_000_000));
+    redis.store.set(windowKeys('rum', PROJECT_A, Date.now()).current, String(10_000_000));
     await expect(service.processBatch({ sdkVersion: '1.0.0', events: [ev()] }, ctx())).rejects.toThrow('RATE_LIMITED');
   });
 
@@ -205,7 +205,7 @@ describe('RUM routes', () => {
   });
 
   it('429 when rate limited', async () => {
-    redis.store.set(`rate:rum:${PROJECT_A}:${new Date().toISOString().slice(0, 16)}`, '99999999');
+    redis.store.set(windowKeys('rum', PROJECT_A, Date.now()).current, '99999999');
     const res = await request(await app).post('/rum').set('x-rum-key', 'rum-a').send({ events: [ev()] });
     expect(res.status).toBe(429);
   });

@@ -8,6 +8,7 @@ import { RumIngestBatch, RumEnrichedEvent } from './dto/rum-ingest.dto';
 import { RumQuery } from './dto/rum-query.dto';
 import { RumRepository } from './rum.repository';
 import { normalizeRoute } from '@shared/utils/route.utils';
+import { enforceRateLimit } from '@shared/rate-limit/sliding-window';
 
 const RUM_INGEST_EXCHANGE = 'logs.exchange';
 const RUM_INGEST_KEY = 'rum.ingest';
@@ -30,18 +31,8 @@ export class RumService {
   async processBatch(dto: RumIngestBatch, context: IngestContext): Promise<{ received: number; batchId: string }> {
     const redis = getRedis();
 
-    // Keep ingress non-blocking with Redis-only safeguards.
-    const nowMinute = new Date().toISOString().slice(0, 16);
-    const rateKey = `rate:rum:${context.projectId}:${nowMinute}`;
-    const current = await redis.incr(rateKey);
-    if (current === 1) {
-      await redis.expire(rateKey, 120);
-    }
-
-    const limit = config.RUM_RATE_LIMIT_RPM ?? config.RATE_LIMIT_RPM * 2;
-    if (current > limit) {
-      throw new Error('RATE_LIMITED');
-    }
+    // Sliding-window limit on EVENTS per minute (see shared/rate-limit/sliding-window.ts).
+    await enforceRateLimit(redis, 'rum', context.projectId, dto.events.length, config.RUM_RATE_LIMIT_RPM ?? config.RATE_LIMIT_RPM * 2);
 
     const batchId = crypto.randomUUID();
 

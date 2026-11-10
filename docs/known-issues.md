@@ -32,12 +32,6 @@ _None open._
 ### KI-17 Tokens persisted in localStorage
 The web app keeps access/refresh tokens in Redux state persisted by `redux-persist` (localStorage). Any XSS reads them.
 
-### KI-19 Rate limiting is per batch and fixed-window
-- `ingest.service.ts` does `INCR rate:<projectId>` once per **batch** (up to 500 logs), so "60,000 RPM" is really 60,000 batches/min (up to 30M events/min).
-- Fixed 60 s window (not sliding as documented).
-- Tier lookup: when the cached tier is `FREE`, the code re-queries Postgres on every request, so the cache never helps free users.
-- Live counters do one Redis round trip per log (`zincrby` loop); should be pipelined.
-
 ### KI-20 Not safe to run more than one replica
 - `AlertWorker` uses `setInterval`; N replicas evaluate and fire every rule N times.
 - `events/event-bus.ts` is an in-process `EventEmitter`; once workers and API are separate processes, websocket clients stop receiving anomaly/alert events.

@@ -8,7 +8,7 @@ const knownErrorMap: Record<string, { status: number; code: string; message: str
   INVALID_REFRESH_TOKEN: { status: 401, code: 'UNAUTHORIZED', message: 'Invalid refresh token' },
   USER_NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'User not found' },
   PROJECT_ACCESS_DENIED: { status: 403, code: 'FORBIDDEN', message: 'Project access denied' },
-  RATE_LIMITED: { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded' },
+  RATE_LIMITED: { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded (events per minute for this project)' },
   KEY_NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'Key not found' },
   TRACE_NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'Trace not found' },
   BILLING_NOT_CONFIGURED: { status: 503, code: 'SERVICE_UNAVAILABLE', message: 'Billing is not configured on this server' },
@@ -45,6 +45,14 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     res.setHeader('Retry-After', '5');
     res.status(503).json(errorBody(res, 'SERVICE_UNAVAILABLE', 'Ingestion is temporarily unavailable; retry shortly'));
     return;
+  }
+
+  // Rate limited: tell the client when to come back.
+  if (err instanceof Error && err.name === 'RateLimitedError') {
+    const { limit, retryAfterSeconds } = (err as Error & { decision: { limit: number; retryAfterSeconds: number } }).decision;
+    res.setHeader('Retry-After', String(retryAfterSeconds));
+    res.setHeader('X-RateLimit-Limit', String(limit));
+    res.setHeader('X-RateLimit-Remaining', '0');
   }
 
   if (err instanceof Error && knownErrorMap[err.message]) {

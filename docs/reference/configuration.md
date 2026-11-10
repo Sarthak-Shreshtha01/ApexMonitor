@@ -19,7 +19,7 @@ Read from the process environment and validated with Zod by `apps/server/src/con
 | `DB_AUTO_MIGRATE` | no | `true` unless `NODE_ENV=production` | Apply pending migrations at startup. When `false`, the API refuses to start while migrations are pending |
 | `MIGRATIONS_DIR` | no | `<repo>/scripts/migrations` | Where migration files are read from |
 | `SHUTDOWN_TIMEOUT_MS` | no | `25000` | Longest a SIGTERM/SIGINT shutdown may take before the process exits with code 1. Keep it below your orchestrator's kill grace period (Kubernetes default 30 s) |
-| `RATE_LIMIT_RPM` | no | `60000` | Base limit; RUM default is 2× this |
+| `RATE_LIMIT_RPM` | no | `60000` | Ingest **events** per minute per project on the FREE tier (sliding window); PRO gets 10×. RUM default is 2× this |
 | `RUM_RATE_LIMIT_RPM` | no | `2 × RATE_LIMIT_RPM` | RUM events per minute per project |
 | `LOG_LEVEL` | no | `info` | `debug` \| `info` \| `warn` \| `error` |
 | `API_BASE_URL` | no | `http://localhost:3000` | Public API URL (OAuth redirects) |

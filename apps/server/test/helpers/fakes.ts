@@ -1,6 +1,7 @@
 import { vi } from 'vitest';
 import express, { Express, NextFunction, Request, Response } from 'express';
 import { CACHE_UNLESS_REVOKED_LUA } from '../../src/modules/auth/key-cache';
+import { SLIDING_WINDOW_LUA } from '../../src/shared/rate-limit/sliding-window';
 
 /** In-memory Redis stand-in implementing the subset of ioredis the server uses. */
 export class FakeRedis {
@@ -37,7 +38,34 @@ export class FakeRedis {
       this.ttl.set(ref, Number(ttl));
       return 1;
     }
+    if (script === SLIDING_WINDOW_LUA) {
+      const [current, previous] = keys;
+      const [cost, limit, weight, ttl] = args.map(Number);
+      const used = Math.floor(Number(this.store.get(previous) ?? 0) * weight) + Number(this.store.get(current) ?? 0);
+      if (used + cost > limit) return [0, used];
+      this.store.set(current, String(Number(this.store.get(current) ?? 0) + cost));
+      this.ttl.set(current, ttl);
+      return [1, used + cost];
+    }
     throw new Error('FakeRedis.eval: unknown script');
+  });
+  /** ioredis-style pipeline: queue calls, run them in order on exec(). */
+  pipeline = vi.fn(() => {
+    const queued: Array<[string, unknown[]]> = [];
+    const chain: Record<string, unknown> = {
+      exec: async () => {
+        const results: Array<[null, unknown]> = [];
+        for (const [name, args] of queued) results.push([null, await (this as any)[name](...args)]);
+        return results;
+      },
+    };
+    for (const name of ['incrby', 'incrbyfloat', 'expire', 'zincrby', 'set', 'get', 'del']) {
+      chain[name] = (...args: unknown[]) => {
+        queued.push([name, args]);
+        return chain;
+      };
+    }
+    return chain;
   });
   setex = vi.fn(async (key: string, seconds: number, value: string) => {
     this.store.set(key, String(value));

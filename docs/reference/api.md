@@ -36,7 +36,7 @@ Base path: `/api/v1`. Default local base URL: `http://localhost:3000`.
 | 409 | `CONFLICT` | Email already in use |
 | 413 | `PAYLOAD_TOO_LARGE` | JSON body over 2 MB |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | RUM ingest without `application/json`; unsupported body charset |
-| 429 | `RATE_LIMIT_EXCEEDED` | Ingest/RUM rate limit |
+| 429 | `RATE_LIMIT_EXCEEDED` | Ingest/RUM events-per-minute limit; headers `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining` |
 | 500 | `INTERNAL_ERROR` | Unhandled error |
 
 The API/RUM key middlewares currently return `{error, message}` **without** `requestId` (KI-23). `requireAuth` accepts **access** tokens only; refresh tokens get 401.

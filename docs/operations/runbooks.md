@@ -53,8 +53,8 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 ## Ingest 429s for a customer
 
-- **Check:** `GET rate:<projectId>` in Redis; owner tier `GET tier:<ownerId>`.
-- **Note:** limit counts **batches**, not events (KI-19). Upgrade path: `subscriptions.plan_tier = 'PRO'` then `DEL tier:<ownerId>`.
+- **Check:** the limit is **events per minute** (sliding window): `RATE_LIMIT_RPM` for FREE, 10× for PRO; RUM uses `RUM_RATE_LIMIT_RPM`. Current usage: `redis-cli --scan --pattern 'rate:ingest:<projectId>:*'` then `GET` the newest two keys. Owner tier: `GET tier:<ownerId>`.
+- **Act:** clients should honour `Retry-After` (the SDKs do). Upgrade path: `subscriptions.plan_tier = 'PRO'` then `DEL tier:<ownerId>`.
 
 ## Alert flapping (triggered / resolved over and over)
 

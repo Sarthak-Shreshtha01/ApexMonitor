@@ -5,6 +5,7 @@ import { publish } from '@infrastructure/rabbitmq';
 import { config } from '@config';
 import { IngestBatch } from './dto/ingest-batch.dto';
 import { normalizeRoute } from '@shared/utils/route.utils';
+import { enforceRateLimit } from '@shared/rate-limit/sliding-window';
 
 export class IngestService {
   /**
@@ -66,31 +67,22 @@ export class IngestService {
       if (ownerId) await redis.setex(ownerCacheKey, 3600, ownerId);
     }
 
-    // 1b. Determine Tier Limits (Cache for 1 hour)
-    let limit = 60000; // Default FREE tier limit (60,000 requests per minute)
+    // 1b. Determine the tier (cached for 1 hour, including FREE; billing deletes the key on upgrade)
+    let limit = config.RATE_LIMIT_RPM; // FREE: events per minute
     if (ownerId) {
       const tierKey = `tier:${ownerId}`;
-      let tier: string = await redis.get(tierKey) || 'FREE';
-      
-      if (!tier || tier === 'FREE') {
+      let tier = await redis.get(tierKey);
+      if (tier === null) {
         const { rows } = await pg.query(`SELECT plan_tier FROM subscriptions WHERE user_id = $1`, [ownerId]);
-        tier = rows[0]?.plan_tier || 'FREE';
-        await redis.setex(tierKey, 3600, tier); // Cache tier in Redis
+        tier = (rows[0]?.plan_tier as string | undefined) ?? 'FREE';
+        await redis.setex(tierKey, 3600, tier);
       }
-      
-      if (tier === 'PRO') limit = 600000; // PRO tier gets 10x limit
+      if (tier === 'PRO') limit = config.RATE_LIMIT_RPM * 10;
     }
 
-    // 1c. Apply the Sliding Window Rate Limit
-    const rateKey = `rate:${dto.projectId}`;
-    const currentRpm = await redis.incr(rateKey);
-    if (currentRpm === 1) {
-      await redis.expire(rateKey, 60); // 60-second window
-    }
-
-    if (currentRpm > limit) {
-      throw new Error('RATE_LIMITED'); // Handled by global error handler
-    }
+    // 1c. Sliding-window limit on EVENTS (a 500-log batch costs 500). Over the limit → 429
+    //     with Retry-After; a refused batch doesn't use up any budget.
+    await enforceRateLimit(redis, 'ingest', dto.projectId, dto.logs.length, limit);
     // ====================================================================
 
     // 2. Normalize Log Entries
@@ -132,20 +124,22 @@ export class IngestService {
     const totalErrors = normalizedLogs.reduce((sum, log) => sum + (log.statusCode >= 400 ? 1 : 0), 0);
     const totalLatency = normalizedLogs.reduce((sum, log) => sum + log.latencyMs, 0);
 
-    await redis.incrby(`live:${dto.projectId}:requests`, normalizedLogs.length);
-    await redis.expire(`live:${dto.projectId}:requests`, 5);
-
-    await redis.incrby(`live:${dto.projectId}:errors`, totalErrors);
-    await redis.expire(`live:${dto.projectId}:errors`, 5);
-
-    await redis.incrbyfloat(`live:${dto.projectId}:latency_total`, totalLatency);
-    await redis.expire(`live:${dto.projectId}:latency_total`, 5);
-
+    // One round trip for all live counters (they were one call per log).
     const endpointKey = `live:${dto.projectId}:endpoints`;
+    const perEndpoint = new Map<string, number>();
     for (const log of normalizedLogs) {
-      await redis.zincrby(endpointKey, 1, `${log.method} ${log.endpoint}`);
+      const member = `${log.method} ${log.endpoint}`;
+      perEndpoint.set(member, (perEndpoint.get(member) ?? 0) + 1);
     }
-    await redis.expire(endpointKey, 8);
+    const live = redis.pipeline()
+      .incrby(`live:${dto.projectId}:requests`, normalizedLogs.length)
+      .expire(`live:${dto.projectId}:requests`, 5)
+      .incrby(`live:${dto.projectId}:errors`, totalErrors)
+      .expire(`live:${dto.projectId}:errors`, 5)
+      .incrbyfloat(`live:${dto.projectId}:latency_total`, totalLatency)
+      .expire(`live:${dto.projectId}:latency_total`, 5);
+    for (const [member, count] of perEndpoint) live.zincrby(endpointKey, count, member);
+    await live.expire(endpointKey, 8).exec();
 
     return { received: normalizedLogs.length, batchId };
   }

@@ -34,12 +34,7 @@ export class RumController {
 
       res.status(202).json(successBody(res, { status: 'queued', ...result }));
     } catch (error) {
-      if (error instanceof Error && error.message === 'RATE_LIMITED') {
-        res.status(429).json(errorBody(res, 'RATE_LIMIT_EXCEEDED', 'RUM ingest limit exceeded'));
-        return;
-      }
-
-      next(error);
+      next(error); // RATE_LIMITED → 429 with Retry-After in the error handler
     }
   };
 
