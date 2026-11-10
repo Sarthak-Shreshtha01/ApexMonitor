@@ -174,6 +174,7 @@ describe('keys routes', () => {
     const ok = await request(await app).delete(`/keys/5?projectId=${PROJECT_A}`).set(auth);
     expect(ok.status).toBeLessThan(300);
     expect(keysRepo.revokeKey).toHaveBeenLastCalledWith(PROJECT_A, 5);
+    expect(redis.store.get('api_key:revoked:5')).toBe('1'); // cache eviction tombstone (KI-5)
     keysRepo.revokeKey.mockResolvedValueOnce(false);
     expect((await request(await app).delete(`/keys/6?projectId=${PROJECT_A}`).set(auth)).status).toBe(404);
     expect((await request(await app).delete('/keys/5?projectId=proj_dddddddddddddddddddddddd').set(auth)).status).toBe(403);

@@ -5,6 +5,7 @@ import { AuthRepository } from './auth.repository';
 import crypto from 'crypto';
 import { UserService } from '@modules/users/user.service';
 import { signToken, verifyToken } from '@shared/auth/tokens';
+import { cacheValidatedKey, readCachedKey } from './key-cache';
 
 type OAuthProvider = 'google' | 'github';
 type OAuthMode = 'login' | 'register';
@@ -15,22 +16,22 @@ export class AuthService {
 
   async validateApiKey(rawKey: string): Promise<string> {
     const redis = getRedis();
-    const prefix = rawKey.substring(0, 10);
-    
-    // 1. Check Redis Cache first (cite: 1054)
-    const cachedProjectId = await redis.get(`api_key_cache:${rawKey}`);
-    if (cachedProjectId) return cachedProjectId;
+
+    // 1. Cache (named by sha256 of the key; evicted on revoke, see key-cache.ts)
+    const cached = await readCachedKey<{ projectId: string }>(redis, 'api', rawKey);
+    if (cached?.projectId) return cached.projectId;
 
     // 2. DB Lookup by prefix
-    const keyRecord = await this.repo.findKeyByPrefix(prefix);
+    const keyRecord = await this.repo.findKeyByPrefix(rawKey.substring(0, 10));
     if (!keyRecord) throw new Error('UNAUTHORIZED');
 
     // 3. Verify Argon2id Hash (cite: 1043-1048)
     const isValid = await argon2.verify(keyRecord.key_hash, rawKey + config.ARGON2_PEPPER);
     if (!isValid) throw new Error('UNAUTHORIZED');
 
-    // 4. Cache & Background Update
-    await redis.setex(`api_key_cache:${rawKey}`, 300, keyRecord.project_id);
+    // 4. Cache, unless the key was revoked while we were verifying it
+    const cachedOk = await cacheValidatedKey(redis, 'api', rawKey, keyRecord.id, { projectId: keyRecord.project_id });
+    if (!cachedOk) throw new Error('UNAUTHORIZED');
     this.repo.updateLastUsed(keyRecord.id); // Fire and forget
 
     return keyRecord.project_id;
@@ -72,32 +73,37 @@ export class AuthService {
 
   async validateRumWriteKey(rawKey: string, origin: string): Promise<string> {
     const redis = getRedis();
-    const cacheKey = `rum_key_cache:${rawKey}`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return cached;
+
+    // The origin allow-list is cached with the key and checked on every request,
+    // so a cache hit from one site doesn't open the key to every other site.
+    const cached = await readCachedKey<{ projectId: string; allowedOrigins: string[] }>(redis, 'rum', rawKey);
+    if (cached?.projectId) {
+      this.assertOriginAllowed(cached.allowedOrigins ?? [], origin);
+      return cached.projectId;
     }
 
-    const prefix = rawKey.substring(0, 10);
-    const keyRecord = await this.repo.findRumKeyByPrefix(prefix);
+    const keyRecord = await this.repo.findRumKeyByPrefix(rawKey.substring(0, 10));
     if (!keyRecord) throw new Error('UNAUTHORIZED');
 
     const isValid = await argon2.verify(keyRecord.key_hash, rawKey + config.ARGON2_PEPPER);
     if (!isValid) throw new Error('UNAUTHORIZED');
 
-    const allowedOrigins = Array.isArray(keyRecord.allowed_origins) ? keyRecord.allowed_origins : [];
-    if (allowedOrigins.length > 0 && origin) {
-      const normalizedOrigin = origin.toLowerCase();
-      const isAllowed = allowedOrigins.some((value: string) => value.toLowerCase() === normalizedOrigin);
-      if (!isAllowed) {
-        throw new Error('ORIGIN_NOT_ALLOWED');
-      }
-    }
+    const allowedOrigins: string[] = Array.isArray(keyRecord.allowed_origins) ? keyRecord.allowed_origins : [];
+    this.assertOriginAllowed(allowedOrigins, origin);
 
-    await redis.setex(cacheKey, 300, keyRecord.project_id);
+    const cachedOk = await cacheValidatedKey(redis, 'rum', rawKey, keyRecord.id, { projectId: keyRecord.project_id, allowedOrigins });
+    if (!cachedOk) throw new Error('UNAUTHORIZED');
     this.repo.updateRumLastUsed(keyRecord.id);
 
     return keyRecord.project_id;
+  }
+
+  private assertOriginAllowed(allowedOrigins: string[], origin: string): void {
+    if (allowedOrigins.length === 0 || !origin) return;
+    const normalizedOrigin = origin.toLowerCase();
+    if (!allowedOrigins.some((value) => value.toLowerCase() === normalizedOrigin)) {
+      throw new Error('ORIGIN_NOT_ALLOWED');
+    }
   }
 
   async login(email: string, password: string) {

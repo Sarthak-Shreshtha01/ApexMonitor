@@ -24,7 +24,7 @@
 | Secret | Storage |
 |---|---|
 | User passwords | argon2id |
-| API / RUM keys | argon2id(key + `ARGON2_PEPPER`) (64 MB memory cost); only a 10-char prefix stored in clear |
+| API / RUM keys | argon2id(key + `ARGON2_PEPPER`) (64 MB memory cost); only a 10-char prefix stored in clear. Validated keys are cached in Redis for 5 min under sha256(key), and revoking a key evicts it at once (`modules/auth/key-cache.ts`) |
 | JWT signing | Access: `JWT_SECRET`. Refresh: `JWT_REFRESH_SECRET`, or a key derived from `JWT_SECRET` (HMAC) when unset. OAuth state: derived key. All HS256 with a `tokenType` claim checked on verify (`shared/auth/tokens.ts`) |
 | OAuth / PhonePe | env vars |
 
@@ -65,7 +65,6 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 | ID | Gap |
 |---|---|
 | KI-4 | OAuth tokens in redirect URL |
-| KI-5 | Revoked keys valid ≤5 min; raw keys used as Redis key names |
 | KI-7 | Payment sandbox fallbacks |
 | KI-17 | Tokens persisted in localStorage |
 | KI-30 | No server-side route protection in web |

@@ -56,8 +56,8 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 ## Suspected leaked API key
 
-1. Revoke the key from the dashboard (or `UPDATE api_keys SET revoked_at = NOW() WHERE id = …`).
-2. `DEL api_key_cache:<rawKey>` if you have the raw key; otherwise wait 5 minutes (KI-5).
+1. Revoke the key from the dashboard or `DELETE /api/v1/keys/:id`. It stops working immediately.
+2. If you revoked it directly in SQL instead (`UPDATE api_keys SET revoked_at = NOW() WHERE id = …`), also clear the cache: `redis-cli SET api_key:revoked:<id> 1 EX 600`, then `redis-cli DEL api_key:cache:$(redis-cli GET api_key:ref:<id>) api_key:ref:<id>`. Otherwise it keeps working for up to 5 minutes.
 3. Issue a new key; check `audit_logs` and `api_keys.last_used_at`.
 
 ## Rotating `JWT_SECRET`

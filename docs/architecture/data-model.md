@@ -63,8 +63,11 @@ erDiagram
 
 | Pattern | Type | TTL | Writer → Reader |
 |---|---|---|---|
-| `api_key_cache:<rawKey>` | string (projectId) | 300 s | auth.service |
-| `rum_key_cache:<rawKey>` | string | 300 s | auth.service |
+| `api_key:cache:<sha256(key)>` | JSON `{projectId}` | 300 s | auth/key-cache |
+| `api_key:ref:<keyId>` | sha256 of the key (lets revoke find the cache entry) | 300 s | auth/key-cache |
+| `api_key:revoked:<keyId>` | `1` tombstone; blocks re-caching after revoke | 600 s | auth/key-cache |
+| `rum_key:cache:<sha256(key)>` | JSON `{projectId, allowedOrigins}` | 300 s | auth/key-cache |
+| `rum_key:ref:<keyId>`, `rum_key:revoked:<keyId>` | as for API keys | 300 / 600 s | auth/key-cache |
 | `project_owner:<projectId>` | string | 3600 s | ingest.service |
 | `tier:<userId>` | string | 3600 s | ingest.service; deleted by billing webhook |
 | `rate:<projectId>` | counter | 60 s | ingest.service |

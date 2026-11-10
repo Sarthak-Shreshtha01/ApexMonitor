@@ -35,6 +35,7 @@ const userRepo = {
 vi.mock('@modules/users/user.repository', () => ({ UserRepository: class { constructor() { return userRepo; } } }));
 
 const { AuthService } = await import('@modules/auth/auth.service');
+const { cacheValidatedKey, digestKey, evictRevokedKey, keyCacheNames } = await import('@modules/auth/key-cache');
 const { UserService } = await import('@modules/users/user.service');
 const { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } = await import('@shared/auth/tokens');
 
@@ -49,9 +50,10 @@ beforeEach(() => {
 
 describe('AuthService.validateApiKey', () => {
   const service = new AuthService();
+  const cacheName = (key: string) => keyCacheNames('api', 0, digestKey(key)).cache;
 
   it('returns the cached project without touching the database', async () => {
-    redis.store.set('api_key_cache:pk_live_abc', PROJECT_A);
+    redis.store.set(cacheName('pk_live_abc'), JSON.stringify({ projectId: PROJECT_A }));
     await expect(service.validateApiKey('pk_live_abc')).resolves.toBe(PROJECT_A);
     expect(authRepo.findKeyByPrefix).not.toHaveBeenCalled();
   });
@@ -61,8 +63,12 @@ describe('AuthService.validateApiKey', () => {
     authRepo.findKeyByPrefix.mockResolvedValue({ id: 7, project_id: PROJECT_A, key_hash: await fastHash(key) });
     await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
     expect(authRepo.findKeyByPrefix).toHaveBeenCalledWith(key.substring(0, 10));
-    expect(redis.ttl.get(`api_key_cache:${key}`)).toBe(300);
+    expect(redis.ttl.get(cacheName(key))).toBe(300);
+    expect(redis.store.get('api_key:ref:7')).toBe(digestKey(key));
     expect(authRepo.updateLastUsed).toHaveBeenCalledWith(7);
+    // second call is served from the cache
+    await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
+    expect(authRepo.findKeyByPrefix).toHaveBeenCalledTimes(1);
   });
 
   it('rejects unknown prefixes and wrong keys with the same prefix', async () => {
@@ -79,11 +85,56 @@ describe('AuthService.validateApiKey', () => {
     await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
   });
 
-  knownBug('KI-5', 'the raw secret is not used as a Redis key name', async () => {
+  it('the raw secret is not used as a Redis key name or value (KI-5)', async () => {
     const key = 'pk_live_SECRET123';
     authRepo.findKeyByPrefix.mockResolvedValue({ id: 1, project_id: PROJECT_A, key_hash: await fastHash(key) });
     await service.validateApiKey(key);
-    expect([...redis.store.keys()].some((k) => k.includes(key))).toBe(false);
+    expect(redis.store.size).toBeGreaterThan(0);
+    expect([...redis.store.entries()].flat().some((v) => v.includes(key))).toBe(false);
+  });
+
+  it('stops working as soon as the key is evicted after revocation (KI-5)', async () => {
+    const key = 'pk_live_REVOKE_ME_1';
+    authRepo.findKeyByPrefix.mockResolvedValue({ id: 9, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    await service.validateApiKey(key);
+    authRepo.findKeyByPrefix.mockResolvedValue(undefined); // revoked rows are no longer found
+    await evictRevokedKey(redis as never, 'api', 9);
+    await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
+    expect(redis.store.has(cacheName(key))).toBe(false);
+  });
+
+  it('a validation racing a revoke does not re-cache the revoked key (KI-5)', async () => {
+    const key = 'pk_live_RACE_REVOKE';
+    // The DB read happens before the revoke commits, so the row still looks valid...
+    authRepo.findKeyByPrefix.mockImplementation(async () => {
+      const row = { id: 11, project_id: PROJECT_A, key_hash: await fastHash(key) };
+      await evictRevokedKey(redis as never, 'api', 11); // ...and the revoke finishes before we cache
+      return row;
+    });
+    await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
+    expect(redis.store.has(cacheName(key))).toBe(false);
+  });
+
+  it('treats an unreadable cache entry as a miss', async () => {
+    const key = 'pk_live_GARBLED_123';
+    redis.store.set(cacheName(key), 'not-json');
+    authRepo.findKeyByPrefix.mockResolvedValue({ id: 3, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
+    expect(authRepo.findKeyByPrefix).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('key-cache eviction', () => {
+  it('writes a tombstone, then deletes the ref and the cache entry', async () => {
+    await cacheValidatedKey(redis as never, 'api', 'pk_live_EVICT', 4, { projectId: PROJECT_A });
+    await evictRevokedKey(redis as never, 'api', 4);
+    expect([...redis.store.keys()]).toEqual(['api_key:revoked:4']);
+    expect(redis.ttl.get('api_key:revoked:4')).toBe(600);
+  });
+
+  it('is safe for keys that were never cached', async () => {
+    await expect(evictRevokedKey(redis as never, 'rum', 99)).resolves.toBeUndefined();
+    expect([...redis.store.keys()]).toEqual(['rum_key:revoked:99']);
   });
 });
 
@@ -122,7 +173,16 @@ describe('AuthService.validateRumWriteKey', () => {
   it('allows listed origins case-insensitively and caches', async () => {
     authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://Shop.Example'] });
     await expect(service.validateRumWriteKey(key, 'https://shop.example')).resolves.toBe(PROJECT_A);
-    expect(redis.store.get(`rum_key_cache:${key}`)).toBe(PROJECT_A);
+    const cached = redis.store.get(keyCacheNames('rum', 0, digestKey(key)).cache)!;
+    expect(JSON.parse(cached)).toEqual({ projectId: PROJECT_A, allowedOrigins: ['https://Shop.Example'] });
+    expect(cached).not.toContain(key);
+  });
+
+  it('still enforces the origin allow-list on cache hits', async () => {
+    authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://shop.example'] });
+    await expect(service.validateRumWriteKey(key, 'https://shop.example')).resolves.toBe(PROJECT_A);
+    await expect(service.validateRumWriteKey(key, 'https://evil.example')).rejects.toThrow('ORIGIN_NOT_ALLOWED');
+    expect(authRepo.findRumKeyByPrefix).toHaveBeenCalledTimes(1);
   });
 
   it('rejects origins not in the allow-list', async () => {

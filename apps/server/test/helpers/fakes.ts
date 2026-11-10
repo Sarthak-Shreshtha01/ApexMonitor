@@ -1,5 +1,6 @@
 import { vi } from 'vitest';
 import express, { Express, NextFunction, Request, Response } from 'express';
+import { CACHE_UNLESS_REVOKED_LUA } from '../../src/modules/auth/key-cache';
 
 /** In-memory Redis stand-in implementing the subset of ioredis the server uses. */
 export class FakeRedis {
@@ -16,6 +17,22 @@ export class FakeRedis {
     const exIndex = args.indexOf('EX');
     if (exIndex >= 0) this.ttl.set(key, Number(args[exIndex + 1]));
     return 'OK';
+  });
+  /** Emulates the Lua scripts the server uses; any other script is a test error. */
+  eval = vi.fn(async (script: string, numKeys: number, ...rest: (string | number)[]) => {
+    const keys = rest.slice(0, numKeys).map(String);
+    const args = rest.slice(numKeys).map(String);
+    if (script === CACHE_UNLESS_REVOKED_LUA) {
+      const [cache, ref, revoked] = keys;
+      const [value, digest, ttl] = args;
+      if (this.store.has(revoked)) return 0;
+      this.store.set(cache, value);
+      this.ttl.set(cache, Number(ttl));
+      this.store.set(ref, digest);
+      this.ttl.set(ref, Number(ttl));
+      return 1;
+    }
+    throw new Error('FakeRedis.eval: unknown script');
   });
   setex = vi.fn(async (key: string, seconds: number, value: string) => {
     this.store.set(key, String(value));

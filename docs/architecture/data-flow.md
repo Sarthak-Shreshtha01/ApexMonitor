@@ -14,7 +14,7 @@ sequenceDiagram
     participant MQ as RabbitMQ (logs.exchange)
     SDK->>API: batch ≤500 logs, x-api-key, [x-idempotency-key]
     API->>API: projectId := key's project (body projectId must match, else 403)
-    API->>R: api_key_cache:<key>  (miss → PG prefix lookup + argon2 verify)
+    API->>R: api_key:cache:<sha256(key)>  (miss → PG prefix lookup + argon2 verify)
     API->>R: ingest:idempotency:<project>:<key> SET NX (5 min)
     API->>R: project_owner:<project>, tier:<owner> (miss → PG)
     API->>R: INCR rate:<project> (60 s window, per batch)
@@ -51,7 +51,7 @@ sequenceDiagram
     participant MQ as RabbitMQ
     participant W as RumWorker
     B->>API: events ≤200, x-rum-key, Origin
-    API->>R: rum_key_cache / PG rum_public_keys + origin allow-list
+    API->>R: rum_key:cache:<sha256(key)> / PG rum_public_keys; origin allow-list checked on every request
     API->>R: INCR rate:rum:<project>:<minute>
     API->>R: rum:idempotency:<project>:<key> SET NX
     API->>API: drop events >24h old or >5 min in future

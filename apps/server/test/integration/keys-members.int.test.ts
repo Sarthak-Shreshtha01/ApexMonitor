@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { api, createIngestKey, logEntry, pgQuery, registerTenant, Tenant } from './harness';
-import { knownBug } from '../helpers/known-bug';
+import { api, createIngestKey, logEntry, pgQuery, redisClient, registerTenant, Tenant } from './harness';
 
 describe('API keys (real stack)', () => {
   let owner: Tenant;
@@ -37,11 +36,32 @@ describe('API keys (real stack)', () => {
     expect(list.body.data.keys.map((k: any) => k.id)).not.toContain(keyId);
   });
 
-  knownBug('KI-5', 'a key that was used recently stops working immediately after revocation', async () => {
+  it('a key that was used recently stops working immediately after revocation (KI-5)', async () => {
     const { key, keyId } = await createIngestKey(owner, 'cached');
     expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(202);
+    const redis = await redisClient();
+    expect(await redis.get(`api_key:ref:${keyId}`)).toMatch(/^[0-9a-f]{64}$/); // it really was cached
     await api('DELETE', `/api/v1/keys/${keyId}?projectId=${owner.projectId}`, { token: owner.accessToken });
     expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(401);
+  });
+
+  it('Redis never holds a raw key, as a name or a value (KI-5)', async () => {
+    const { key } = await createIngestKey(owner, 'no-raw-in-redis');
+    expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(202);
+    const redis = await redisClient();
+    const names = await redis.keys('*');
+    expect(names.some((n) => n.includes(key))).toBe(false);
+    const values = await Promise.all(names.filter((n) => n.startsWith('api_key:')).map((n) => redis.get(n)));
+    expect(values.some((v) => v?.includes(key))).toBe(false);
+  });
+
+  it('the cache-write script refuses to cache a key with a revocation tombstone (real Redis Lua)', async () => {
+    const { cacheValidatedKey, evictRevokedKey } = await import('@modules/auth/key-cache');
+    const redis = await redisClient();
+    expect(await cacheValidatedKey(redis, 'api', 'proj_lua_probe_key', 'lua-1', { projectId: owner.projectId })).toBe(true);
+    await evictRevokedKey(redis, 'api', 'lua-1');
+    expect(await cacheValidatedKey(redis, 'api', 'proj_lua_probe_key', 'lua-1', { projectId: owner.projectId })).toBe(false);
+    expect(await redis.ttl('api_key:revoked:lua-1')).toBeGreaterThan(500);
   });
 
   it('legacy /auth/keys issues working proj_ keys for owners', async () => {

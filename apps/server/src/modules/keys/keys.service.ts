@@ -4,6 +4,8 @@ import { config } from '@config';
 import { UserService } from '@modules/users/user.service';
 import { CreateKeyInput, KeysStatsQuery, ListKeysQuery } from './dto/keys.dto';
 import { KeysRepository } from './keys.repository';
+import { getRedis } from '@infrastructure/redis';
+import { evictRevokedKey } from '@modules/auth/key-cache';
 
 export class KeysService {
   private usersService = new UserService();
@@ -83,6 +85,9 @@ export class KeysService {
     if (!revoked) {
       throw new Error('KEY_NOT_FOUND');
     }
+
+    // Stop the key working now, not when its cache entry expires.
+    await evictRevokedKey(getRedis(), 'api', keyId);
   }
 
   private async assertProjectAccess(userId: string, projectId: string): Promise<void> {

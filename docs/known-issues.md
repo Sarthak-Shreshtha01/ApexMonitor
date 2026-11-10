@@ -29,10 +29,6 @@ _None open._
 `modules/auth/auth.controller.ts` (~line 72) redirects to `/oauth/callback?accessToken=…&refreshToken=…`. Tokens end up in browser history, proxy/server logs, and `Referer` headers.
 **Fix:** httpOnly refresh cookie + short-lived one-time code exchanged by the web app.
 
-### KI-5 Revoked API keys keep working for up to 5 minutes; raw keys stored in Redis
-`modules/auth/auth.service.ts#validateApiKey` caches `api_key_cache:<rawKey>` for 300 s; revocation (`modules/keys/*`) does not delete the cache entry. The raw secret is also the Redis key name. Same pattern for `rum_key_cache:<rawKey>`.
-**Fix:** cache by `sha256(rawKey)`, delete on revoke, store key id alongside project id.
-
 ### KI-7 Billing is sandbox-only and incomplete
 - `shared/utils/phonepe.utils.ts` falls back to the public sandbox merchant ID and salt when env vars are missing, so production silently runs against sandbox.
 - `modules/billing/billing.service.ts` hardcodes `X-MERCHANT-ID: PGTESTPAYUAT` and redirect `http://localhost:3000/dashboard/billing`.
