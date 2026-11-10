@@ -62,7 +62,7 @@ export function AiInsightsSection() {
           <div className="bg-black/40 rounded-lg p-3 mb-4 flex-grow border border-white/5">
             <div className="text-[9px] font-mono text-secondary uppercase mb-2">Root Cause Hypothesis:</div>
             <div className="text-[10px] font-mono text-primary leading-tight">
-              v2.4.1 migration locked 'orders' table. Impacting 14% of writes. Suggesting concurrent index rebuild.
+              v2.4.1 migration locked &apos;orders&apos; table. Impacting 14% of writes. Suggesting concurrent index rebuild.
             </div>
           </div>
           <h4 className="font-bold text-white mb-2">Issue Resolved</h4>

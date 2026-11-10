@@ -9,7 +9,7 @@ export function FeaturesSection() {
         <div className="lg:col-span-4">
           <h2 className="text-4xl font-black mb-6 tracking-tight">Real-time Multi-Metrics</h2>
           <p className="text-secondary text-lg leading-relaxed mb-8">
-            Don't settle for static charts. Stream thousands of data points every second with hardware-accelerated rendering.
+            Don&apos;t settle for static charts. Stream thousands of data points every second with hardware-accelerated rendering.
           </p>
           <div className="space-y-6">
             <div className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10">

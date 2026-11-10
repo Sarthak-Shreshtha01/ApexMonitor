@@ -17,7 +17,7 @@ export function NeuralSummaryCard() {
               </span>
             </div>
             <p className="text-lg text-neutral-300 leading-relaxed max-w-4xl italic">
-              "Critical pattern detected in <code className="text-orange-400 font-mono bg-orange-600/10 px-1.5 py-0.5 rounded">auth-v2-proxy</code>. Increased 401 Unauthorized errors (12% spike) correlate with the <code className="text-orange-400 font-mono bg-orange-600/10 px-1.5 py-0.5 rounded">ConfigMap-Alpha</code> deployment. AI predicts a complete service outage within 45 minutes if cache-invalidation is not manually triggered or the deployment rolled back immediately."
+              &quot;Critical pattern detected in <code className="text-orange-400 font-mono bg-orange-600/10 px-1.5 py-0.5 rounded">auth-v2-proxy</code>. Increased 401 Unauthorized errors (12% spike) correlate with the <code className="text-orange-400 font-mono bg-orange-600/10 px-1.5 py-0.5 rounded">ConfigMap-Alpha</code> deployment. AI predicts a complete service outage within 45 minutes if cache-invalidation is not manually triggered or the deployment rolled back immediately.&quot;
             </p>
           </div>
         </div>

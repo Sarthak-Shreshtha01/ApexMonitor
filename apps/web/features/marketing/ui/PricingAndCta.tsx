@@ -72,7 +72,7 @@ export function PricingAndCta() {
 
       <section className="py-40 max-w-5xl mx-auto px-8 text-center relative overflow-hidden">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[120px] -z-10"></div>
-        <h2 className="text-6xl font-black mb-8 tracking-tighter text-white">The command center you've been waiting for.</h2>
+        <h2 className="text-6xl font-black mb-8 tracking-tighter text-white">The command center you&apos;ve been waiting for.</h2>
         <p className="text-xl text-secondary mb-12 max-w-2xl mx-auto">Join thousands of developers who have eliminated blind spots and shipping anxiety.</p>
         <div className="flex justify-center gap-6">
           <Link href={ROUTES.auth.register} className="bg-primary text-white px-12 py-6 rounded-2xl text-2xl font-black transition-all hover:scale-[1.05] shadow-[0_0_50px_-10px_rgba(255,69,0,0.2)]">

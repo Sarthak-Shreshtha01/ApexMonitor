@@ -33,7 +33,7 @@ export function TraceSidebar() {
             <div className="flex flex-col gap-0.5 p-2 rounded bg-app border border-outline-variant/10">
               <span className="text-[9px] font-mono text-secondary uppercase">db.statement</span>
               <span className="text-[10px] font-mono text-primary-foreground whitespace-pre-wrap">
-                SELECT * FROM users WHERE id = 'usr_23x1' AND tenant_id = 'tn_88'
+                SELECT * FROM users WHERE id = &apos;usr_23x1&apos; AND tenant_id = &apos;tn_88&apos;
               </span>
             </div>
             <div className="flex flex-col gap-0.5 p-2 rounded bg-app border border-outline-variant/10">

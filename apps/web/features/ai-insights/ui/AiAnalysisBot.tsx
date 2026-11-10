@@ -18,7 +18,7 @@ export function AiAnalysisBot() {
         
         <div className="bg-neutral-900/50 p-4 rounded-lg border-l-2 border-orange-600">
           <span className="text-orange-500 font-bold block mb-1">ai_bot:</span> 
-          <span className="text-neutral-300">Hello developer. I've finished the deep-dive analysis on <code className="bg-neutral-800 text-orange-300 px-1.5 py-0.5 rounded">worker-prod-01</code>. I've identified three potential bottlenecks in the authentication flow. Shall I list them or perform an automated stress test on the shadow cluster?</span>
+          <span className="text-neutral-300">Hello developer. I&apos;ve finished the deep-dive analysis on <code className="bg-neutral-800 text-orange-300 px-1.5 py-0.5 rounded">worker-prod-01</code>. I&apos;ve identified three potential bottlenecks in the authentication flow. Shall I list them or perform an automated stress test on the shadow cluster?</span>
         </div>
         
         <div className="text-right flex flex-col items-end">

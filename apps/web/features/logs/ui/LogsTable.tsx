@@ -89,34 +89,34 @@ export function LogsTable() {
                         <pre className="text-secondary/90">
 {`{
   `}
-<span className="text-tertiary">"header"</span>{`: {
+<span className="text-tertiary">&quot;header&quot;</span>{`: {
     `}
-<span className="text-tertiary">"user-agent"</span>{`: `}
-<span className="text-primary">"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)"</span>{`,
+<span className="text-tertiary">&quot;user-agent&quot;</span>{`: `}
+<span className="text-primary">&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)&quot;</span>{`,
     `}
-<span className="text-tertiary">"accept"</span>{`: `}
-<span className="text-primary">"application/json"</span>{`
+<span className="text-tertiary">&quot;accept&quot;</span>{`: `}
+<span className="text-primary">&quot;application/json&quot;</span>{`
   },
   `}
-<span className="text-tertiary">"query"</span>{`: {
+<span className="text-tertiary">&quot;query&quot;</span>{`: {
     `}
-<span className="text-tertiary">"stream"</span>{`: `}
-<span className="text-primary">"true"</span>{`,
+<span className="text-tertiary">&quot;stream&quot;</span>{`: `}
+<span className="text-primary">&quot;true&quot;</span>{`,
     `}
-<span className="text-tertiary">"refresh"</span>{`: `}
+<span className="text-tertiary">&quot;refresh&quot;</span>{`: `}
 <span className="text-primary">3000</span>{`
   },
   `}
-<span className="text-tertiary">"response"</span>{`: {
+<span className="text-tertiary">&quot;response&quot;</span>{`: {
     `}
-<span className="text-tertiary">"status"</span>{`: `}
+<span className="text-tertiary">&quot;status&quot;</span>{`: `}
 <span className="text-primary">{log.status.split(' ')[0]}</span>{`,
     `}
-<span className="text-tertiary">"body"</span>{`: { `}
-<span className="text-tertiary">"active_nodes"</span>{`: `}
+<span className="text-tertiary">&quot;body&quot;</span>{`: { `}
+<span className="text-tertiary">&quot;active_nodes&quot;</span>{`: `}
 <span className="text-primary">24</span>{`, `}
-<span className="text-tertiary">"health"</span>{`: `}
-<span className="text-primary">"stable"</span>{` }
+<span className="text-tertiary">&quot;health&quot;</span>{`: `}
+<span className="text-primary">&quot;stable&quot;</span>{` }
   }
 }`}
                         </pre>

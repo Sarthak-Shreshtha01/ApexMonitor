@@ -36,7 +36,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  // The mobile nav is open only on the page where it was opened, so navigating closes it
+  // without an effect (derived state instead of setState-in-effect).
+  const [mobileNavPath, setMobileNavPath] = useState<string | null>(null);
+  const isMobileNavOpen = mobileNavPath === pathname;
+  const setIsMobileNavOpen = (next: boolean | ((open: boolean) => boolean)) =>
+    setMobileNavPath((current) => {
+      const value = typeof next === 'function' ? next(current === pathname) : next;
+      return value ? pathname : null;
+    });
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const projects = useProjectStore((state) => state.projects);
@@ -77,7 +85,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === 'Escape') {
-        setIsMobileNavOpen(false);
+        setMobileNavPath(null);
         setIsDropdownOpen(false);
       }
     }
@@ -89,10 +97,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       document.removeEventListener('keydown', handleEscape);
     };
   }, []);
-
-  useEffect(() => {
-    setIsMobileNavOpen(false);
-  }, [pathname]);
 
   const activeProject = projects.find((project) => project.id === activeProjectId) ?? projects[0] ?? null;
   const userInitial = profileQuery.data?.name?.charAt(0).toUpperCase() ?? '?';
