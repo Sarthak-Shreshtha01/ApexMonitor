@@ -48,6 +48,8 @@ const ConfigSchema = z.object({
   
   // Apply pending database migrations at startup. Defaults to on outside production.
   DB_AUTO_MIGRATE: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
+  // Longest a SIGTERM/SIGINT shutdown may take before the process exits anyway.
+  SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
   // Per-project RUM events per minute; defaults to 2 × RATE_LIMIT_RPM.
   RUM_RATE_LIMIT_RPM: z.coerce.number().int().positive().optional(),

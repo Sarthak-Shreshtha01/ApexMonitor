@@ -11,6 +11,7 @@ class AmqpChannel extends EventEmitter {
   bindQueue = vi.fn(async () => ({}));
   checkQueue = vi.fn(async () => ({}));
   prefetch = vi.fn(async () => undefined);
+  cancel = vi.fn(async () => ({}));
   ack = vi.fn();
   nack = vi.fn();
   consume = vi.fn(async (queue: string, fn: (msg: unknown) => Promise<void>) => {
@@ -59,7 +60,7 @@ const connect = vi.fn(async () => {
 vi.mock('amqplib', () => ({ default: { connect: (...a: unknown[]) => connect(...(a as [])) } }));
 
 const rabbit = await import('@infrastructure/rabbitmq');
-const { connectRabbitMQ, getChannel, publish, consume, closeRabbitMQ, isRabbitConnected, BrokerUnavailableError } = rabbit;
+const { connectRabbitMQ, getChannel, publish, consume, closeRabbitMQ, isRabbitConnected, BrokerUnavailableError, stopConsuming, inFlightMessages } = rabbit;
 const latest = () => connections.at(-1)!;
 
 beforeEach(() => {
@@ -283,5 +284,50 @@ describe('reconnect (KI-16)', () => {
     await closeRabbitMQ();
     await vi.advanceTimersByTimeAsync(60_000);
     expect(connections).toHaveLength(1);
+  });
+});
+
+describe('stopConsuming (graceful shutdown, KI-21)', () => {
+  it('cancels every consumer and waits for messages still being handled', async () => {
+    await connectRabbitMQ();
+    let finish!: () => void;
+    const handler = vi.fn(() => new Promise<void>((r) => { finish = r; }));
+    await consume('raw_log_queue', 10, handler);
+    await consume('rum_queue', 10, vi.fn(async () => undefined));
+    const ch = latest().consumerChannel('raw_log_queue');
+    const delivery = ch.consumers.get('raw_log_queue')!({ content: Buffer.from('{}') });
+    expect(inFlightMessages()).toBe(1);
+
+    let stopped = false;
+    const stopping = stopConsuming(1000).then((ok) => { stopped = ok; });
+    await new Promise((r) => setTimeout(r, 20));
+    expect(ch.cancel).toHaveBeenCalledWith('raw_log_queue');
+    expect(latest().consumerChannel('rum_queue').cancel).toHaveBeenCalledWith('rum_queue');
+    expect(stopped).toBe(false); // still waiting for the in-flight message
+
+    finish();
+    await delivery;
+    await stopping;
+    expect(stopped).toBe(true);
+    expect(inFlightMessages()).toBe(0);
+  });
+
+  it('reports false if a message is still in flight at the deadline', async () => {
+    await connectRabbitMQ();
+    await consume('raw_log_queue', 1, () => new Promise<void>(() => undefined));
+    void latest().consumerChannel('raw_log_queue').consumers.get('raw_log_queue')!({ content: Buffer.from('{}') });
+    expect(await stopConsuming(30)).toBe(false);
+  });
+
+  it('a reconnect after stopConsuming does not start consuming again', async () => {
+    await connectRabbitMQ();
+    await consume('aggregation_queue', 1, vi.fn(async () => undefined));
+    await stopConsuming(100);
+    vi.spyOn(Math, 'random').mockReturnValue(1);
+    vi.useFakeTimers();
+    latest().emit('close');
+    await vi.advanceTimersByTimeAsync(rabbit.RECONNECT_BASE_DELAY_MS);
+    expect(connections).toHaveLength(2);
+    expect(latest().channels.some((c) => c.consumers.has('aggregation_queue'))).toBe(false);
   });
 });

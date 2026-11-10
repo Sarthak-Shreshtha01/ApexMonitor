@@ -16,3 +16,7 @@ export function getRedis(): Redis {
   if (!client) throw new Error('Redis not connected');
   return client;
 }
+
+export async function closeRedis(): Promise<void> {
+  if (client) await client.quit().catch(() => client.disconnect());
+}

@@ -128,3 +128,15 @@ Defined in `apps/server/tsconfig.json`: `@modules/*`, `@shared/*`, `@infrastruct
 ## Testing seams (current limits)
 
 Infrastructure clients are module-level singletons (`getPg()`, `getRedis()`, `getChannel()`), and services are created with `new` inside controllers and middleware. Unit-testing a service means mocking modules. Plan Phase 2 introduces composition roots and constructor injection.
+
+## Shutdown
+
+On SIGTERM or SIGINT (`bootstrap.ts`, steps in `shared/lifecycle.ts`), within `SHUTDOWN_TIMEOUT_MS`:
+
+1. `/ready` starts answering 503 and every response carries `Connection: close`, so load balancers and keep-alive clients move to other instances.
+2. WebSocket clients are disconnected; the HTTP server stops accepting connections and waits for in-flight requests (stragglers are cut off after 10 s).
+3. The alert loop stops and its current pass finishes.
+4. Queue consumers are cancelled and messages already being handled are allowed to finish (`stopConsuming`). Prefetched but unhandled messages return to the queue.
+5. RabbitMQ, MongoDB, PostgreSQL and Redis connections are closed.
+
+Exit code 0 if every step finished in time, 1 otherwise. Batches that got a 202 stay in their durable queue and are processed after the next start.

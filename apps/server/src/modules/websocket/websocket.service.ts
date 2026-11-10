@@ -102,6 +102,13 @@ export class WebSocketService {
    * Runs every 2 seconds. Iterates over active rooms, 
    * pulls live stats from Redis, and broadcasts them. (cite: 731-750)
    */
+  /** Shutdown: stop the broadcast loop and disconnect every client (they reconnect elsewhere). */
+  close(): void {
+    if (this.broadcastInterval) clearInterval(this.broadcastInterval);
+    this.broadcastInterval = null;
+    this.io.disconnectSockets(true);
+  }
+
   private startBroadcastLoop() {
     this.broadcastInterval = setInterval(async () => {
       const redis = getRedis();

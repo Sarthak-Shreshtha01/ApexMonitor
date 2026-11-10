@@ -21,11 +21,18 @@ import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants
 import { errorHandler, notFoundHandler } from '@shared/middleware/error-handler';
 import { httpLoggerOptions } from '@shared/utils/logger';
 import { PlatformController } from '@shared/http/platform-controller';
+import { isShuttingDown } from '@shared/lifecycle';
 
 export function createApp(): Application {
   const app = express();
   const platformController = new PlatformController();
 
+  // While shutting down, close each keep-alive connection after its current response so
+  // server.close() can finish and clients reconnect to another instance.
+  app.use((_req, res, next) => {
+    if (isShuttingDown()) res.setHeader('Connection', 'close');
+    next();
+  });
   app.use(helmet());
   app.use(cors({ origin: config.CORS_ORIGINS, credentials: true }));
   app.use(compression());

@@ -118,6 +118,18 @@ describe('PlatformController', () => {
     ]);
   });
 
+  it('/ready is 503 while the process is shutting down (KI-21)', async () => {
+    const lifecycle = await import('@shared/lifecycle');
+    lifecycle.markShuttingDown();
+    try {
+      const res = await request(await app).get('/ready');
+      expect(res.status).toBe(503);
+      expect(res.body.message).toBe('Shutting down');
+    } finally {
+      lifecycle.resetLifecycleForTests();
+    }
+  });
+
   it('/ready is 503 when a dependency is down', async () => {
     mongoState = 0;
     expect((await request(await app).get('/ready')).status).toBe(503);

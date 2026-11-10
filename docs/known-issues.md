@@ -43,9 +43,6 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 - `events/event-bus.ts` is an in-process `EventEmitter`; once workers and API are separate processes, websocket clients stop receiving anomaly/alert events.
 - Socket.IO has no Redis adapter.
 
-### KI-21 No graceful shutdown
-`bootstrap.ts` only handles SIGTERM by closing the HTTP server. Consumers, intervals, DB/Redis/AMQP connections are not closed; in-flight messages can be redelivered or lost mid-write.
-
 ---
 
 ### KI-40 Web client keeps stale tokens after a failed refresh

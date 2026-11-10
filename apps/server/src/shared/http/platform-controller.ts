@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PlatformHealthService } from '@shared/services/platform-health.service';
 import { errorBody, successBody } from '@shared/http/api-contract';
+import { isShuttingDown } from '@shared/lifecycle';
 
 const healthService = new PlatformHealthService();
 
@@ -13,6 +14,11 @@ export class PlatformController {
   };
 
   ready = async (_req: Request, res: Response): Promise<void> => {
+    // During shutdown, tell the load balancer to stop sending traffic here.
+    if (isShuttingDown()) {
+      res.status(503).json(errorBody(res, 'SERVICE_UNAVAILABLE', 'Shutting down'));
+      return;
+    }
     try {
       const snapshot = await healthService.snapshot();
       const isReady = Object.values(snapshot.services).every((status) => status === 'ok');

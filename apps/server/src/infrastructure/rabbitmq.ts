@@ -28,6 +28,8 @@ interface ConsumerRegistration {
   queue: string;
   prefetch: number;
   handler: ConsumeHandler;
+  channel?: Channel;
+  consumerTag?: string;
 }
 
 export const PUBLISH_CONFIRM_TIMEOUT_MS = 5_000;
@@ -43,6 +45,8 @@ let closing = false;
 let reconnectTimer: NodeJS.Timeout | null = null;
 let reconnectAttempt = 0;
 const consumers: ConsumerRegistration[] = [];
+let consumingStopped = false;
+let inFlight = 0;
 
 /** Connects, declares the topology and starts any registered consumers. Throws if the first attempt fails. */
 export async function connectRabbitMQ(): Promise<void> {
@@ -102,9 +106,33 @@ export function publish(exchange: string, routingKey: string, content: Buffer, o
  * The handler must ack or nack `msg` on the channel it is given.
  */
 export async function consume(queue: string, prefetch: number, handler: ConsumeHandler): Promise<void> {
-  const registration = { queue, prefetch, handler };
+  consumingStopped = false;
+  const registration: ConsumerRegistration = { queue, prefetch, handler };
   consumers.push(registration);
   if (connection) await startConsumer(connection, registration, generation);
+}
+
+/** Messages currently inside a consumer handler. */
+export const inFlightMessages = (): number => inFlight;
+
+/**
+ * Graceful shutdown, step 1: tell the broker to stop delivering (cancel every consumer) and
+ * wait until messages already being handled are acked or nacked. Unacked messages that are
+ * still prefetched go back to the queue when the channel closes. Returns false on timeout.
+ */
+export async function stopConsuming(timeoutMs: number): Promise<boolean> {
+  consumingStopped = true;
+  await Promise.all(
+    consumers.map(async (c) => {
+      if (c.channel && c.consumerTag) await c.channel.cancel(c.consumerTag).catch(() => undefined);
+    }),
+  );
+  const deadline = Date.now() + timeoutMs;
+  while (inFlight > 0) {
+    if (Date.now() >= deadline) return false;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  return true;
 }
 
 /** Stops reconnecting and closes the connection (shutdown, tests). */
@@ -115,6 +143,9 @@ export async function closeRabbitMQ(): Promise<void> {
   const conn = connection;
   resetState();
   consumers.length = 0;
+  consumingStopped = false;
+  inFlight = 0;
+  reconnectAttempt = 0;
   if (conn) await conn.close().catch(() => undefined);
 }
 
@@ -158,20 +189,27 @@ async function startConsumer(conn: ChannelModel, registration: ConsumerRegistrat
   ch.on('error', (err: Error) => console.error(`❌ [RabbitMQ] ${registration.queue} channel error:`, err.message));
   ch.on('close', () => handleConnectionLost(gen, `${registration.queue} channel closed`));
   await ch.prefetch(registration.prefetch);
-  await ch.consume(registration.queue, async (msg) => {
+  if (consumingStopped) return; // shutting down: don't start consuming again after a reconnect
+  registration.channel = ch;
+  const { consumerTag } = await ch.consume(registration.queue, async (msg) => {
     if (!msg) {
+      if (consumingStopped) return; // our own cancel during shutdown
       // The broker cancelled this consumer (e.g. the queue was deleted); rebuild everything.
       handleConnectionLost(gen, `${registration.queue} consumer cancelled`);
       return;
     }
+    inFlight++;
     try {
       await registration.handler(msg, ch);
     } catch (error) {
       // Typically ack/nack on a channel that just closed. The message was not acked, so the
       // broker redelivers it after reconnect.
       console.error(`❌ [RabbitMQ] ${registration.queue} handler failed:`, (error as Error).message);
+    } finally {
+      inFlight--;
     }
   });
+  registration.consumerTag = consumerTag;
 }
 
 function resetState(): void {

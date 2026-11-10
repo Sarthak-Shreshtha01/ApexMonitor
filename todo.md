@@ -20,28 +20,27 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Soon: before real traffic (P2)
 
-1. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-2. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-3. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-4. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-5. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-6. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+2. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+3. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+4. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+5. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-7. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-8. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-9. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-10. [ ] Split `apps/api` and `apps/worker`.
-11. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-12. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+6. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+7. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+8. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+9. [ ] Split `apps/api` and `apps/worker`.
+10. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+11. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-13. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-14. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-15. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-16. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+12. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+13. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+14. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+15. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -60,6 +59,7 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Done
 
+- [x] 2026-11-10: Graceful shutdown on SIGTERM/SIGINT: /ready 503, finish HTTP requests, drain queue consumers, stop alert loop and websockets, close all connections, time-boxed (KI-21)
 - [x] 2026-11-10: Migration runner: numbered files in `scripts/migrations`, tracked in `schema_migrations`, advisory lock, per-file transactions; auto-applied in dev, production refuses to start with pending ones; `npm run db:migrate` / `node dist/migrate.js` (KI-15)
 - [x] 2026-11-10: Endpoint/RUM path normalisation: whole ID segments only (number, UUID, ObjectId, ULID, long hex), query/hash stripped; shared `shared/utils/route.utils.ts` (KI-37)
 - [x] 2026-11-10: SDK fixes: `x-idempotency-key`, no retry on 409 / caller abort / unsafe POSTs, automatic idempotency keys for ingest, Python `x-rum-key` + `revoke_key(project_id)`, removed nonexistent metrics endpoints, TS alerts helpers (KI-33, KI-34, KI-11, KI-12)

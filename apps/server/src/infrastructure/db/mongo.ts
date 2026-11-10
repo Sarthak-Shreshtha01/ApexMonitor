@@ -10,3 +10,7 @@ export async function connectMongo(): Promise<void> {
   });
   console.log('✅ [MongoDB] Connected');
 }
+
+export async function closeMongo(): Promise<void> {
+  await mongoose.disconnect();
+}

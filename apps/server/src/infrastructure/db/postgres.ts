@@ -17,6 +17,10 @@ export async function connectPostgres(): Promise<void> {
   console.log('✅ [PostgreSQL] Connected');
 }
 
+export async function closePostgres(): Promise<void> {
+  if (pool) await pool.end();
+}
+
 export function getPg(): Pool {
   if (!pool) throw new Error('Postgres not connected');
   return pool;

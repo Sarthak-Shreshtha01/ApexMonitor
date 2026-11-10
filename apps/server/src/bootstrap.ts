@@ -1,8 +1,9 @@
 import { createApp } from './app';
-import { connectMongo } from '@infrastructure/db/mongo';
-import { connectPostgres, ensureSchemaUpToDate } from '@infrastructure/db/postgres';
-import { connectRedis } from '@infrastructure/redis';
-import { connectRabbitMQ } from '@infrastructure/rabbitmq';
+import { closeMongo, connectMongo } from '@infrastructure/db/mongo';
+import { closePostgres, connectPostgres, ensureSchemaUpToDate } from '@infrastructure/db/postgres';
+import { closeRedis, connectRedis } from '@infrastructure/redis';
+import { closeRabbitMQ, connectRabbitMQ, inFlightMessages, stopConsuming } from '@infrastructure/rabbitmq';
+import { markShuttingDown, runShutdown, waitUntil } from '@shared/lifecycle';
 import { config } from '@config';
 import http from 'http';
 import { RawLogWorker } from '@workers/raw-log.worker';
@@ -55,11 +56,40 @@ async function bootstrap() {
       console.log(`🚀 ApexMonitor running on http://localhost:${config.PORT}`);
     });
 
-    // Graceful Shutdown Handler
-    process.on('SIGTERM', () => {
-      console.log('SIGTERM received, shutting down gracefully');
-      server.close(() => process.exit(0));
-    });
+    // Graceful shutdown (KI-21): finish what is in flight, then close every connection.
+    let stopping = false;
+    const shutdown = async (signal: string) => {
+      if (stopping) return; // a second signal while stopping changes nothing
+      stopping = true;
+      console.log(`${signal} received, shutting down (limit ${config.SHUTDOWN_TIMEOUT_MS} ms)`);
+      markShuttingDown(); // /ready now answers 503
+      const httpClosed = new Promise<void>((resolve) => server.close(() => resolve()));
+      server.closeIdleConnections();
+
+      const result = await runShutdown([
+        { name: 'disconnect websocket clients', run: () => wsService.close() },
+        {
+          name: 'finish in-flight HTTP requests',
+          run: async () => {
+            const done = await Promise.race([httpClosed.then(() => true), new Promise<false>((r) => setTimeout(() => r(false), 10_000))]);
+            if (!done) {
+              server.closeAllConnections(); // stragglers after 10 s are cut off
+              await httpClosed;
+            }
+          },
+        },
+        { name: 'stop alert evaluation', run: async () => { alertWorker.stop(); await waitUntil(() => !alertWorker.isBusy(), 10_000); } },
+        { name: 'drain queue consumers', run: async () => { if (!(await stopConsuming(10_000))) throw new Error(`${inFlightMessages()} message(s) still in flight; they will be redelivered`); } },
+        { name: 'close RabbitMQ', run: closeRabbitMQ },
+        { name: 'close MongoDB', run: closeMongo },
+        { name: 'close PostgreSQL', run: closePostgres },
+        { name: 'close Redis', run: closeRedis },
+      ], config.SHUTDOWN_TIMEOUT_MS, (line) => console.log(`[shutdown] ${line}`));
+
+      process.exit(result.timedOut || result.failed.length > 0 ? 1 : 0);
+    };
+    process.once('SIGTERM', () => void shutdown('SIGTERM'));
+    process.once('SIGINT', () => void shutdown('SIGINT'));
 
   } catch (error) {
     console.error('❌ Bootstrap failed:', error);

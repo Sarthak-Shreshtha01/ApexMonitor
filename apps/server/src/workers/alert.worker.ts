@@ -58,6 +58,11 @@ export class AlertWorker {
     this.interval = null;
   }
 
+  /** True while an evaluation pass is running (shutdown waits for it). */
+  isBusy(): boolean {
+    return this.running;
+  }
+
   async evaluateRules(): Promise<void> {
     if (this.running) return; // a slow pass must not overlap the next tick
     this.running = true;
