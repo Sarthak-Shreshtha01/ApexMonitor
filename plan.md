@@ -43,7 +43,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 - [x] **Webhook SSRF:** validate webhook URLs (https only, resolve DNS, block private/link-local/loopback ranges), 5 s timeout, no redirects. (KI-6)
 - [ ] **PhonePe:** remove hardcoded sandbox merchant/salt defaults; fail boot in production if billing is enabled without real credentials; build redirect URL from `FRONTEND_URL`. (KI-7)
 - [x] **Aggregation math:** fix `avg_ms` to a weighted mean (store `latency_sum_ms`), stop `GREATEST()` for percentiles (interim: store a mergeable histogram column, see Phase 3), compute buckets in UTC. (KI-8, KI-9)
-- [ ] **Browser SDK contract:** make `@apexmonitor/browser-sdk` send the server's RUM schema (`type ∈ page_view|web_vital|heartbeat`, top-level `path`, `ttfbMs/fcpMs/lcpMs`); add a conformance test that validates SDK output against the server Zod schema. (KI-10)
+- [x] **Browser SDK contract:** make `@apexmonitor/browser-sdk` send the server's RUM schema (`type ∈ page_view|web_vital|heartbeat`, top-level `path`, `ttfbMs/fcpMs/lcpMs`); add a conformance test that validates SDK output against the server Zod schema. (KI-10)
 - [x] **Dead-letter queues:** bind each `*_dlq` queue to `dlq.exchange` so rejected messages are kept instead of dropped. (KI-32)
 - [ ] **Python SDK:** `rumKey` auth must default to `x-rum-key`. Remove `metrics.rps` / `metrics.endpoints` from the TS SDK or implement them on the server. (KI-11, KI-12)
 

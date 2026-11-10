@@ -65,7 +65,7 @@ sequenceDiagram
     W->>W: upsert PG hourly_rum_metrics
 ```
 
-Code: `modules/rum/*`, `workers/rum.worker.ts`. Note KI-10: the published browser SDK doesn't send this schema yet.
+Code: `modules/rum/*`, `workers/rum.worker.ts`. `@apexmonitor/browser-sdk` sends this schema; its tests validate batches against the server's Zod schema.
 
 ## 3. Dashboard queries
 

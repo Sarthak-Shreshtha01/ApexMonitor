@@ -52,12 +52,20 @@ describe('TypeScript SDK against the live server', () => {
     await expect(client.metrics.rps({ projectId: t.projectId })).resolves.toBeDefined();
   });
 
-  knownBug('KI-10', 'browser SDK batches are accepted by the RUM endpoint', async () => {
+  it('browser SDK batches are accepted by the RUM endpoint and reach the RUM tables (KI-10)', async () => {
     const rumKey = await createRumKey(t);
-    const rum = createBrowserRumClient({ baseUrl, projectId: t.projectId, rumKey });
-    rum.trackPageView('/landing');
-    rum.trackWebVitals({ lcpMs: 1200 });
+    const rum = createBrowserRumClient({ baseUrl, rumKey, defaultContext: { app: 'it' } });
+    rum.trackPageView('/landing', { plan: 'pro' }, { referrer: 'https://www.google.com/' });
+    rum.trackWebVitals({ lcpMs: 1200, fcpMs: 700, ttfbMs: 90 }, '/landing');
+    rum.trackHeartbeat('/landing');
     await expect(rum.flush({ timeoutMs: 5000 })).resolves.toBeUndefined();
+    await waitFor(async () => (await mongoCount('rum_raw_events', { projectId: t.projectId, path: '/landing' })) === 3, {
+      label: 'browser SDK events stored',
+    });
+    await waitFor(async () => {
+      const rows = await pgQuery<{ page_views: number }>('SELECT page_views FROM hourly_rum_metrics WHERE project_id = $1 AND path = $2', [t.projectId, '/landing']);
+      return rows.reduce((n, r) => n + Number(r.page_views), 0) === 1;
+    }, { label: 'page view aggregated' });
   });
 });
 

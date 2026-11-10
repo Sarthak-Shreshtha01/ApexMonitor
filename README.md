@@ -9,7 +9,7 @@ Self-hostable application performance monitoring: API request metrics, browser R
 | Area | What it does | Status |
 |---|---|---|
 | Ingest | Batched HTTP request logs via API key; idempotency keys; tier-based rate limits | Working |
-| RUM | Page views and web vitals (TTFB/FCP/LCP) with device, browser, geo, referrer breakdowns | Server working; browser SDK contract mismatch (KI-10) |
+| RUM | Page views and web vitals (TTFB/FCP/LCP) with device, browser, geo, referrer breakdowns | Working |
 | Metrics | Hourly p50/p95/p99, error rate, Apdex per endpoint | Working; merge math wrong (KI-8) |
 | Logs and traces | Searchable raw request logs; per-request detail view | Working (no distributed spans yet) |
 | Live traffic | RPS, error rate, top endpoints over WebSocket every 2 s | Working |

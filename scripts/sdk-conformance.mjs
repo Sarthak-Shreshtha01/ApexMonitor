@@ -65,16 +65,26 @@ async function runBrowserSdkCheck() {
   });
 
   rum.trackPageView('/home', { plan: 'pro' });
+  rum.trackWebVitals({ lcpMs: 1200, fcpMs: 800, ttfbMs: 120 }, '/home');
   await rum.flush();
 
   assert.equal(calls.length, 1);
   assert.equal(calls[0].init.headers['x-rum-key'], 'rum_key_abc');
 
+  // Shape required by the server's RUM schema (apps/server/src/modules/rum/dto/rum-ingest.dto.ts).
+  // The browser SDK unit tests validate against that Zod schema directly.
   const payload = JSON.parse(calls[0].init.body);
-  assert.equal(payload.projectId, 'proj_123');
+  assert.match(payload.sdkVersion, /^\d+\.\d+\.\d+$/);
   assert.equal(Array.isArray(payload.events), true);
-  assert.equal(payload.events.length, 1);
-  assert.equal(payload.events[0].type, 'page_view');
+  assert.equal(payload.events.length, 2);
+  assert.deepEqual(payload.events.map((e) => e.type), ['page_view', 'web_vital']);
+  for (const event of payload.events) {
+    assert.equal(typeof event.path, 'string');
+    assert.ok(!Number.isNaN(Date.parse(event.timestamp)));
+    assert.equal(event.payload, undefined);
+  }
+  assert.deepEqual(payload.events[0].metadata, { plan: 'pro' });
+  assert.equal(payload.events[1].lcpMs, 1200);
 }
 
 async function main() {

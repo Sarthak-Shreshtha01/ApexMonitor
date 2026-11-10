@@ -105,4 +105,3 @@ Tests: `npm test` and `npm run test:integration`; see [testing-strategy.md](test
 | CORS errors in browser | Add the web origin to `CORS_ORIGINS` |
 | `relation "users" does not exist` | Migrations not applied (step 3) |
 | Ingest returns 202 but no data | Check RabbitMQ UI for consumers on `*_queue`; server logs for worker errors |
-| Browser SDK gets 400 | Known (KI-10) |

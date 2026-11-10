@@ -3,7 +3,7 @@
 | Package | Path | Registry | Version | Status |
 |---|---|---|---|---|
 | `@apexmonitor/sdk` | `packages/sdk` | npm | 0.1.0 | Works for ingest + read APIs; `metrics.rps`/`metrics.endpoints` hit missing routes (KI-12) |
-| `@apexmonitor/browser-sdk` | `packages/browser-sdk` | npm | 0.1.0 | **Payload doesn't match server RUM schema** (KI-10) |
+| `@apexmonitor/browser-sdk` | `packages/browser-sdk` | npm | 0.1.0 | Sends the server's RUM schema; `trackError`/`trackCustom` removed (no server storage yet) |
 | `apexmonitor-sdk` | `packages/python-sdk` | PyPI | 0.1.0 | RUM key sent in wrong header (KI-11) |
 
 All three are thin API clients. None auto-instruments a framework yet: callers build log entries themselves.
@@ -51,22 +51,21 @@ import { createBrowserRumClient } from '@apexmonitor/browser-sdk';
 
 const rum = createBrowserRumClient({
   baseUrl: 'https://api.example.com',
-  projectId: 'proj_…',
-  rumKey: 'rum_…',
-  flushIntervalMs: 5000,   // default
-  maxQueueSize: 50,
+  rumKey: 'rum_…',            // the key decides the project
+  flushIntervalMs: 5000,      // default
+  maxQueueSize: 50,           // default; a flush sends at most 200 events per request
+  defaultContext: { app: 'shop' },  // added to every event's metadata (strings, numbers, booleans only)
 });
 
-rum.start();                                   // timer + beforeunload flush
-rum.trackPageView(location.pathname);
-rum.trackWebVitals({ lcpMs: 1200, fcpMs: 800, ttfbMs: 120 });
-rum.trackError(new Error('boom'));
-rum.trackCustom('cta_click', { id: 'upgrade' });
+rum.start();                                         // timer + beforeunload flush
+rum.trackPageView(location.pathname, { plan: 'pro' }); // referrer defaults to document.referrer
+rum.trackWebVitals({ lcpMs: 1200, fcpMs: 800, ttfbMs: 120 }); // path defaults to location.pathname
+rum.trackHeartbeat();                                // session still active
 await rum.flush();
 rum.stop();
 ```
 
-> Until KI-10 is fixed, the server rejects these batches with 400. The server accepts `type` ∈ `page_view | web_vital | heartbeat` with a top-level `path` (see [api.md](api.md#rum-apiv1rum)).
+Events match the server's RUM schema (`type` ∈ `page_view | web_vital | heartbeat`, top-level `path`, `ttfbMs/fcpMs/lcpMs`; see [api.md](api.md#rum-apiv1rum)). Invalid vitals (negative, non-finite, over 600 s) are dropped client-side. Every event carries a per-client `sessionId` (override with the `sessionId` option). Errors and custom events are not supported until the server can store them; `trackError` and `trackCustom` were removed in this version, and `projectId` is ignored.
 
 ## Python: `apexmonitor-sdk`
 

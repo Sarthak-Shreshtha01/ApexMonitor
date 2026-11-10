@@ -15,11 +15,12 @@ import { createBrowserRumClient } from '@apexmonitor/browser-sdk';
 
 const rum = createBrowserRumClient({
   baseUrl: 'https://api.example.com',
-  projectId: 'proj_123',
   rumKey: 'rum_key_abc',
 });
 
 rum.start();
 rum.trackPageView(window.location.pathname);
-rum.trackCustom('signup_click', { plan: 'pro' });
+rum.trackWebVitals({ lcpMs: 1200, fcpMs: 800, ttfbMs: 120 });
 ```
+
+Supported events are page views, Core Web Vitals (TTFB, FCP, LCP) and heartbeats. Error and custom events are not supported yet; `trackError` and `trackCustom` were removed because the server rejected them.
