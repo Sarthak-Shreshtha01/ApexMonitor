@@ -80,12 +80,21 @@ curl -X POST localhost:3000/api/v1/ingest \
 npm run validate:migrations
 npm run build --workspace=apps/server   # type check + bundle to apps/server/dist/bootstrap.js
 npm start --workspace=apps/server       # run the production bundle (same env vars as dev)
+docker build -f apps/server/Dockerfile -t apexmonitor-server .   # server image, from the repo root
 npm run build --workspace=apps/web
 npm run build:sdks
 npm run conformance:sdks
 ```
 
-There is no `npm test` yet; see [testing-strategy.md](testing-strategy.md).
+To run the image against the local stack, pass configuration as environment variables (the image never contains a `.env`):
+
+```bash
+docker run --rm --network host --env-file .env apexmonitor-server
+```
+
+The image runs as the non-root `node` user, has a `HEALTHCHECK` on `/health`, and does not run database migrations.
+
+Tests: `npm test` and `npm run test:integration`; see [testing-strategy.md](testing-strategy.md).
 
 ## Troubleshooting
 

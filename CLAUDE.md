@@ -31,6 +31,7 @@ npm run dev:server                         # API + all workers + Socket.IO (tsx 
 npm run dev:web                            # Next.js dashboard
 npm run build --workspace=apps/server      # tsc --noEmit + esbuild bundle → apps/server/dist/bootstrap.js
 npm start --workspace=apps/server          # run the built server (node dist/bootstrap.js)
+docker build -f apps/server/Dockerfile -t apexmonitor-server .   # server image (build from repo root)
 npm run build --workspace=apps/web
 npm run build:sdks                         # @apexmonitor/sdk + @apexmonitor/browser-sdk
 npm run conformance:sdks                   # SDK wire-contract checks (mocked transport)

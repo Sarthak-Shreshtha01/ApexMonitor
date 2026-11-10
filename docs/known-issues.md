@@ -53,9 +53,6 @@ _None open._
 - No state machine/cooldown: a breached rule fires (DB row + webhook) every 60 s until it recovers; there's no "resolved" notification.
 - Evaluates `hourly_metrics`, so `window_minutes` < 60 is meaningless.
 
-### KI-22 Server Dockerfile is not monorepo-aware
-`apps/server/Dockerfile` runs `npm ci` with `apps/server/package*.json`, but the lockfile is at the repo root. The image build fails (or installs unpinned deps).
-
 ### KI-11 Python SDK sends RUM keys in the wrong header
 `packages/python-sdk/src/apexmonitor_sdk/client.py#_auth_headers` defaults both `apiKey` and `rumKey` to `x-api-key`. Server expects `x-rum-key`.
 

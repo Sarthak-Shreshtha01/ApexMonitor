@@ -1,52 +1,53 @@
-# ==========================================
-# Stage 1: Builder
-# ==========================================
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1
+#
+# API server image (API + workers + Socket.IO in one process).
+# Build from the REPOSITORY ROOT so the workspace lockfile is used:
+#
+#   docker build -f apps/server/Dockerfile -t apexmonitor-server .
+#
+# Configuration comes only from environment variables (see docs/reference/configuration.md);
+# no .env file is copied into the image. Database migrations are not run by the image.
 
-# Set working directory inside the container
-WORKDIR /usr/src/app
+ARG NODE_IMAGE=node:24-alpine
 
-# Copy package configurations
-COPY package*.json ./
-COPY tsconfig.json ./
+# ---------------------------------------------------------------------------
+# Workspace manifests only, so dependency layers stay cached until a
+# package.json or the lockfile changes.
+# ---------------------------------------------------------------------------
+FROM ${NODE_IMAGE} AS manifests
+WORKDIR /app
+COPY package.json package-lock.json ./
+COPY apps/server/package.json apps/server/
+COPY apps/web/package.json apps/web/
+COPY packages/sdk/package.json packages/sdk/
+COPY packages/browser-sdk/package.json packages/browser-sdk/
 
-# Install ALL dependencies (including devDependencies needed for build)
-RUN npm ci
+# ---------------------------------------------------------------------------
+# Build: all server dependencies (incl. dev), type check, esbuild bundle.
+# ---------------------------------------------------------------------------
+FROM manifests AS build
+RUN npm ci --workspace=apps/server --no-audit --no-fund
+COPY apps/server/tsconfig.json apps/server/build.mjs apps/server/
+COPY apps/server/src apps/server/src
+RUN npm run build --workspace=apps/server
 
-# Copy the actual source code
-COPY src/ ./src/
+# ---------------------------------------------------------------------------
+# Production dependencies only (the bundle keeps node_modules external).
+# ---------------------------------------------------------------------------
+FROM manifests AS prod-deps
+RUN npm ci --workspace=apps/server --omit=dev --no-audit --no-fund && npm cache clean --force
 
-# Compile TypeScript to JavaScript (outputs to dist/)
-RUN npm run build
-
-# ==========================================
-# Stage 2: Production Runner
-# ==========================================
-FROM node:20-alpine AS runner
-
-WORKDIR /usr/src/app
-
-# Set node environment to production
+# ---------------------------------------------------------------------------
+# Runtime
+# ---------------------------------------------------------------------------
+FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production
-
-# Copy package configurations
-COPY package*.json ./
-
-# Install ONLY production dependencies
-RUN npm ci --omit=dev && npm cache clean --force
-
-# Copy the compiled output from the builder stage
-COPY --from=builder /usr/src/app/dist ./dist
-
-# Create a non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /usr/src/app
-
-USER nodejs
-
-# Expose the API port
+WORKDIR /app
+COPY --from=prod-deps --chown=node:node /app ./
+COPY --from=build --chown=node:node /app/apps/server/dist apps/server/dist
+WORKDIR /app/apps/server
+USER node
 EXPOSE 3000
-
-# Start the application using the compiled bootstrap file
-CMD ["node", "dist/bootstrap.js"]
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \
+  CMD wget -qO- "http://127.0.0.1:${PORT:-3000}/health" >/dev/null || exit 1
+CMD ["node", "--enable-source-maps", "dist/bootstrap.js"]

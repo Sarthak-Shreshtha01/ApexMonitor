@@ -87,3 +87,10 @@ jobs:
       - run: npm ci
       # Creates isolated test databases / vhost, applies migrations, boots the API + workers in-process.
       - run: npm run test:integration
+
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Built from the repo root so the workspace lockfile is used (KI-22). Not pushed.
+      - run: docker build -f apps/server/Dockerfile -t apexmonitor-server:ci .
