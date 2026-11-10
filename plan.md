@@ -10,7 +10,7 @@ This is the working plan to take ApexMonitor from a functional prototype to a pr
 |---|---|
 | Ingest (HTTP logs, RUM) | Works end to end in dev; has a tenant-isolation hole and can drop data |
 | Aggregation | Runs, but merged percentiles and averages are mathematically wrong |
-| Dashboard | Most pages wired; alerts page has no backend |
+| Dashboard | Most pages wired, including alerts |
 | Alerts | Evaluator exists; no CRUD API, no email, no dedup/cooldown |
 | SDKs | TS SDK works; browser SDK payload does not match server schema; Python RUM header wrong |
 | Billing | PhonePe (sandbox or production by config), one-shot payment, per-user not per-org |
@@ -141,7 +141,7 @@ Goal: correct numbers at real volume, with no silent loss.
 - [ ] Audit log viewer + export (table already exists).
 
 ### 4b. Alerting
-- [ ] CRUD API for alert rules (`/projects/:id/alerts`), wire `AlertRuleBuilder` + `TriggerHistory` UI.
+- [x] CRUD API for alert rules (`/api/v1/alerts`), wire `AlertRuleBuilder` + `TriggerHistory` UI. (KI-18)
 - [ ] Evaluate against 1-min rollups (not hourly); support `for` duration, cooldown, and resolve notifications.
 - [ ] Alert states: `ok → pending → firing → resolved`; dedupe keys; silence/mute windows.
 - [ ] Notification channels: email (SMTP/Resend/SES), Slack, Discord, Microsoft Teams, PagerDuty, generic signed webhook (HMAC header).

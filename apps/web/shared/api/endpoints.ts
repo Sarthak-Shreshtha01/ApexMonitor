@@ -50,5 +50,10 @@ export const ENDPOINTS = {
     stats: '/api/v1/keys/stats',
     create: '/api/v1/keys',
     revoke: (keyId: number) => `/api/v1/keys/${keyId}`,
-  }
+  },
+  alerts: {
+    rules: '/api/v1/alerts/rules',
+    rule: (ruleId: number) => `/api/v1/alerts/rules/${ruleId}`,
+    events: '/api/v1/alerts/events',
+  },
 } as const;

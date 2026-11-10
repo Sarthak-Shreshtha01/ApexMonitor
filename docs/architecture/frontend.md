@@ -9,9 +9,9 @@ Next.js **16** App Router, React 19, Tailwind 4. Read `apps/web/AGENTS.md` befor
 | `app/page.tsx` | `/` | Marketing landing (Hero, Features, AI insights, Pricing) |
 | `(marketing)` | `/about` | |
 | `(auth)` | `/login`, `/register`, `/oauth/callback` | |
-| `(dashboard)` | `/overview`, `/live-traffic`, `/logs`, `/traces`, `/traces/[id]`, `/analytics`, `/ai-insights`, `/keys`, `/settings`, `/billing` | Wrapped by `AppShell` |
+| `(dashboard)` | `/overview`, `/live-traffic`, `/logs`, `/traces`, `/traces/[id]`, `/analytics`, `/ai-insights`, `/keys`, `/alerts`, `/settings`, `/billing` | Wrapped by `AppShell` |
 
-`shared/routes/routes.ts` also reserves `/alerts`, `/verify-email`, `/forgot-password`, `/reset-password`, `/terms`, `/privacy`. These have **no pages yet**.
+`shared/routes/routes.ts` also reserves `/verify-email`, `/forgot-password`, `/reset-password`, `/terms`, `/privacy`. These have **no pages yet**.
 
 ## Directory layout
 
@@ -33,7 +33,7 @@ apps/web/
 └── middleware.ts             currently a no-op (KI-30)
 ```
 
-Feature slices: `ai-insights`, `alerts` (UI only, no backend), `analytics`, `auth`, `billing`, `dashboard`, `keys`, `logs`, `marketing`, `metrics`, `overview`, `projects`, `settings`, `traces`, `traffic`.
+Feature slices: `ai-insights`, `alerts` (rules list, rule builder and trigger history on `/alerts`, via `/api/v1/alerts`), `analytics`, `auth`, `billing`, `dashboard`, `keys`, `logs`, `marketing`, `metrics`, `overview`, `projects`, `settings`, `traces`, `traffic`.
 
 ## State
 

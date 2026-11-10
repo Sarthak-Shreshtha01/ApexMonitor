@@ -12,41 +12,41 @@ _Last updated: 2026-11-10_
 
 ## Now: security and data loss (P0 + urgent P1)
 
-_All done (see Done). Next up: item 1 below._
+_All done (see Done)._
 
 ## Next: launch blockers (P1)
 
-1. [ ] **Alerts UI:** wire `AlertRuleBuilder` + `TriggerHistory` to `/api/v1/alerts` (backend done). (KI-18)
+_All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for Phase 5._
 
 ## Soon: before real traffic (P2)
 
-2. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
-3. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-4. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-5. [ ] **Validate member roles** with a Zod enum. (KI-38)
-6. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-7. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-8. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-9. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-10. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-11. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-12. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
+2. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+3. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+4. [ ] **Validate member roles** with a Zod enum. (KI-38)
+5. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+6. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+7. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+8. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+9. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+10. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+11. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-13. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-14. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-15. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-16. [ ] Split `apps/api` and `apps/worker`.
-17. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-18. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+12. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+13. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+14. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+15. [ ] Split `apps/api` and `apps/worker`.
+16. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+17. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-19. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-20. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-21. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-22. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+18. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+19. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+20. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+21. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -65,6 +65,7 @@ _All done (see Done). Next up: item 1 below._
 
 ## Done
 
+- [x] 2026-11-10: Alerts page in the dashboard: create rules, see ok/firing state and last value, pause/resume/delete, trigger history (KI-18 complete; email delivery stays in Phase 4b) (KI-18)
 - [x] 2026-11-10: Alerts backend: rules CRUD API, ok/firing state (notify on trigger and resolve only), evaluation over raw logs in the real window, owner-only writes (KI-18, backend)
 - [x] 2026-11-10: Billing config: no built-in sandbox credentials (billing off → 503), production boot guard, merchant/endpoint from config, redirect from `FRONTEND_URL`, bad webhook signature → 401 (KI-7, config part)
 - [x] 2026-11-10: PHONEPE_* and RUM_RATE_LIMIT_RPM validated by the Zod config; nothing reads process.env directly any more (KI-14)

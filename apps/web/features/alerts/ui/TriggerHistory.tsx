@@ -1,55 +1,49 @@
-import { History, AlertCircle, AlertTriangle, CheckCircle2 } from 'lucide-react';
+'use client';
 
-const HISTORY_DATA = [
-  { id: 1, title: 'Critical Error Spike', time: '14:02:11', desc: 'Error rate reached 8.4% (Threshold: 5%)', icon: AlertCircle, color: 'text-error', bg: 'bg-error/10 border border-error/30', glow: '' },
-  { id: 2, title: 'Latency Warning', time: '12:15:45', desc: 'p99 latency exceeded 450ms', icon: AlertTriangle, color: 'text-tertiary', bg: 'bg-tertiary/10 border border-tertiary/30', glow: '' },
-  { id: 3, title: 'System Recovered', time: '10:30:00', desc: 'Status returned to within healthy bounds', icon: CheckCircle2, color: 'text-success', bg: 'bg-success/10 border border-success/30', glow: '' },
-  { id: 4, title: 'Authentication Failure', time: '08:12:33', desc: 'Bulk invalid token attempts from IP: 192.x.x.1', icon: AlertCircle, color: 'text-error', bg: 'bg-error/10 border border-error/30', glow: '', isLast: true },
-];
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, CheckCircle2, History } from 'lucide-react';
+import { alertsErrorMessage, alertsService } from '../api/alerts.service';
 
-export function TriggerHistory() {
+/** Latest triggered/resolved events of the active project's rules. */
+export function TriggerHistory({ projectId }: { projectId: string }) {
+  const eventsQuery = useQuery({
+    queryKey: ['alerts', 'events', projectId],
+    queryFn: () => alertsService.listEvents(projectId, 20),
+    refetchInterval: 30_000,
+  });
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <History className="text-tertiary w-5 h-5" />
-          <h2 className="text-xl font-bold tracking-tight text-white">Trigger History</h2>
-        </div>
-        <button className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline focus:outline-none">
-          Export
-        </button>
+      <div className="flex items-center gap-3">
+        <History className="text-tertiary w-5 h-5" />
+        <h2 className="text-xl font-bold tracking-tight text-white">Trigger History</h2>
       </div>
 
-      <div className="bg-surface-container-low rounded-2xl p-6 border border-outline-variant/10 relative overflow-hidden h-[420px]">
-        <div className="space-y-6 relative z-10">
-          {HISTORY_DATA.map((item) => {
-            const Icon = item.icon;
+      <div className="bg-surface-container-low rounded-2xl p-6 border border-outline-variant/10 max-h-[520px] overflow-y-auto">
+        {eventsQuery.isLoading && <p className="text-sm text-secondary">Loading…</p>}
+        {eventsQuery.isError && <p className="text-sm text-error">{alertsErrorMessage(eventsQuery.error)}</p>}
+        {eventsQuery.data?.length === 0 && <p className="text-sm text-secondary">Nothing has fired yet.</p>}
+        <ol className="space-y-6">
+          {eventsQuery.data?.map((event, index, all) => {
+            const triggered = event.kind === 'triggered';
+            const Icon = triggered ? AlertCircle : CheckCircle2;
             return (
-              <div key={item.id} className="flex gap-4 relative">
-                {!item.isLast && (
-                  <div className="absolute left-[15px] top-8 w-[1px] h-12 bg-outline-variant/30"></div>
-                )}
-                <div className={`w-8 h-8 rounded-full ${item.bg} flex items-center justify-center shrink-0 ${item.glow}`}>
-                  <Icon className={`${item.color} w-4 h-4`} />
+              <li key={event.id} className="flex gap-4 relative">
+                {index < all.length - 1 && <div className="absolute left-[15px] top-8 w-[1px] h-[calc(100%-8px)] bg-outline-variant/30" />}
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border ${triggered ? 'bg-error/10 border-error/30' : 'bg-success/10 border-success/30'}`}>
+                  <Icon className={`w-4 h-4 ${triggered ? 'text-error' : 'text-success'}`} />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-white">{item.title}</p>
-                    <span className="text-[10px] text-secondary font-mono">{item.time}</span>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-x-2">
+                    <p className="text-sm font-bold text-white">{event.ruleName ?? `Rule ${event.ruleId}`} {triggered ? 'fired' : 'resolved'}</p>
+                    <time dateTime={event.at} className="text-[10px] text-secondary font-mono">{new Date(event.at).toLocaleString()}</time>
                   </div>
-                  <p className="text-xs text-secondary mt-1">{item.desc}</p>
+                  <p className="text-xs text-secondary mt-1 break-words">{event.message}</p>
                 </div>
-              </div>
+              </li>
             );
           })}
-        </div>
-        
-        {/* Faded overlay for "view all" */}
-        <div className="absolute bottom-0 left-0 w-full h-24 bg-surface-container-low/95 z-20 flex items-end justify-center pb-5 pointer-events-none border-t border-outline-variant/20">
-          <button className="pointer-events-auto text-xs font-bold text-secondary hover:text-white transition-colors bg-surface-container-high px-4 py-2 rounded-md border border-outline-variant/20">
-            View All History
-          </button>
-        </div>
+        </ol>
       </div>
     </div>
   );

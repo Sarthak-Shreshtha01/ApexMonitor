@@ -29,9 +29,6 @@ _None open._
 `modules/billing/*`: one successful payment upgrades the user to PRO forever. There is no billing period, renewal, expiry or downgrade, and billing is per user, not per org. (Configuration was fixed: no sandbox fallbacks, production guard, redirect from `FRONTEND_URL`, 401 on bad signatures.)
 **Fix:** plan Phase 5 (real subscriptions).
 
-### KI-18 Alerting UI is not wired
-The backend is done (CRUD API under `/api/v1/alerts`, ok/firing state with triggered/resolved notifications, evaluation over raw logs in the rule's window), but the web `AlertRuleBuilder` and `TriggerHistory` are static mock-ups. `notify_email` is stored but never sent (plan Phase 4b).
-
 ### KI-11 Python SDK sends RUM keys in the wrong header
 `packages/python-sdk/src/apexmonitor_sdk/client.py#_auth_headers` defaults both `apiKey` and `rumKey` to `x-api-key`. Server expects `x-rum-key`.
 

@@ -14,7 +14,7 @@ Self-hostable application performance monitoring: API request metrics, browser R
 | Logs and traces | Searchable raw request logs; per-request detail view | Working (no distributed spans yet) |
 | Live traffic | RPS, error rate, top endpoints over WebSocket every 2 s | Working |
 | Insights | Z-score latency spike detection | Working (basic) |
-| Alerts | Error-rate / p99 rules with webhook delivery | API and evaluator working (triggered/resolved webhooks); dashboard UI not wired yet (KI-18) |
+| Alerts | Error-rate / p99 rules with webhook delivery | Working: dashboard page, API, triggered/resolved webhooks; email not sent yet |
 | Teams | Projects with owner/developer roles | Working |
 | Auth | Email/password, Google and GitHub OAuth | Working |
 | Billing | PhonePe checkout → PRO tier | Sandbox only |
