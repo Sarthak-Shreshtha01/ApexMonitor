@@ -28,6 +28,8 @@ x-server-env: &server-env
   API_BASE_URL: ${API_BASE_URL:?}
   FRONTEND_URL: ${FRONTEND_URL:?}
   LOG_LEVEL: ${LOG_LEVEL:-info}
+  COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+  COOKIE_SAMESITE: ${COOKIE_SAMESITE:-lax}
 
 services:
   postgres:
@@ -114,6 +116,9 @@ services:
       args:
         NEXT_PUBLIC_API_URL: ${API_BASE_URL:?}
         NEXT_PUBLIC_WS_URL: ${API_BASE_URL:?}
+    environment:
+      # true only when the dashboard can see the API's refresh cookie (see .env.example)
+      WEB_SESSION_COOKIE_CHECK: ${WEB_SESSION_COOKIE_CHECK:-false}
     ports: ["${WEB_PORT:-3001}:3001"]
     depends_on:
       api: { condition: service_healthy }

@@ -79,6 +79,7 @@ describe('config loading', () => {
     expect(cfg({ ...validEnv, NODE_ENV: 'production' }).COOKIE_SECURE).toBe(true);
     expect(cfg({ ...validEnv, COOKIE_SAMESITE: 'none' }).COOKIE_SECURE).toBe(true);
     expect(cfg({ ...validEnv, COOKIE_DOMAIN: '.example.com' }).COOKIE_DOMAIN).toBe('.example.com');
+    expect(cfg({ ...validEnv, COOKIE_DOMAIN: '' }).COOKIE_DOMAIN).toBeUndefined();
     expect(loadConfig({ ...validEnv, COOKIE_SAMESITE: 'none', COOKIE_SECURE: 'false' }).status).toBe(1);
   });
 

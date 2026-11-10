@@ -34,6 +34,8 @@ Put a reverse proxy (Caddy, nginx, a cloud load balancer) in front of both ports
 
 The refresh cookie is `Secure` in production, so browsers only send it over HTTPS (or `http://localhost`). If the dashboard and API are on different sites (not just subdomains), set `COOKIE_SAMESITE=none`.
 
+Optional server-side redirect for signed-out visitors: set `COOKIE_DOMAIN` to a parent domain of both hosts (e.g. `.example.com`) so the dashboard can see the cookie, then `WEB_SESSION_COOKIE_CHECK=true`. Without the shared domain leave the check off; the dashboard still redirects in the browser.
+
 ### Optional settings
 
 OAuth (`GOOGLE_*`, `GITHUB_*`), billing (`PHONEPE_*`) and other optional variables from [configuration.md](../reference/configuration.md) are not in the compose file, because empty values would fail validation. Add the ones you use in a `docker-compose.override.yml` next to it:

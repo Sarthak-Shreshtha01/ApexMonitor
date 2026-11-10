@@ -70,7 +70,6 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 
 | ID | Gap |
 |---|---|
-| KI-30 | No server-side route protection in web |
 | n/a | `/metrics/system` is unauthenticated and exposes queue/dependency details |
 | n/a | No brute-force protection / lockout on login |
 | n/a | No email verification; anyone can register any email |

@@ -10,6 +10,7 @@ import { setAccessToken } from '@/features/auth/state/auth.slice';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { ROUTES } from '@/shared/routes/routes';
+import { nextPathFromSearch } from '@/shared/routes/session-gate';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,7 +44,8 @@ export default function LoginPage() {
       const projects = await projectsService.listMine();
       setProjects(projects);
       
-      router.push(ROUTES.dashboard.overview);
+      // Back to the page that sent the user here (?next=), if it is a safe dashboard path.
+      router.push(nextPathFromSearch(window.location.search));
     } catch (error: unknown) {
       setError(getErrorMessage(error, 'Invalid email or password.'));
     } finally {

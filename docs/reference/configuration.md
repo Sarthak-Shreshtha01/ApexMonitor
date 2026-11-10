@@ -57,6 +57,7 @@ Next.js reads `apps/web/.env.local`.
 |---|---|---|
 | `NEXT_PUBLIC_API_URL` | `http://localhost:3000` | REST base URL |
 | `NEXT_PUBLIC_WS_URL` | `http://localhost:3000` | Socket.IO URL |
+| `WEB_SESSION_COOKIE_CHECK` | `true` | Runtime, server only (default off). Redirect dashboard pages to `/login` on the server when the API's `refresh_token` cookie is missing. Turn on only when the dashboard can see that cookie: same host as the API, or `COOKIE_DOMAIN` set to a parent domain of both. See `docs/architecture/frontend.md#auth-gating` |
 
 Run the web app on a port that isn't the API's (e.g. `npm run dev:web -- -p 3001`) and include it in `CORS_ORIGINS`.
 

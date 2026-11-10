@@ -4,9 +4,7 @@ import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAppSelector } from '@/lib/redux/hooks';
 import { refreshAccessToken } from '@/shared/api/apiClient';
-import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
-
-const isPublicPath = (path: string) => (PUBLIC_PATHS as readonly string[]).includes(path);
+import { isPublicPath, loginUrlFor } from '@/shared/routes/session-gate';
 
 /**
  * Protects dashboard pages. Tokens are kept in memory only, so after a page load the
@@ -27,9 +25,9 @@ export function RouteGate({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isPublic && status === 'anonymous') {
-      router.replace(ROUTES.auth.login);
+      router.replace(loginUrlFor(pathname, window.location.search));
     }
-  }, [isPublic, router, status]);
+  }, [isPublic, pathname, router, status]);
 
   if (!isPublic && status !== 'authenticated') {
     return null;

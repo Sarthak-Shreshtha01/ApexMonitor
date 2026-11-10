@@ -2,7 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENDPOINTS } from './endpoints';
 import { store } from '@/lib/redux/store';
 import { clearAuth, setAccessToken } from '@/features/auth/state/auth.slice';
-import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
+import { isPublicPath, loginUrlFor } from '@/shared/routes/session-gate';
 
 type ApiSuccessEnvelope<T> = {
   data: T;
@@ -68,8 +68,9 @@ export function refreshAccessToken(): Promise<string> {
 /** Sends the browser to the login page unless it is already on a public page. */
 export function redirectToLogin(): void {
   if (typeof window === 'undefined') return;
-  if ((PUBLIC_PATHS as readonly string[]).includes(window.location.pathname)) return;
-  window.location.assign(ROUTES.auth.login);
+  const { pathname, search } = window.location;
+  if (isPublicPath(pathname)) return;
+  window.location.assign(loginUrlFor(pathname, search));
 }
 
 const AUTH_ENDPOINTS = [

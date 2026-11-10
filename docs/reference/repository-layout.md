@@ -82,7 +82,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `shared/routes/routes.ts` | Route constants, public paths |
 | `shared/ui/` | Leaflet GeoIP map |
 | `lib/redux/` | Store, hooks, persist storage |
-| `middleware.ts` | Next middleware (no-op) |
+| `proxy.ts` | Next proxy (formerly middleware): optional server-side redirect to /login |
 | `test/` | Vitest tests for API client, auth state, routes |
 
 ## `packages`: SDKs

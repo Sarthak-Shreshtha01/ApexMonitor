@@ -53,7 +53,8 @@ const ConfigSchema = z.object({
   // Refresh-token cookie. COOKIE_SECURE defaults to true in production.
   COOKIE_SECURE: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
   COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
-  COOKIE_DOMAIN: z.string().min(1).optional(),
+  // Empty means unset, so compose files can pass ${COOKIE_DOMAIN:-} through.
+  COOKIE_DOMAIN: z.string().optional().transform((v) => v || undefined),
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
   // Per-project RUM events per minute; defaults to 2 × RATE_LIMIT_RPM.
   RUM_RATE_LIMIT_RPM: z.coerce.number().int().positive().optional(),

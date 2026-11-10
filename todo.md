@@ -6,7 +6,7 @@ Priority-ordered: **top = do first**. Pick from the top of **Now**.
 - When new work is discovered, insert it at the right priority, not at the bottom.
 - `KI-n` = entry in [`docs/known-issues.md`](docs/known-issues.md). `Pn` = phase in [`plan.md`](plan.md).
 
-_Last updated: 2026-11-10_
+_Last updated: 2026-11-11_
 
 ---
 
@@ -36,8 +36,7 @@ _All done (see Done)._
 7. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed; clear the 6 web lint warnings.
 8. [ ] Populate or drop `five_minute_metrics`. (KI-24)
 9. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-10. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-11. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
+10. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -56,6 +55,7 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: Web route protection: `proxy.ts` (Next 16) redirects signed-out visitors on the server when the refresh cookie is visible (opt-in `WEB_SESSION_COOKIE_CHECK`); every login redirect keeps `?next=` with an open-redirect guard (KI-30)
 - [x] 2026-11-10: Multiple replicas: event bus bridged through Redis pub/sub, one alert pass per minute cluster-wide (Redis lock), competing queue consumers; Socket.IO adapter deliberately not used (KI-20)
 - [x] 2026-11-10: CI: Node 24 from `.nvmrc`, ESLint for server + SDKs + web in CI (42 web errors fixed), server coverage report as an artifact
 - [x] 2026-11-10: Production compose stack (`infra/compose`): datastores without published ports, one-shot migrate job, API, dashboard; web Docker image (Next standalone); CI builds both images and validates the compose file

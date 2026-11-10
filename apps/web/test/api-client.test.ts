@@ -114,6 +114,13 @@ describe('apiClient', () => {
     expect(assign).toHaveBeenCalledWith(ROUTES.auth.login);
   });
 
+  it('the redirect remembers the page the user was on (?next=)', async () => {
+    vi.stubGlobal('window', { location: { pathname: '/logs', search: '?level=error', assign }, localStorage: { removeItem: vi.fn() } });
+    install(() => ({ status: 401, data: {} }));
+    await apiClient.get('/x').catch(() => undefined);
+    expect(assign).toHaveBeenCalledWith('/login?next=%2Flogs%3Flevel%3Derror');
+  });
+
   it('does not redirect when already on a public page', async () => {
     vi.stubGlobal('window', { location: { pathname: ROUTES.auth.login, assign }, localStorage: { removeItem: vi.fn() } });
     install(() => ({ status: 401, data: {} }));

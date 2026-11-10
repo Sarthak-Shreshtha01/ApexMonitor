@@ -48,8 +48,5 @@ The table and index exist; nothing populates it. README claimed it powers recent
 ### KI-27 Anomaly baseline is per batch, not per time window
 `workers/anomaly.worker.ts` pushes the p99 of each incoming batch into a 20-item Redis list. Baselines depend on SDK batch size and flush rate rather than time; small batches produce noisy p99s and false positives. Endpoint key is not method-qualified.
 
-### KI-30 Web `middleware.ts` does nothing
-Both branches return `NextResponse.next()`; route protection is purely client-side (`RouteGate`).
-
 ### KI-31 Mixed state libraries and stray root dependencies
 Root `package.json` depends on `axios` and `zustand`; the web app uses both Redux Toolkit and Zustand stores. `turbo.json` is empty.

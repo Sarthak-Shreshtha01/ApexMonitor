@@ -18,7 +18,7 @@ Next.js **16** App Router, React 19, Tailwind 4. Read `apps/web/AGENTS.md` befor
 ```
 apps/web/
 ├── app/                      routes, layouts, providers
-│   └── providers/            AppProviders (Redux, PersistGate, RouteGate, QueryProvider)
+│   └── providers/            AppProviders (Redux, RouteGate, QueryProvider)
 ├── features/<domain>/        feature slices
 │   ├── api/                  *.service.ts: calls apiClient
 │   ├── hooks/                TanStack Query hooks
@@ -30,7 +30,7 @@ apps/web/
 │   ├── routes/routes.ts      route constants + PUBLIC_PATHS
 │   └── ui/                   shared widgets (GeoIP Leaflet map)
 ├── lib/redux/                store, typed hooks, persist storage
-└── middleware.ts             currently a no-op (KI-30)
+└── proxy.ts                  optional server-side redirect to /login (Next 16 "proxy", formerly middleware)
 ```
 
 Feature slices: `ai-insights`, `alerts` (rules list, rule builder and trigger history on `/alerts`, via `/api/v1/alerts`), `analytics`, `auth`, `billing`, `dashboard`, `keys`, `logs`, `marketing`, `metrics`, `overview`, `projects`, `settings`, `traces`, `traffic`.
@@ -64,7 +64,12 @@ Endpoint paths are duplicated in `shared/api/endpoints.ts`. They'll move to `pac
 
 ## Auth gating
 
-`shared/layout/RouteGate.tsx` redirects client-side based on Redux auth state. `middleware.ts` doesn't enforce anything server-side.
+Two layers, both built on `shared/routes/session-gate.ts`:
+
+1. **`proxy.ts` (server, opt-in).** With `WEB_SESSION_COOKIE_CHECK=true`, a request for a dashboard page without the `refresh_token` cookie is redirected to `/login?next=<page>` before anything renders. The dashboard can see the API's cookie only when both run on the same host, or the API sets `COOKIE_DOMAIN` to a parent domain of both (e.g. `.example.com`). On other layouts leave it off, because the dashboard would never see the cookie and everyone would be sent to /login.
+2. **`shared/layout/RouteGate.tsx` (client, always on).** After a page load the session is `unknown`; the gate calls `refreshAccessToken()` (cookie), then renders the page or redirects to `/login?next=<page>`.
+
+After signing in, the login page returns to `?next=` if `safeNextPath` accepts it: a same-origin dashboard path, never an absolute URL, `//host` or a public page. Access control itself is the API: every data call needs a valid access token.
 
 ## Environment
 
@@ -72,5 +77,6 @@ Endpoint paths are duplicated in `shared/api/endpoints.ts`. They'll move to `pac
 |---|---|
 | `NEXT_PUBLIC_API_URL` | apiClient, auth service |
 | `NEXT_PUBLIC_WS_URL` | Socket.IO clients |
+| `WEB_SESSION_COOKIE_CHECK` | `proxy.ts` (runtime, server only) |
 
 See [../reference/configuration.md](../reference/configuration.md).
