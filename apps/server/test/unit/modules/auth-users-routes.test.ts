@@ -54,15 +54,30 @@ describe('auth routes', () => {
     expect(res.body.error).toBe('UNAUTHORIZED');
   });
 
-  it('POST /auth/refresh prefers the cookie, falls back to body, 401 when missing/invalid', async () => {
+  it('POST /auth/refresh uses a body token if given, otherwise the cookie; 401 when missing/invalid', async () => {
     authSvc.refreshSession.mockResolvedValue(tokens);
     await request(await app).post('/auth/refresh').set('cookie', 'refresh_token=from-cookie').send({ refreshToken: 'from-body' });
-    expect(authSvc.refreshSession).toHaveBeenLastCalledWith('from-cookie');
-    await request(await app).post('/auth/refresh').send({ refreshToken: 'from-body' });
     expect(authSvc.refreshSession).toHaveBeenLastCalledWith('from-body');
+    await request(await app).post('/auth/refresh').set('cookie', 'refresh_token=from-cookie').set('x-requested-with', 'XMLHttpRequest').send({});
+    expect(authSvc.refreshSession).toHaveBeenLastCalledWith('from-cookie');
     expect((await request(await app).post('/auth/refresh').send({})).status).toBe(401);
     authSvc.refreshSession.mockRejectedValueOnce(new Error('INVALID_REFRESH_TOKEN'));
     expect((await request(await app).post('/auth/refresh').send({ refreshToken: 'x' })).status).toBe(401);
+  });
+
+  it('refreshing with only the cookie requires x-requested-with, so other sites cannot trigger it (KI-17)', async () => {
+    authSvc.refreshSession.mockClear();
+    const res = await request(await app).post('/auth/refresh').set('cookie', 'refresh_token=from-cookie').send({});
+    expect(res.status).toBe(403);
+    expect(authSvc.refreshSession).not.toHaveBeenCalled();
+  });
+
+  it('the refresh cookie is httpOnly, SameSite=Lax, path /, 30 days (KI-17)', async () => {
+    authSvc.login.mockResolvedValueOnce(tokens);
+    const res = await request(await app).post('/auth/login').send({ email: 'u@x.test', password: 'p' });
+    const cookie = res.headers['set-cookie'][0];
+    expect(cookie).toMatch(/^refresh_token=ref; Max-Age=2592000; Path=\/; SameSite=Lax; HttpOnly/);
+    expect(cookie).not.toContain('Secure'); // NODE_ENV=test; production defaults to Secure
   });
 
   it('POST /auth/logout clears the cookie', async () => {

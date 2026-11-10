@@ -5,7 +5,7 @@
 | Principal | Credential | Header | Verified in | Grants |
 |---|---|---|---|---|
 | Dashboard user | Access JWT (HS256, 15 min, `tokenType: access`) | `Authorization: Bearer` | `shared/middleware/require-auth.ts` → `shared/auth/tokens.ts#verifyAccessToken` | User APIs; project APIs after membership check |
-| Dashboard user | Refresh JWT (30 days) | httpOnly cookie `refresh_token` or body | `modules/users/user.service.ts` | New token pair |
+| Dashboard user | Refresh JWT (30 days) | httpOnly cookie `refresh_token` (browsers; requires `X-Requested-With`) or `{refreshToken}` body (SDKs) | `modules/auth/auth.controller.ts#refresh`, `shared/auth/session-cookie.ts` | New token pair |
 | Backend service | Ingest API key `proj_…` | `x-api-key` | `modules/auth/middleware/auth.middleware.ts#validateApiKey` | Write to `/ingest` for the key's project |
 | Browser | RUM write key | `x-rum-key` + `Origin` | `#validateRumWriteKey` | Write to `/rum` from allowed origins |
 | Payment provider | `X-VERIFY` signature | header | `shared/utils/phonepe.utils.ts` | Upgrade subscription |
@@ -41,6 +41,12 @@
 - JSON body limit 2 MB; ingest batch ≤ 500 logs; RUM batch ≤ 200 events.
 - Request ID on every response (`x-request-id`).
 
+## Browser sessions
+
+- The web app keeps the access token (15 min) in memory only and never writes tokens to localStorage.
+- The refresh token reaches browsers only as the httpOnly `refresh_token` cookie: `Secure` by default in production, `SameSite=Lax`, path `/`, 30 days (`COOKIE_SECURE`, `COOKIE_SAMESITE`, `COOKIE_DOMAIN`).
+- CSRF: a refresh that relies on the cookie must send `X-Requested-With`. A custom header forces a CORS preflight, which only `CORS_ORIGINS` pass, so other sites can't make a browser renew a session. With `SameSite=Lax` the cookie isn't sent on cross-site POSTs anyway.
+
 ## Logs
 
 Request logs (`shared/utils/logger.ts`) replace credentials with `[REDACTED]`: `Authorization`, `Cookie`, `x-api-key`, `x-rum-key`, `Set-Cookie`, `x-access-token`, redirect `Location`, and query parameters such as `code`, `state`, `token`, `key`. Add new credential headers to `REDACTED_LOG_PATHS`.
@@ -64,10 +70,8 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 
 | ID | Gap |
 |---|---|
-| KI-17 | Tokens persisted in localStorage |
 | KI-30 | No server-side route protection in web |
 | n/a | `/metrics/system` is unauthenticated and exposes queue/dependency details |
-| n/a | No CSRF protection on cookie-authenticated `/auth/refresh` (mitigated only by CORS) |
 | n/a | No brute-force protection / lockout on login |
 | n/a | No email verification; anyone can register any email |
 

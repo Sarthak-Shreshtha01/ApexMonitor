@@ -1,7 +1,8 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENDPOINTS } from './endpoints';
 import { store } from '@/lib/redux/store';
-import { setTokens } from '@/features/auth/state/auth.slice';
+import { clearAuth, setAccessToken } from '@/features/auth/state/auth.slice';
+import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
 
 type ApiSuccessEnvelope<T> = {
   data: T;
@@ -20,9 +21,9 @@ const unwrapApiData = <T>(payload: unknown): T => {
 };
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL, // [cite: 750]
-  withCredentials: true, // Crucial for httpOnly refresh cookies [cite: 751]
-  timeout: 15000, // [cite: 753]
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true, // sends the httpOnly refresh cookie to the API
+  timeout: 15000,
 });
 
 // Request Interceptor: Attach in-memory Access Token
@@ -34,33 +35,42 @@ apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-let isRefreshing = false; // [cite: 762]
-type FailedQueueItem = {
-  resolve: (token: string) => void;
-  reject: (err: unknown) => void;
-};
+let pendingRefresh: Promise<string> | null = null;
 
-let failedQueue: FailedQueueItem[] = []; // [cite: 764]
+/**
+ * Gets a new access token using the httpOnly refresh cookie. Concurrent callers share one
+ * request. On failure the session is over: auth state is cleared (KI-40) and the error is
+ * rethrown; callers decide whether to redirect.
+ */
+export function refreshAccessToken(): Promise<string> {
+  pendingRefresh ??= axios
+    .post<ApiSuccessEnvelope<{ accessToken: string }> | { accessToken: string }>(ENDPOINTS.auth.refresh, {}, {
+      baseURL: process.env.NEXT_PUBLIC_API_URL,
+      withCredentials: true,
+      // Required by the API when refreshing with the cookie (blocks cross-site refreshes).
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    })
+    .then(({ data }) => {
+      const { accessToken } = unwrapApiData<{ accessToken: string }>(data);
+      store.dispatch(setAccessToken(accessToken));
+      return accessToken;
+    })
+    .catch((error: unknown) => {
+      store.dispatch(clearAuth());
+      throw error;
+    })
+    .finally(() => {
+      pendingRefresh = null;
+    });
+  return pendingRefresh;
+}
 
-const processQueue = (error: unknown, token: string | null) => {
-  failedQueue.forEach((item) => {
-    if (error) {
-      item.reject(error);
-      return;
-    }
-
-    if (token) {
-      item.resolve(token);
-    }
-  });
-
-  failedQueue = [];
-};
-
-type RefreshResponse = {
-  accessToken: string;
-  refreshToken: string;
-};
+/** Sends the browser to the login page unless it is already on a public page. */
+export function redirectToLogin(): void {
+  if (typeof window === 'undefined') return;
+  if ((PUBLIC_PATHS as readonly string[]).includes(window.location.pathname)) return;
+  window.location.assign(ROUTES.auth.login);
+}
 
 const AUTH_ENDPOINTS = [
   ENDPOINTS.auth.login,
@@ -75,7 +85,7 @@ const isAuthEndpoint = (url?: string): boolean => {
   return AUTH_ENDPOINTS.some((endpoint) => url.includes(endpoint));
 };
 
-// Response Interceptor: Handle 401 Auto-Refresh
+// Response Interceptor: unwrap the envelope; on 401 refresh once and replay.
 apiClient.interceptors.response.use(
   (response) => {
     response.data = unwrapApiData(response.data);
@@ -93,48 +103,21 @@ apiClient.interceptors.response.use(
       !originalRequest._retry &&
       !isAuthEndpoint(originalRequest.url);
 
-    if (shouldAttemptRefresh) { // [cite: 772]
-      if (isRefreshing) {
-        return new Promise<string>((resolve, reject) => {
-          failedQueue.push({ resolve, reject }); // [cite: 774]
-        }).then((token) => {
-          if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${token}`;
-          return apiClient(originalRequest);
-        }).catch((err) => Promise.reject(err));
-      }
-
-      originalRequest._retry = true; // [cite: 775]
-      isRefreshing = true; // [cite: 776]
-
-      try {
-        const storedRefreshToken = store.getState().auth.refreshToken;
-        if (!storedRefreshToken) {
-          throw new Error('MISSING_REFRESH_TOKEN');
-        }
-
-        const { data } = await axios.post<ApiSuccessEnvelope<RefreshResponse> | RefreshResponse>(ENDPOINTS.auth.refresh, { refreshToken: storedRefreshToken }, {
-          baseURL: process.env.NEXT_PUBLIC_API_URL,
-          withCredentials: true // [cite: 778]
-        });
-
-        const refreshData = unwrapApiData<RefreshResponse>(data);
-        const newAccessToken = refreshData.accessToken;
-        const newRefreshToken = refreshData.refreshToken;
-
-        store.dispatch(setTokens({ accessToken: newAccessToken, refreshToken: newRefreshToken }));
-
-        processQueue(null, newAccessToken); // [cite: 780]
-
-        if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        return apiClient(originalRequest); // [cite: 781]
-
-      } catch (refreshError) {
-        processQueue(refreshError, null); // [cite: 783]
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false; // [cite: 787]
-      }
+    if (!shouldAttemptRefresh) {
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
+
+    originalRequest._retry = true;
+    let token: string;
+    try {
+      token = await refreshAccessToken();
+    } catch (refreshError) {
+      // The session can't be renewed: auth state is already cleared; go to /login (KI-40).
+      redirectToLogin();
+      return Promise.reject(refreshError);
+    }
+
+    if (originalRequest.headers) originalRequest.headers.Authorization = `Bearer ${token}`;
+    return apiClient(originalRequest);
   }
 );

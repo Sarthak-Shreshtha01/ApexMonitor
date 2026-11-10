@@ -20,26 +20,25 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Soon: before real traffic (P2)
 
-1. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-2. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-3. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-4. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+2. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+3. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-5. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-6. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-7. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-8. [ ] Split `apps/api` and `apps/worker`.
-9. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-10. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+4. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+5. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+6. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+7. [ ] Split `apps/api` and `apps/worker`.
+8. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+9. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-11. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-12. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-13. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-14. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+10. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+11. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+12. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+13. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -58,6 +57,7 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Done
 
+- [x] 2026-11-10: Web auth: tokens no longer in localStorage (access token in memory, refresh token httpOnly cookie, CSRF header on cookie refresh, configurable cookie flags); failed refresh clears state and redirects to /login (KI-17, KI-40)
 - [x] 2026-11-10: Rate limiting counts events in a sliding window (atomic Lua), refused batches cost nothing, 429 carries Retry-After/X-RateLimit-*, FREE tier cached, live counters pipelined (KI-19)
 - [x] 2026-11-10: Graceful shutdown on SIGTERM/SIGINT: /ready 503, finish HTTP requests, drain queue consumers, stop alert loop and websockets, close all connections, time-boxed (KI-21)
 - [x] 2026-11-10: Migration runner: numbered files in `scripts/migrations`, tracked in `schema_migrations`, advisory lock, per-file transactions; auto-applied in dev, production refuses to start with pending ones; `npm run db:migrate` / `node dist/migrate.js` (KI-15)

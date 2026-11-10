@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch } from '@/lib/redux/hooks';
-import { setTokens } from '@/features/auth/state/auth.slice';
+import { setAccessToken } from '@/features/auth/state/auth.slice';
 import { authService } from '@/features/auth/api/auth.service';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
@@ -43,7 +43,7 @@ export function OAuthCallbackPageClient() {
       try {
         const tokens = await exchangeOnce(code);
         if (cancelled) return;
-        dispatch(setTokens({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
+        dispatch(setAccessToken(tokens.accessToken)); // refresh token is the httpOnly cookie
       } catch {
         // Expired or already used (e.g. the page was reloaded): start the sign-in again.
         if (!cancelled) router.replace(ROUTES.auth.login);

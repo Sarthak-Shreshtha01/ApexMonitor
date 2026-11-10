@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Activity, Mail, Unlock } from 'lucide-react';
 import { authService } from '@/features/auth/api/auth.service';
 import { useAppDispatch } from '@/lib/redux/hooks';
-import { setTokens } from '@/features/auth/state/auth.slice';
+import { setAccessToken } from '@/features/auth/state/auth.slice';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { ROUTES } from '@/shared/routes/routes';
@@ -36,8 +36,9 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const { accessToken, refreshToken } = await authService.login({ email, password });
-      dispatch(setTokens({ accessToken, refreshToken }));
+      // The API sets the refresh token as an httpOnly cookie; only the access token is kept, in memory.
+      const { accessToken } = await authService.login({ email, password });
+      dispatch(setAccessToken(accessToken));
 
       const projects = await projectsService.listMine();
       setProjects(projects);

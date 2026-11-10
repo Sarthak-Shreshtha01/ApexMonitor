@@ -73,6 +73,15 @@ describe('config loading', () => {
     expect(loadConfig({ ...validEnv, DB_AUTO_MIGRATE: 'yes' }).status).toBe(1);
   });
 
+  it('cookie settings: Secure by default in production, SameSite=none forces Secure (KI-17)', () => {
+    const cfg = (env: Record<string, string>) => JSON.parse(loadConfig(env).stdout.trim().split('\n').pop()!);
+    expect(cfg(validEnv)).toMatchObject({ COOKIE_SECURE: false, COOKIE_SAMESITE: 'lax' });
+    expect(cfg({ ...validEnv, NODE_ENV: 'production' }).COOKIE_SECURE).toBe(true);
+    expect(cfg({ ...validEnv, COOKIE_SAMESITE: 'none' }).COOKIE_SECURE).toBe(true);
+    expect(cfg({ ...validEnv, COOKIE_DOMAIN: '.example.com' }).COOKIE_DOMAIN).toBe('.example.com');
+    expect(loadConfig({ ...validEnv, COOKIE_SAMESITE: 'none', COOKIE_SECURE: 'false' }).status).toBe(1);
+  });
+
   it('parses RUM_RATE_LIMIT_RPM as a number (KI-14)', () => {
     const r = loadConfig({ ...validEnv, RUM_RATE_LIMIT_RPM: '5000' });
     expect(JSON.parse(r.stdout.trim().split('\n').pop()!).RUM_RATE_LIMIT_RPM).toBe(5000);

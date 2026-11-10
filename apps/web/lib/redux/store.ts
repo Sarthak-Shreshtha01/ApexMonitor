@@ -1,39 +1,24 @@
 import { combineReducers, configureStore } from '@reduxjs/toolkit';
-import { persistReducer, persistStore } from 'redux-persist';
-import {
-  FLUSH,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-  REHYDRATE,
-} from 'redux-persist';
-import storage from './storage';
 import authReducer from '@/features/auth/state/auth.slice';
 
 const rootReducer = combineReducers({
   auth: authReducer,
 });
 
-const persistConfig = {
-  key: 'persistroot',
-  storage,
-  whitelist: ['auth'],
-};
+export const store = configureStore({ reducer: rootReducer });
 
-const persistedReducer = persistReducer(persistConfig, rootReducer);
-
-export const store = configureStore({
-  reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
-});
-
-export const persistor = persistStore(store);
+/**
+ * Earlier versions persisted { accessToken, refreshToken } to localStorage under this key.
+ * Remove it so old tokens don't linger on users' machines.
+ */
+export const LEGACY_PERSIST_KEY = 'persist:persistroot';
+if (typeof window !== 'undefined') {
+  try {
+    window.localStorage.removeItem(LEGACY_PERSIST_KEY);
+  } catch {
+    // storage unavailable (private mode etc.): nothing to clean
+  }
+}
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

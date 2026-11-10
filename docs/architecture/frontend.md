@@ -40,7 +40,7 @@ Feature slices: `ai-insights`, `alerts` (rules list, rule builder and trigger hi
 | Kind | Tool | Where |
 |---|---|---|
 | Server data | TanStack Query | `features/*/hooks`, `app/providers/QueryProvider.tsx` |
-| Auth session | Redux Toolkit + redux-persist (localStorage) | `features/auth/state/auth.slice.ts`, `lib/redux/*` |
+| Auth session | Redux Toolkit, **in memory only**: `{accessToken, status}`. The refresh token is the API's httpOnly `refresh_token` cookie | `features/auth/state/auth.slice.ts`, `lib/redux/store.ts` |
 | UI/project selection | Zustand | `features/projects/state/project.store.ts`, `features/dashboard/state/dashboard.store.ts` |
 
 Two client-state libraries are in use; consolidating on one is in plan Phase 1.
@@ -51,7 +51,10 @@ Two client-state libraries are in use; consolidating on one is in plan Phase 1.
 
 1. Base URL from `NEXT_PUBLIC_API_URL`.
 2. Request interceptor attaches `Authorization: Bearer <accessToken>`.
-3. On 401 (non-auth endpoints) it starts a single refresh (`POST /api/v1/auth/refresh`), queues concurrent requests, and replays them with the new token. If the refresh fails, every queued request is rejected; stored tokens are **not** cleared and there is no redirect (KI-40).
+3. On 401 (non-auth endpoints) it calls `refreshAccessToken()`: `POST /api/v1/auth/refresh` with the cookie (`withCredentials`) and `X-Requested-With: XMLHttpRequest`, no token in the body. Concurrent 401s share one refresh and are replayed with the new token.
+4. If the refresh fails, the auth state is cleared (`status: anonymous`) and the browser goes to `/login`.
+
+Session on page load: nothing is stored in the browser, so `RouteGate` starts with `status: unknown` on dashboard pages and calls `refreshAccessToken()`; it renders the page once `authenticated` or redirects to `/login` when `anonymous`. Login, register and the OAuth callback keep only the access token. The `persist:persistroot` localStorage entry written by older versions is deleted at startup.
 
 Endpoint paths are duplicated in `shared/api/endpoints.ts`. They'll move to `packages/contracts` (plan Phase 2).
 

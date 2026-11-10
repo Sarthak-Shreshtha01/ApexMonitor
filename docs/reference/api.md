@@ -65,7 +65,7 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 | Method | Path | Auth | Body / Query | Notes |
 |---|---|---|---|---|
 | POST | `/login` | none | `{email, password}` | Returns `{accessToken, refreshToken, user}`; sets `refresh_token` cookie |
-| POST | `/refresh` | cookie or body | `{refreshToken?}` | Rotates pair |
+| POST | `/refresh` | cookie or body | `{refreshToken?}` | Rotates the pair and the cookie. A body token wins; using only the cookie requires the `X-Requested-With` header (`403` otherwise) |
 | POST | `/logout` | none | n/a | Clears cookie |
 | GET | `/oauth/:provider/start` | none | `?mode=login\|register` | `provider` = `google` \| `github`; 302 to provider |
 | GET | `/oauth/:provider/callback` | none | provider params | 302 to `${FRONTEND_URL}/oauth/callback?code&provider`; `code` is single-use and valid for 60 s |

@@ -6,6 +6,7 @@ export interface CookieOptions {
   secure?: boolean;
   sameSite?: SameSite;
   path?: string;
+  domain?: string;
 }
 
 export function parseCookieHeader(cookieHeader: string | undefined): Record<string, string> {
@@ -28,6 +29,9 @@ export function serializeCookie(name: string, value: string, options: CookieOpti
   }
 
   parts.push(`Path=${options.path ?? '/'}`);
+  if (options.domain) {
+    parts.push(`Domain=${options.domain}`);
+  }
   parts.push(`SameSite=${capitalizeSameSite(options.sameSite ?? 'lax')}`);
 
   if (options.httpOnly !== false) {

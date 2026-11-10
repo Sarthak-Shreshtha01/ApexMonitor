@@ -84,7 +84,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 
 - Read `apps/web/AGENTS.md` first: Next.js 16 has breaking changes; check `node_modules/next/dist/docs/` before writing Next APIs.
 - Feature-sliced: `features/<domain>/{api,hooks,ui,state}`; shared HTTP client is `shared/api/apiClient.ts`, endpoint map `shared/api/endpoints.ts`, route constants `shared/routes/routes.ts`.
-- Server state via TanStack Query; auth state via Redux Toolkit + redux-persist.
+- Server state via TanStack Query; auth state via Redux Toolkit, in memory only (never persist tokens). The refresh token is an httpOnly cookie; use `refreshAccessToken()` from `shared/api/apiClient.ts`.
 
 ## Gotchas
 

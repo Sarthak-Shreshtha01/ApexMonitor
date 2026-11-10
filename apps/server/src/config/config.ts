@@ -50,6 +50,10 @@ const ConfigSchema = z.object({
   DB_AUTO_MIGRATE: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
   // Longest a SIGTERM/SIGINT shutdown may take before the process exits anyway.
   SHUTDOWN_TIMEOUT_MS: z.coerce.number().int().positive().default(25_000),
+  // Refresh-token cookie. COOKIE_SECURE defaults to true in production.
+  COOKIE_SECURE: z.enum(['true', 'false']).optional().transform((v) => (v === undefined ? undefined : v === 'true')),
+  COOKIE_SAMESITE: z.enum(['lax', 'strict', 'none']).default('lax'),
+  COOKIE_DOMAIN: z.string().min(1).optional(),
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
   // Per-project RUM events per minute; defaults to 2 × RATE_LIMIT_RPM.
   RUM_RATE_LIMIT_RPM: z.coerce.number().int().positive().optional(),
@@ -84,7 +88,17 @@ const ConfigSchema = z.object({
     path: ['PHONEPE_MERCHANT_ID'],
   });
 
-const parsed = ConfigSchema.transform((c) => ({ ...c, DB_AUTO_MIGRATE: c.DB_AUTO_MIGRATE ?? c.NODE_ENV !== 'production' })).safeParse(process.env);
+const parsed = ConfigSchema
+  .refine((c) => c.COOKIE_SAMESITE !== 'none' || c.COOKIE_SECURE !== false, {
+    message: 'COOKIE_SAMESITE=none requires secure cookies (browsers reject it otherwise)',
+    path: ['COOKIE_SAMESITE'],
+  })
+  .transform((c) => ({
+    ...c,
+    DB_AUTO_MIGRATE: c.DB_AUTO_MIGRATE ?? c.NODE_ENV !== 'production',
+    COOKIE_SECURE: c.COOKIE_SECURE ?? (c.NODE_ENV === 'production' || c.COOKIE_SAMESITE === 'none'),
+  }))
+  .safeParse(process.env);
 
 if (!parsed.success) {
   console.error('❌ Invalid environment variables:', JSON.stringify(parsed.error.format(), null, 2));

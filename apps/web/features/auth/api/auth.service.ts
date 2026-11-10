@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/apiClient';
+import { apiClient, refreshAccessToken } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
 
 export interface LoginDto {
@@ -48,10 +48,8 @@ export const authService = {
     const response = await apiClient.post<AuthResponse>(ENDPOINTS.auth.register, data);
     return response.data;
   },
-  refresh: async (): Promise<RefreshResponse> => {
-    const response = await apiClient.post<RefreshResponse>(ENDPOINTS.auth.refresh, {});
-    return response.data;
-  },
+  /** New access token from the httpOnly refresh cookie (see apiClient.refreshAccessToken). */
+  refresh: async (): Promise<{ accessToken: string }> => ({ accessToken: await refreshAccessToken() }),
   logout: async (): Promise<void> => {
     await apiClient.post(ENDPOINTS.auth.logout);
   }

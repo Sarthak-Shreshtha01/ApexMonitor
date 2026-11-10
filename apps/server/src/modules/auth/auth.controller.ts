@@ -1,38 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from './auth.service';
-import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
+import { parseCookieHeader } from '@shared/utils/cookie.utils';
 import { errorBody, successBody } from '@shared/http/api-contract';
 import { auditLogService } from '@shared/services/audit-log.service';
 import { OAuthExchangeDto } from './dto/oauth.dto';
 import { LoginDto } from '@modules/users/dto/user.dto';
+import { CSRF_HEADER, clearSessionCookies, REFRESH_COOKIE, setSessionCookies } from '@shared/auth/session-cookie';
 
-const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
-
-function setAuthCookies(res: Response, accessToken: string, refreshToken: string): void {
-  res.setHeader('Set-Cookie', [
-    serializeCookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAgeSeconds: COOKIE_MAX_AGE_SECONDS,
-    }),
-  ]);
-
-  res.setHeader('X-Access-Token', accessToken);
-}
-
-function clearAuthCookies(res: Response): void {
-  res.setHeader('Set-Cookie', [
-    serializeCookie('refresh_token', '', {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      path: '/',
-      maxAgeSeconds: 0,
-    }),
-  ]);
-}
 
 export class AuthController {
   private service = new AuthService();
@@ -101,7 +75,7 @@ export class AuthController {
       }
 
       const tokens = await this.service.exchangeOAuthLoginCode(parsed.data.code);
-      setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+      setSessionCookies(res, tokens.accessToken, tokens.refreshToken);
       res.status(200).json(successBody(res, tokens));
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_OAUTH_CODE') {
@@ -117,7 +91,7 @@ export class AuthController {
     try {
       const { email, password } = LoginDto.parse(req.body); // invalid → 400 via the error handler
       const result = await this.service.login(email, password);
-      setAuthCookies(res, result.accessToken, result.refreshToken);
+      setSessionCookies(res, result.accessToken, result.refreshToken);
       void auditLogService.recordSafe({
         actorUserId: result.user.id,
         action: 'auth.login',
@@ -140,17 +114,23 @@ export class AuthController {
 
   public refresh = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const cookies = parseCookieHeader(req.headers.cookie);
+      const cookieToken = parseCookieHeader(req.headers.cookie)[REFRESH_COOKIE];
       const bodyRefreshToken = typeof req.body?.refreshToken === 'string' ? req.body.refreshToken : undefined;
-      const refreshToken = cookies.refresh_token || bodyRefreshToken;
+      // A token in the body (SDKs, scripts) wins. The cookie is sent by browsers automatically,
+      // so using it requires a custom header that other sites can't add without passing CORS.
+      const refreshToken = bodyRefreshToken || cookieToken;
 
       if (!refreshToken) {
         res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Missing refresh token'));
         return;
       }
+      if (!bodyRefreshToken && !req.get(CSRF_HEADER)) {
+        res.status(403).json(errorBody(res, 'FORBIDDEN', `Refreshing with the session cookie requires the ${CSRF_HEADER} header`));
+        return;
+      }
 
       const result = await this.service.refreshSession(refreshToken);
-      setAuthCookies(res, result.accessToken, result.refreshToken);
+      setSessionCookies(res, result.accessToken, result.refreshToken);
       res.status(200).json(successBody(res, { accessToken: result.accessToken, refreshToken: result.refreshToken }));
     } catch (error) {
       if (error instanceof Error && error.message === 'INVALID_REFRESH_TOKEN') {
@@ -171,7 +151,7 @@ export class AuthController {
       ipAddress: _req.ip,
       userAgent: _req.get('user-agent') ?? null,
     });
-    clearAuthCookies(res);
+    clearSessionCookies(res);
     res.status(204).send();
   };
 

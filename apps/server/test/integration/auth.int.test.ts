@@ -43,7 +43,7 @@ describe('authentication (real stack)', () => {
     const viaBody = await api('POST', '/api/v1/auth/refresh', { body: { refreshToken: t.refreshToken } });
     expect(viaBody.status).toBe(200);
     expect((await api('GET', '/api/v1/users/me', { token: viaBody.body.data.accessToken })).status).toBe(200);
-    const viaCookie = await api('POST', '/api/v1/auth/refresh', { headers: { cookie: `refresh_token=${t.refreshToken}` } });
+    const viaCookie = await api('POST', '/api/v1/auth/refresh', { headers: { cookie: `refresh_token=${t.refreshToken}`, 'x-requested-with': 'XMLHttpRequest' } });
     expect(viaCookie.status).toBe(200);
     expect((await api('POST', '/api/v1/auth/refresh', { body: { refreshToken: t.accessToken } })).status).toBe(401);
     expect((await api('POST', '/api/v1/auth/refresh', { body: { refreshToken: 'garbage' } })).status).toBe(401);
@@ -56,6 +56,24 @@ describe('authentication (real stack)', () => {
     expect(ok.status).toBe(200);
     expect(ok.body.profile).toMatchObject({ name: 'Renamed', company: 'Acme', timezone: 'Asia/Kolkata' });
     expect((await api('PATCH', '/api/v1/users/me', { token: t.accessToken, body: { name: 'X Y', email: other.email } })).status).toBe(409);
+  });
+
+  it('browser flow: the httpOnly cookie alone renews the session, only with x-requested-with (KI-17)', async () => {
+    const login = await api('POST', '/api/v1/auth/login', { body: { email: t.email, password: t.password } });
+    const setCookie = login.headers.get('set-cookie')!;
+    expect(setCookie).toMatch(/refresh_token=[^;]+; Max-Age=2592000; Path=\/; SameSite=Lax; HttpOnly/);
+    const cookie = setCookie.split(';')[0];
+
+    const blocked = await api('POST', '/api/v1/auth/refresh', { body: {}, headers: { cookie } });
+    expect(blocked.status).toBe(403); // a cross-site form post can't add the header
+
+    const renewed = await api('POST', '/api/v1/auth/refresh', { body: {}, headers: { cookie, 'x-requested-with': 'XMLHttpRequest' } });
+    expect(renewed.status).toBe(200);
+    expect((await api('GET', '/api/v1/users/me', { token: renewed.body.data.accessToken })).status).toBe(200);
+    expect(renewed.headers.get('set-cookie')).toContain('refresh_token='); // rotated
+
+    const logout = await api('POST', '/api/v1/auth/logout');
+    expect(logout.headers.get('set-cookie')).toContain('refresh_token=; Max-Age=0');
   });
 
   it('logout clears the refresh cookie', async () => {

@@ -137,7 +137,7 @@ Goal: correct numbers at real volume, with no silent loss.
 - [ ] Invitations by email with expiring tokens.
 - [ ] 2FA (TOTP) and session list / revoke-all.
 - [ ] Refresh-token rotation with reuse detection, stored server-side (hashed).
-- [ ] Move web auth to httpOnly cookies; stop persisting tokens in localStorage via redux-persist. (KI-17)
+- [x] Move web auth to httpOnly cookies; stop persisting tokens in localStorage via redux-persist. (KI-17)
 - [ ] Audit log viewer + export (table already exists).
 
 ### 4b. Alerting

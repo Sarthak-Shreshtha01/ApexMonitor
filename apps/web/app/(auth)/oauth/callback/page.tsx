@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Suspense } from 'react';
 import { OAuthCallbackPageClient } from '@/features/auth/ui/OAuthCallbackPageClient';
 
 export const metadata: Metadata = {
@@ -11,5 +12,11 @@ export const metadata: Metadata = {
 };
 
 export default function OAuthCallbackPage() {
-  return <OAuthCallbackPageClient />;
+  // The client component reads ?code with useSearchParams, which needs a Suspense boundary
+  // so the rest of the page can still be prerendered.
+  return (
+    <Suspense fallback={null}>
+      <OAuthCallbackPageClient />
+    </Suspense>
+  );
 }

@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import axios, { AxiosAdapter, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { apiClient } from '@/shared/api/apiClient';
+import { apiClient, refreshAccessToken } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
 import { store } from '@/lib/redux/store';
-import authReducer, { clearAuth, setAccessToken, setRefreshToken, setTokens } from '@/features/auth/state/auth.slice';
+import authReducer, { clearAuth, setAccessToken } from '@/features/auth/state/auth.slice';
 import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
 import { authService } from '@/features/auth/api/auth.service';
 
@@ -25,21 +25,37 @@ function install(handler: Handler) {
 }
 
 const auth = (c: InternalAxiosRequestConfig) => String(c.headers?.Authorization ?? '');
+const header = (c: InternalAxiosRequestConfig, name: string) => (c.headers as Record<string, unknown> | undefined)?.[name];
 
-describe('auth slice', () => {
-  it('sets, updates and clears tokens', () => {
-    let s = authReducer(undefined, setTokens({ accessToken: 'a', refreshToken: 'r' }));
-    expect(s).toEqual({ accessToken: 'a', refreshToken: 'r' });
-    s = authReducer(s, setAccessToken('a2'));
-    s = authReducer(s, setRefreshToken(null));
-    expect(s).toEqual({ accessToken: 'a2', refreshToken: null });
-    expect(authReducer(s, clearAuth())).toEqual({ accessToken: null, refreshToken: null });
+// The client redirects with window.location.assign when a session can't be renewed.
+const assign = vi.fn();
+beforeEach(() => {
+  assign.mockReset();
+  vi.stubGlobal('window', { location: { pathname: '/overview', assign }, localStorage: { removeItem: vi.fn() } });
+});
+afterEach(() => vi.unstubAllGlobals());
+
+describe('auth slice (KI-17)', () => {
+  it('keeps only an in-memory access token and a session status', () => {
+    let s = authReducer(undefined, { type: 'init' });
+    expect(s).toEqual({ accessToken: null, status: 'unknown' });
+    s = authReducer(s, setAccessToken('a'));
+    expect(s).toEqual({ accessToken: 'a', status: 'authenticated' });
+    expect(authReducer(s, clearAuth())).toEqual({ accessToken: null, status: 'anonymous' });
+  });
+
+  it('nothing about the session is written to localStorage', () => {
+    const setItem = vi.fn();
+    vi.stubGlobal('localStorage', { setItem, getItem: vi.fn(), removeItem: vi.fn() });
+    store.dispatch(setAccessToken('secret-access'));
+    expect(setItem).not.toHaveBeenCalled();
+    expect(JSON.stringify(store.getState())).not.toContain('refresh');
   });
 });
 
 describe('apiClient', () => {
   beforeEach(() => {
-    store.dispatch(setTokens({ accessToken: 'old-access', refreshToken: 'refresh-1' }));
+    store.dispatch(setAccessToken('old-access'));
   });
 
   it('attaches the access token and unwraps the success envelope', async () => {
@@ -54,26 +70,28 @@ describe('apiClient', () => {
     expect((await apiClient.get('/api/v1/users/me')).data).toEqual({ profile: { id: 1 } });
   });
 
-  it('on 401 refreshes once, stores the new tokens and replays the request', async () => {
+  it('on 401 refreshes with the cookie (no token in the body, CSRF header set) and replays the request', async () => {
     const seen = install((c) => {
-      if (c.url === ENDPOINTS.auth.refresh) return { status: 200, data: { data: { accessToken: 'new-access', refreshToken: 'refresh-2' } } };
+      if (c.url === ENDPOINTS.auth.refresh) return { status: 200, data: { data: { accessToken: 'new-access', refreshToken: 'ignored' } } };
       return auth(c) === 'Bearer new-access' ? { status: 200, data: { data: 'ok' } } : { status: 401, data: { error: 'UNAUTHORIZED' } };
     });
     const res = await apiClient.get('/api/v1/logs');
     expect(res.data).toBe('ok');
-    expect(store.getState().auth).toEqual({ accessToken: 'new-access', refreshToken: 'refresh-2' });
+    expect(store.getState().auth).toEqual({ accessToken: 'new-access', status: 'authenticated' });
     const refreshCall = seen.find((c) => c.url === ENDPOINTS.auth.refresh)!;
-    expect(JSON.parse(String(refreshCall.data))).toEqual({ refreshToken: 'refresh-1' });
+    expect(JSON.parse(String(refreshCall.data))).toEqual({});
+    expect(refreshCall.withCredentials).toBe(true);
+    expect(header(refreshCall, 'X-Requested-With')).toBe('XMLHttpRequest');
     expect(seen.map((c) => c.url)).toEqual(['/api/v1/logs', ENDPOINTS.auth.refresh, '/api/v1/logs']);
   });
 
-  it('queues concurrent 401s behind a single refresh', async () => {
+  it('concurrent 401s share a single refresh', async () => {
     let refreshes = 0;
     install(async (c) => {
       if (c.url === ENDPOINTS.auth.refresh) {
         refreshes += 1;
         await new Promise((r) => setTimeout(r, 20));
-        return { status: 200, data: { accessToken: 'fresh', refreshToken: 'refresh-3' } };
+        return { status: 200, data: { accessToken: 'fresh' } };
       }
       return auth(c) === 'Bearer fresh' ? { status: 200, data: { data: c.url } } : { status: 401, data: {} };
     });
@@ -82,7 +100,7 @@ describe('apiClient', () => {
     expect(refreshes).toBe(1);
   });
 
-  it('rejects every queued request when the refresh fails', async () => {
+  it('when the refresh fails: every waiting request fails, tokens are cleared and the user goes to /login (KI-40)', async () => {
     install(async (c) => {
       if (c.url === ENDPOINTS.auth.refresh) {
         await new Promise((r) => setTimeout(r, 10));
@@ -92,19 +110,15 @@ describe('apiClient', () => {
     });
     const outcomes = await Promise.allSettled(['/a', '/b'].map((u) => apiClient.get(u)));
     expect(outcomes.every((o) => o.status === 'rejected')).toBe(true);
+    expect(store.getState().auth).toEqual({ accessToken: null, status: 'anonymous' });
+    expect(assign).toHaveBeenCalledWith(ROUTES.auth.login);
   });
 
-  it.fails('[known bug KI-40] clears stored tokens when the refresh fails', async () => {
+  it('does not redirect when already on a public page', async () => {
+    vi.stubGlobal('window', { location: { pathname: ROUTES.auth.login, assign }, localStorage: { removeItem: vi.fn() } });
     install(() => ({ status: 401, data: {} }));
     await apiClient.get('/x').catch(() => undefined);
-    expect(store.getState().auth).toEqual({ accessToken: null, refreshToken: null });
-  });
-
-  it('fails fast without a stored refresh token', async () => {
-    store.dispatch(setRefreshToken(null));
-    const seen = install(() => ({ status: 401, data: {} }));
-    await expect(apiClient.get('/x')).rejects.toThrow('MISSING_REFRESH_TOKEN');
-    expect(seen.some((c) => c.url === ENDPOINTS.auth.refresh)).toBe(false);
+    expect(assign).not.toHaveBeenCalled();
   });
 
   it('never tries to refresh for auth endpoints (no loops)', async () => {
@@ -114,7 +128,7 @@ describe('apiClient', () => {
   });
 
   it('does not retry a request twice if the replay is also 401', async () => {
-    const seen = install((c) => (c.url === ENDPOINTS.auth.refresh ? { status: 200, data: { accessToken: 'n', refreshToken: 'r' } } : { status: 401, data: {} }));
+    const seen = install((c) => (c.url === ENDPOINTS.auth.refresh ? { status: 200, data: { accessToken: 'n' } } : { status: 401, data: {} }));
     await expect(apiClient.get('/x')).rejects.toBeInstanceOf(AxiosError);
     expect(seen.filter((c) => c.url === '/x')).toHaveLength(2);
   });
@@ -123,6 +137,13 @@ describe('apiClient', () => {
     const seen = install(() => ({ status: 500, data: {} }));
     await expect(apiClient.get('/x')).rejects.toMatchObject({ response: { status: 500 } });
     expect(seen).toHaveLength(1);
+  });
+
+  it('refreshAccessToken restores a session on page load', async () => {
+    store.dispatch(clearAuth());
+    install(() => ({ status: 200, data: { data: { accessToken: 'restored' } } }));
+    await expect(refreshAccessToken()).resolves.toBe('restored');
+    expect(store.getState().auth.status).toBe('authenticated');
   });
 });
 
@@ -140,7 +161,7 @@ describe('authService.exchangeOAuthCode (KI-4)', () => {
   });
 
   it('a used or expired code fails without trying a token refresh', async () => {
-    store.dispatch(setTokens({ accessToken: 'x', refreshToken: 'y' }));
+    store.dispatch(setAccessToken('x'));
     const seen = install(() => ({ status: 401, data: { error: 'UNAUTHORIZED' } }));
     await expect(authService.exchangeOAuthCode('used')).rejects.toBeInstanceOf(AxiosError);
     expect(seen).toHaveLength(1);

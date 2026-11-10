@@ -1,78 +1,37 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { authService } from '@/features/auth/api/auth.service';
-import { useAppDispatch, useAppSelector } from '@/lib/redux/hooks';
-import { setTokens } from '@/features/auth/state/auth.slice';
+import { useAppSelector } from '@/lib/redux/hooks';
+import { refreshAccessToken } from '@/shared/api/apiClient';
 import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
 
 const isPublicPath = (path: string) => (PUBLIC_PATHS as readonly string[]).includes(path);
 
+/**
+ * Protects dashboard pages. Tokens are kept in memory only, so after a page load the
+ * session is `unknown`: the gate asks the API for a fresh access token using the httpOnly
+ * refresh cookie, then either renders the page or sends the user to /login.
+ */
 export function RouteGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const dispatch = useAppDispatch();
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
-  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
-  const [isHydrated] = useState(true);
-
-  const [isRestoringSession, setIsRestoringSession] = useState(false);
+  const status = useAppSelector((state) => state.auth.status);
+  const isPublic = isPublicPath(pathname);
 
   useEffect(() => {
-    if (!isHydrated) return;
-
-    if (isPublicPath(pathname)) return;
-
-    if (accessToken || !refreshToken) return;
-
-    let cancelled = false;
-
-    const restore = async () => {
-      try {
-        setIsRestoringSession(true);
-        const refreshed = await authService.refresh();
-
-        if (!cancelled) {
-          dispatch(setTokens({
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
-          }));
-        }
-      } catch {
-        if (!cancelled) {
-          // Keep user state intact; explicit logout should be the only destructive action.
-        }
-      } finally {
-        if (!cancelled) {
-          setIsRestoringSession(false);
-        }
-      }
-    };
-
-    void restore();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accessToken, dispatch, isHydrated, pathname, refreshToken]);
+    if (isPublic || status !== 'unknown') return;
+    // Success stores the token; failure marks the session anonymous (both via the store).
+    refreshAccessToken().catch(() => undefined);
+  }, [isPublic, status]);
 
   useEffect(() => {
-    if (!isHydrated) return;
-    if (isRestoringSession) return;
-
-    const isCurrentPathPublic = isPublicPath(pathname);
-
-    if (!isCurrentPathPublic && !accessToken && !refreshToken) {
+    if (!isPublic && status === 'anonymous') {
       router.replace(ROUTES.auth.login);
     }
-  }, [accessToken, isHydrated, isRestoringSession, pathname, refreshToken, router]);
+  }, [isPublic, router, status]);
 
-  if (!isHydrated || isRestoringSession) {
-    return null;
-  }
-
-  if (!isPublicPath(pathname) && !accessToken && !refreshToken) {
+  if (!isPublic && status !== 'authenticated') {
     return null;
   }
 

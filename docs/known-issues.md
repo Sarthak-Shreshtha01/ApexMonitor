@@ -29,18 +29,12 @@ _None open._
 `modules/billing/*`: one successful payment upgrades the user to PRO forever. There is no billing period, renewal, expiry or downgrade, and billing is per user, not per org. (Configuration was fixed: no sandbox fallbacks, production guard, redirect from `FRONTEND_URL`, 401 on bad signatures.)
 **Fix:** plan Phase 5 (real subscriptions).
 
-### KI-17 Tokens persisted in localStorage
-The web app keeps access/refresh tokens in Redux state persisted by `redux-persist` (localStorage). Any XSS reads them.
-
 ### KI-20 Not safe to run more than one replica
 - `AlertWorker` uses `setInterval`; N replicas evaluate and fire every rule N times.
 - `events/event-bus.ts` is an in-process `EventEmitter`; once workers and API are separate processes, websocket clients stop receiving anomaly/alert events.
 - Socket.IO has no Redis adapter.
 
 ---
-
-### KI-40 Web client keeps stale tokens after a failed refresh
-`apps/web/shared/api/apiClient.ts` rejects queued requests when `/auth/refresh` fails but never clears the persisted tokens or redirects to `/login`, leaving the UI in a broken signed-in state.
 
 ## P3
 
