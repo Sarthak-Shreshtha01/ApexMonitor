@@ -83,8 +83,8 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 | GET | `/me` | JWT | n/a | Profile |
 | PATCH | `/me` | JWT | `{name, email, company?, jobTitle?, timezone?}` | |
 | GET | `/:projectId/members` | JWT+P [params] | n/a | |
-| POST | `/:projectId/members` | JWT+O [params] | `{email, role}` | Add existing user as member (no Zod validation yet) |
-| PATCH | `/:projectId/members/:memberId` | JWT+O [params] | `{role}` | |
+| POST | `/:projectId/members` | JWT+O [params] | `{email, role}` | Add an existing user. `role` ∈ `owner \| developer`; `400` otherwise, `404` unknown email |
+| PATCH | `/:projectId/members/:memberId` | JWT+O [params] | `{role}` | `role` ∈ `owner \| developer`; `400 CANNOT_DEMOTE_LAST_OWNER` for the only owner |
 | DELETE | `/:projectId/members/:memberId` | JWT+O [params] | n/a | |
 
 ## Projects: `/api/v1/projects`

@@ -170,15 +170,34 @@ describe('users routes', () => {
     expect((await request(await app).get(base).set(bearer)).body).toEqual({ members: [{ userId: 'u' }] });
     expect((await request(await app).post(base).set(bearer).send({ email: 'm@x' })).status).toBe(400);
     userSvc.addProjectMember.mockRejectedValueOnce(new Error('USER_NOT_FOUND'));
-    expect((await request(await app).post(base).set(bearer).send({ email: 'm@x', role: 'developer' })).status).toBe(404);
+    expect((await request(await app).post(base).set(bearer).send({ email: 'm@x.test', role: 'developer' })).status).toBe(404);
     userSvc.addProjectMember.mockResolvedValueOnce({ userId: 'usr_m' });
-    expect((await request(await app).post(base).set(bearer).send({ email: 'm@x', role: 'developer' })).status).toBe(201);
+    expect((await request(await app).post(base).set(bearer).send({ email: 'm@x.test', role: 'developer' })).status).toBe(201);
     expect((await request(await app).patch(`${base}/usr_m`).set(bearer).send({})).status).toBe(400);
     userSvc.updateMemberRole.mockResolvedValueOnce({ userId: 'usr_m', role: 'owner' });
     expect((await request(await app).patch(`${base}/usr_m`).set(bearer).send({ role: 'owner' })).status).toBe(200);
     userSvc.removeMember.mockRejectedValueOnce(new Error('CANNOT_REMOVE_LAST_OWNER'));
     expect((await request(await app).delete(`${base}/usr_1`).set(bearer)).status).toBe(400);
     expect((await request(await app).delete(`${base}/usr_m`).set(bearer)).status).toBe(204);
+  });
+
+  it('members: roles must be owner or developer, emails must be valid (KI-38)', async () => {
+    const base = `/users/${PROJECT_A}/members`;
+    for (const role of ['superadmin', 'viewer', 'editor', '', 'Owner']) {
+      const res = await request(await app).post(base).set(bearer).send({ email: 'm@x.test', role });
+      expect(res.status, role).toBe(400);
+      expect((await request(await app).patch(`${base}/usr_m`).set(bearer).send({ role })).status, role).toBe(400);
+    }
+    expect((await request(await app).post(base).set(bearer).send({ email: 'not-an-email', role: 'developer' })).status).toBe(400);
+    expect(userSvc.addProjectMember).not.toHaveBeenCalled();
+    expect(userSvc.updateMemberRole).not.toHaveBeenCalled();
+  });
+
+  it('members: demoting the last owner is a 400', async () => {
+    userSvc.updateMemberRole.mockRejectedValueOnce(new Error('CANNOT_DEMOTE_LAST_OWNER'));
+    const res = await request(await app).patch(`/users/${PROJECT_A}/members/usr_1`).set(bearer).send({ role: 'developer' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('CANNOT_DEMOTE_LAST_OWNER');
   });
 
   it('members: non-members get 403 from the route guard', async () => {

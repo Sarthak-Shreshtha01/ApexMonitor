@@ -1,21 +1,24 @@
 import { apiClient } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
 
+/** Mirrors the server's PROJECT_ROLES: owners manage the project, developers can read everything. */
+export type ProjectRole = 'owner' | 'developer';
+
 export interface ProjectMember {
   userId: string;
   name: string;
   email: string;
-  role: 'owner' | 'editor' | 'viewer';
+  role: ProjectRole;
   createdAt: string;
 }
 
 export interface AddMemberRequest {
   email: string;
-  role: 'owner' | 'editor' | 'viewer';
+  role: ProjectRole;
 }
 
 export interface UpdateMemberRoleRequest {
-  role: 'owner' | 'editor' | 'viewer';
+  role: ProjectRole;
 }
 
 export class TeamService {

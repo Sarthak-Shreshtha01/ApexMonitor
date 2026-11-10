@@ -111,6 +111,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `migrate-v6.sql` | `key_lookup` hash column on `api_keys` and `rum_public_keys` |
 | `migrate-v7.sql` | Mergeable latency stats on `hourly_metrics` (sum, min, max, histogram) + `apex_hist_*` SQL functions |
 | `migrate-v8.sql` | Alert rule state (`state`, `last_*`), alert event `kind`/`value` |
+| `migrate-v9.sql` | `project_members.role` limited to `owner` / `developer` |
 | `validate-migrations.mjs` | CI sanity check on SQL files |
 | `sdk-conformance.mjs` | SDK wire-contract checks with mocked transport |
 | `check-release-version.mjs` | Ensures package versions match `RELEASE_VERSION` |

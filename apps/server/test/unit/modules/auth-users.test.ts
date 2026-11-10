@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import argon2 from 'argon2';
 import { config } from '@config';
 import { FakeRedis, PROJECT_A } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
 
 const redis = new FakeRedis();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
@@ -455,10 +454,22 @@ describe('UserService', () => {
       expect(userRepo.removeMember).toHaveBeenCalledWith(PROJECT_A, 'd');
     });
 
-    knownBug('KI-38', 'member roles are validated (arbitrary role strings are rejected)', async () => {
-      userRepo.findByEmail.mockResolvedValueOnce({ id: 'usr_m' });
-      userRepo.getProjectMember.mockResolvedValueOnce({ user_id: 'usr_m', role: 'superadmin' });
-      await expect(service.addProjectMember('u', PROJECT_A, 'm@x', 'superadmin')).rejects.toThrow();
+    it('cannot demote the last owner; demoting one of two owners is fine', async () => {
+      userRepo.listProjectMembers.mockResolvedValue([{ user_id: 'u', role: 'owner' }, { user_id: 'd', role: 'developer' }]);
+      await expect(service.updateMemberRole('u', PROJECT_A, 'u', 'developer')).rejects.toThrow('CANNOT_DEMOTE_LAST_OWNER');
+      expect(userRepo.updateMemberRole).not.toHaveBeenCalled();
+      userRepo.listProjectMembers.mockResolvedValue([{ user_id: 'u', role: 'owner' }, { user_id: 'o2', role: 'owner' }]);
+      userRepo.getProjectMember.mockResolvedValueOnce({ user_id: 'u', role: 'developer' });
+      await service.updateMemberRole('u', PROJECT_A, 'u', 'developer');
+      expect(userRepo.updateMemberRole).toHaveBeenCalledWith(PROJECT_A, 'u', 'developer');
+    });
+
+    it('member DTOs only accept owner or developer (KI-38)', async () => {
+      const { AddMemberDto, UpdateMemberRoleDto } = await import('@modules/users/dto/user.dto');
+      expect(AddMemberDto.safeParse({ email: 'm@x.test', role: 'developer' }).success).toBe(true);
+      expect(AddMemberDto.safeParse({ email: 'm@x.test', role: 'superadmin' }).success).toBe(false);
+      expect(UpdateMemberRoleDto.safeParse({ role: 'owner' }).success).toBe(true);
+      expect(UpdateMemberRoleDto.safeParse({ role: 'viewer' }).success).toBe(false);
     });
   });
 });

@@ -14,7 +14,7 @@
 ## Authorisation
 
 - **Project membership** is the tenancy boundary. `requireProjectAccess` loads the user's projects and checks the requested `projectId`; `requireOwner: true` restricts key issuance and member management to owners.
-- Roles: `owner`, `developer` (in `project_members.role`).
+- Roles: `owner` (manages keys, members, alert rules) and `developer` (reads all project data). Enforced by Zod on the member routes and by a CHECK constraint on `project_members.role` (v9). A project always keeps at least one owner: removing or demoting the last one is refused.
 - Services for `keys` and `rum` reads do their own membership checks (throw `PROJECT_ACCESS_DENIED`).
 
 **Invariant to keep:** the project a request acts on must come from a verified credential. Dashboard routes satisfy this through `requireProjectAccess`; ingest uses the project bound to the API key and rejects a mismatching body `projectId` with 403.

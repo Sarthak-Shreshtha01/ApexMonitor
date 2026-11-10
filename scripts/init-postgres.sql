@@ -94,7 +94,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     id         BIGSERIAL   PRIMARY KEY,
     project_id VARCHAR(64) NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     user_id    VARCHAR(64) NOT NULL,
-    role       VARCHAR(20) NOT NULL DEFAULT 'developer', 
+    role       VARCHAR(20) NOT NULL DEFAULT 'developer' CONSTRAINT project_members_role_check CHECK (role IN ('owner', 'developer')),
     invited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(project_id, user_id)
 );

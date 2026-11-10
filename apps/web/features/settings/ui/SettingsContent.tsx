@@ -6,6 +6,7 @@ import { userService } from '@/features/settings/api/user.service';
 import { teamService } from '@/features/settings/api/team.service';
 import { projectsService, ProjectSummary } from '@/features/projects/api/projects.service';
 import { Check, ClipboardCopy, Loader2, Lock, Settings2, Trash2, Users } from 'lucide-react';
+import type { ProjectRole } from '@/features/settings/api/team.service';
 
 interface SettingsContentProps {
   projectId: string;
@@ -15,8 +16,8 @@ interface SettingsContentProps {
   setIsAddMemberOpen: (open: boolean) => void;
   editFormData: { name: string; email: string; company: string; jobTitle: string; timezone: string };
   setEditFormData: (data: { name: string; email: string; company: string; jobTitle: string; timezone: string }) => void;
-  addMemberFormData: { email: string; role: 'owner' | 'editor' | 'viewer' };
-  setAddMemberFormData: (data: { email: string; role: 'owner' | 'editor' | 'viewer' }) => void;
+  addMemberFormData: { email: string; role: ProjectRole };
+  setAddMemberFormData: (data: { email: string; role: ProjectRole }) => void;
 }
 
 export function SettingsContent({
@@ -68,12 +69,12 @@ export function SettingsContent({
   });
 
   const addMemberMutation = useMutation({
-    mutationFn: (data: { email: string; role: 'owner' | 'editor' | 'viewer' }) =>
+    mutationFn: (data: { email: string; role: ProjectRole }) =>
       teamService.addMember(projectId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] });
       setIsAddMemberOpen(false);
-      setAddMemberFormData({ email: '', role: 'viewer' });
+      setAddMemberFormData({ email: '', role: 'developer' });
       showToast('Member added successfully');
     },
     onError: (error: unknown) => {
@@ -83,7 +84,7 @@ export function SettingsContent({
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: ({ memberId, role }: { memberId: string; role: 'owner' | 'editor' | 'viewer' }) =>
+    mutationFn: ({ memberId, role }: { memberId: string; role: ProjectRole }) =>
       teamService.updateMemberRole(projectId, memberId, { role }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projectMembers', projectId] });
@@ -342,15 +343,14 @@ export function SettingsContent({
                                   onChange={(e) =>
                                     updateRoleMutation.mutate({
                                       memberId: member.userId,
-                                      role: e.target.value as 'owner' | 'editor' | 'viewer',
+                                      role: e.target.value as ProjectRole,
                                     })
                                   }
                                   disabled={updateRoleMutation.isPending}
                                   className="bg-black border border-zinc-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-[#FF4500] capitalize cursor-pointer disabled:opacity-50"
                                 >
                                   <option value="owner">Owner</option>
-                                  <option value="editor">Editor</option>
-                                  <option value="viewer">Viewer</option>
+                                  <option value="developer">Developer (read-only)</option>
                                 </select>
                               </td>
                               <td className="px-6 py-4">
@@ -518,13 +518,12 @@ export function SettingsContent({
                 <select
                   value={addMemberFormData.role}
                   onChange={(e) => {
-                    const role = e.target.value as 'owner' | 'editor' | 'viewer';
+                    const role = e.target.value as ProjectRole;
                     setAddMemberFormData({ ...addMemberFormData, role });
                   }}
                   className="w-full bg-[#0A0A0A] border border-zinc-700 rounded p-3 text-sm text-white focus:outline-none focus:border-[#FF4500]"
                 >
-                  <option value="viewer">Viewer</option>
-                  <option value="editor">Editor</option>
+                  <option value="developer">Developer (read-only)</option>
                   <option value="owner">Owner</option>
                 </select>
               </div>

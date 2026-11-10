@@ -69,9 +69,6 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 `ingest.service.ts#normalizeEndpoint` replaces any `/` followed by digits, so `/auth/2fa/setup` becomes `/auth/:idfa/setup`, and it keeps query strings, so `/search?q=…` creates one endpoint per query (cardinality explosion in `hourly_metrics`).
 **Fix:** split on `/`, replace whole segments that are numeric/UUID/ObjectId/long hex; strip `?…` and `#…`.
 
-### KI-38 Member roles are not validated
-`POST/PATCH /users/:projectId/members` store any `role` string (no Zod DTO). Only `owner` is recognised elsewhere, so typos silently create members with no defined permissions.
-
 ### KI-40 Web client keeps stale tokens after a failed refresh
 `apps/web/shared/api/apiClient.ts` rejects queued requests when `/auth/refresh` fails but never clears the persisted tokens or redirects to `/login`, leaving the UI in a broken signed-in state.
 

@@ -4,6 +4,7 @@ import { config } from '@config';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '@shared/auth/tokens';
 import { UserProjectRecord, UserRepository } from './user.repository';
 import { RegisterRequest, LoginRequest } from './dto/user.dto';
+import type { ProjectRole } from './dto/user.dto';
 
 interface AuthUser {
   id: string;
@@ -214,7 +215,7 @@ export class UserService {
     }));
   }
 
-  async addProjectMember(userId: string, projectId: string, memberEmail: string, role: string): Promise<ProjectMember> {
+  async addProjectMember(userId: string, projectId: string, memberEmail: string, role: ProjectRole): Promise<ProjectMember> {
     // Check if user is project owner
     const projects = await this.repo.listProjectsByUserId(userId);
     const project = projects.find(p => p.id === projectId);
@@ -241,12 +242,20 @@ export class UserService {
     };
   }
 
-  async updateMemberRole(userId: string, projectId: string, memberId: string, role: string): Promise<ProjectMember> {
+  async updateMemberRole(userId: string, projectId: string, memberId: string, role: ProjectRole): Promise<ProjectMember> {
     // Check if user is project owner
     const projects = await this.repo.listProjectsByUserId(userId);
     const project = projects.find(p => p.id === projectId);
     if (!project || project.role !== 'owner') {
       throw new Error('PROJECT_ACCESS_DENIED');
+    }
+
+    // A project must keep at least one owner, or nobody can manage it any more.
+    if (role !== 'owner') {
+      const owners = (await this.repo.listProjectMembers(projectId)).filter(m => m.role === 'owner');
+      if (owners.length === 1 && owners[0].user_id === memberId) {
+        throw new Error('CANNOT_DEMOTE_LAST_OWNER');
+      }
     }
 
     // Update member role

@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from './user.service';
-import { RegisterDto, LoginDto, UpdateProfileDto } from './dto/user.dto';
+import { AddMemberDto, RegisterDto, LoginDto, UpdateMemberRoleDto, UpdateProfileDto } from './dto/user.dto';
 import { serializeCookie } from '@shared/utils/cookie.utils';
 import { auditLogService } from '@shared/services/audit-log.service';
 
@@ -175,12 +175,7 @@ export class UserController {
       }
 
       const projectId = req.params.projectId as string;
-      const { email, role } = req.body;
-
-      if (!email || !role) {
-        res.status(400).json({ error: 'MISSING_FIELDS' });
-        return;
-      }
+      const { email, role } = AddMemberDto.parse(req.body); // invalid → 400 via the error handler
 
       const member = await this.service.addProjectMember(userId, projectId, email, role);
       void auditLogService.recordSafe({
@@ -211,12 +206,7 @@ export class UserController {
 
       const projectId = req.params.projectId as string;
       const memberId = req.params.memberId as string;
-      const { role } = req.body;
-
-      if (!role) {
-        res.status(400).json({ error: 'MISSING_FIELDS' });
-        return;
-      }
+      const { role } = UpdateMemberRoleDto.parse(req.body);
 
       const member = await this.service.updateMemberRole(userId, projectId, memberId, role);
       void auditLogService.recordSafe({
@@ -232,6 +222,7 @@ export class UserController {
       res.status(200).json({ member });
     } catch (error: any) {
       if (error.message === 'PROJECT_ACCESS_DENIED') return res.status(403).json({ error: error.message });
+      if (error.message === 'CANNOT_DEMOTE_LAST_OWNER') return res.status(400).json({ error: error.message });
       next(error);
     }
   };

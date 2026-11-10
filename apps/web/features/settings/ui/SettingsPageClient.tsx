@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { SettingsContent } from '@/features/settings/ui/SettingsContent';
+import type { ProjectRole } from '@/features/settings/api/team.service';
 
 export function SettingsPageClient() {
   const projectId = useProjectStore((state) => state.activeProjectId) || '';
@@ -16,7 +17,7 @@ export function SettingsPageClient() {
     jobTitle: '',
     timezone: 'UTC',
   });
-  const [addMemberFormData, setAddMemberFormData] = useState<{ email: string; role: 'owner' | 'editor' | 'viewer' }>({ email: '', role: 'viewer' });
+  const [addMemberFormData, setAddMemberFormData] = useState<{ email: string; role: ProjectRole }>({ email: '', role: 'developer' });
 
   return (
     <div className="min-h-screen bg-[#0A0A0A] ">

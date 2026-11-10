@@ -153,6 +153,25 @@ describe('project members and roles (real stack)', () => {
     }, { label: 'member audit rows' });
   });
 
+  it('roles are limited to owner/developer, in the API and in the database (KI-38)', async () => {
+    // (an earlier test removed the developer; add them back)
+    expect((await api('POST', members(), { token: owner.accessToken, body: { email: dev.email, role: 'viewer' } })).status).toBe(400);
+    expect((await api('POST', members(), { token: owner.accessToken, body: { email: dev.email, role: 'developer' } })).status).toBe(201);
+    const res = await api('PATCH', `${members()}/${dev.userId}`, { token: owner.accessToken, body: { role: 'superadmin' } });
+    expect(res.status).toBe(400);
+    const [row] = await pgQuery('SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2', [owner.projectId, dev.userId]);
+    expect(row.role).toBe('developer');
+    await expect(pgQuery(`UPDATE project_members SET role = 'viewer' WHERE project_id = $1 AND user_id = $2`, [owner.projectId, dev.userId])).rejects.toThrow(/project_members_role_check/);
+  });
+
+  it('the last owner cannot demote themselves', async () => {
+    const res = await api('PATCH', `${members()}/${owner.userId}`, { token: owner.accessToken, body: { role: 'developer' } });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('CANNOT_DEMOTE_LAST_OWNER');
+    const [row] = await pgQuery('SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2', [owner.projectId, owner.userId]);
+    expect(row.role).toBe('owner');
+  });
+
   it('creating a project makes the creator its owner', async () => {
     const created = await api('POST', '/api/v1/projects', { token: dev.accessToken, body: { name: 'Side project' } });
     expect(created.status).toBe(201);
