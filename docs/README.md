@@ -34,6 +34,7 @@ Start with **Architecture → Overview**, then the reference page for whatever y
 | Doc | What's in it |
 |---|---|
 | [operations/launch-readiness.md](operations/launch-readiness.md) | Security, release governance, support, final validation |
+| [operations/deployment.md](operations/deployment.md) | Docker images, the production compose stack, TLS, upgrades |
 | [operations/runbooks.md](operations/runbooks.md) | What to do when a dependency or pipeline fails |
 
 ## Decisions and status

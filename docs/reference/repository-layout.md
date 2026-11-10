@@ -22,7 +22,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 
 | Path | Purpose |
 |---|---|
-| `Dockerfile` | Multi-stage image; build from the repo root: `docker build -f apps/server/Dockerfile .` |
+| `Dockerfile` | Server image; build from the repo root: `docker build -f apps/server/Dockerfile .` |
 | `package.json` | `dev` (tsx watch), `build` (tsc) |
 | `tsconfig.json` | Strict TS, path aliases |
 | `build.mjs` | Production build: esbuild bundle → `dist/bootstrap.js` |
@@ -111,3 +111,10 @@ Every top-level path and the files that matter. For the planned layout see [../a
 ## `docs`
 
 See [../README.md](../README.md).
+
+## `infra`
+
+| Path | Purpose |
+|---|---|
+| `compose/docker-compose.prod.yml` | Production-style stack: datastores, broker, `migrate` job, API, dashboard (see `docs/operations/deployment.md`) |
+| `compose/.env.example` | Template for its secrets; the filled-in `.env` is gitignored |

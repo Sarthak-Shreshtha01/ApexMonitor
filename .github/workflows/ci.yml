@@ -94,3 +94,9 @@ jobs:
       - uses: actions/checkout@v4
       # Built from the repo root so the workspace lockfile is used (KI-22). Not pushed.
       - run: docker build -f apps/server/Dockerfile -t apexmonitor-server:ci .
+      - run: docker build -f apps/web/Dockerfile -t apexmonitor-web:ci .
+      - name: Production compose file is valid
+        run: |
+          cp infra/compose/.env.example infra/compose/.env
+          sed -i -E 's/^(JWT_SECRET|JWT_REFRESH_SECRET|ARGON2_PEPPER|POSTGRES_PASSWORD|MONGO_PASSWORD|REDIS_PASSWORD|RABBITMQ_PASSWORD)=$/\1=ci-placeholder-value-0123456789abcdef/' infra/compose/.env
+          docker compose -f infra/compose/docker-compose.prod.yml --env-file infra/compose/.env config --quiet

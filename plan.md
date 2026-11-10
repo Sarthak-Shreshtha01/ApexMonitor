@@ -60,8 +60,8 @@ Goal: the code can be built and run as containers anywhere, configured only thro
 
 - [x] **Production build:** compile `apps/server` with `tsup` (or `tsc` + `tsc-alias`) so path aliases resolve in `dist/`. Verify `node dist/bootstrap.js` boots. (KI-13)
 - [ ] **Config:** read config from `process.env` only; `.env` loading becomes optional and dev-only. Move `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` into the Zod schema. Add `.env.example` coverage check in CI. (KI-14: all done except the CI check)
-- [ ] **Dockerfiles:** one per app, built from repo root using workspace-aware install. Non-root user, healthcheck, `NODE_ENV=production`. Server done (`apps/server/Dockerfile`, KI-22); web image still to do. Move under `infra/docker/` with the restructure.
-- [ ] **Compose files:** `infra/compose/docker-compose.dev.yml` (infra only, current file), `docker-compose.prod.yml` (infra + api + worker + web, with healthchecks and `depends_on: condition: service_healthy`). Remove hardcoded dev passwords from prod file.
+- [x] **Dockerfiles:** one per app, built from repo root using workspace-aware install. Non-root user, healthcheck, `NODE_ENV=production` (`apps/server/Dockerfile`, `apps/web/Dockerfile`).
+- [x] **Compose files:** `infra/compose/docker-compose.prod.yml` (infra + migrate + api + web, healthchecks, `depends_on: condition`, secrets only from the env file). The dev compose file stays at the repo root.
 - [x] **Migrations:** adopt a runner (built in: `infrastructure/db/migrations.ts`). Convert `init-postgres.sql` + `migrate-v2..v4*.sql` into ordered, tracked migrations. API refuses to start if migrations are pending. (KI-15)
 - [ ] **Graceful shutdown:** on SIGTERM/SIGINT: stop accepting HTTP, cancel consumers, wait for in-flight messages, clear intervals, close Socket.IO, close PG/Mongo/Redis/AMQP.
 - [x] **RabbitMQ resilience:** reconnect with backoff on connection/channel close; separate publish and consume channels; use a confirm channel for publishing and await confirms before returning 202. Handle `publish()` returning `false` (backpressure → 503). (KI-16)
