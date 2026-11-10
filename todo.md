@@ -16,39 +16,37 @@ _All done (see Done). Next up: item 1 below._
 
 ## Next: launch blockers (P1)
 
-1. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
-2. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
+1. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
 
 ## Soon: before real traffic (P2)
 
-3. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
-4. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-5. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-6. [ ] **Validate member roles** with a Zod enum. (KI-38)
-7. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
-8. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-9. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-10. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-11. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-12. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-13. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-14. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+2. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
+3. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+4. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+5. [ ] **Validate member roles** with a Zod enum. (KI-38)
+6. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+7. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+8. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+9. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+10. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+11. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+12. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-15. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-16. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-17. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-18. [ ] Split `apps/api` and `apps/worker`.
-19. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-20. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+13. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+14. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+15. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+16. [ ] Split `apps/api` and `apps/worker`.
+17. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+18. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-21. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-22. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-23. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-24. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+19. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+20. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+21. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+22. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -67,6 +65,8 @@ _All done (see Done). Next up: item 1 below._
 
 ## Done
 
+- [x] 2026-11-10: Billing config: no built-in sandbox credentials (billing off → 503), production boot guard, merchant/endpoint from config, redirect from `FRONTEND_URL`, bad webhook signature → 401 (KI-7, config part)
+- [x] 2026-11-10: PHONEPE_* and RUM_RATE_LIMIT_RPM validated by the Zod config; nothing reads process.env directly any more (KI-14)
 - [x] 2026-11-10: Browser SDK sends the server's RUM schema (page_view / web_vital / heartbeat, top-level path, ttfb/fcp/lcp); unit tests validate its output with the server's Zod schema (KI-10)
 - [x] 2026-11-10: Hourly metrics: UTC buckets (KI-9); exact weighted averages and mergeable histogram percentiles (~5%) in rows and in dashboard/alert queries (KI-8, KI-9)
 - [x] 2026-11-10: Server Docker image builds from the repo root with the workspace lockfile; Node 24, non-root, healthcheck, no .env in the image; CI builds it (KI-22)

@@ -1,11 +1,22 @@
 import crypto from 'crypto';
-import { config } from '@config'; // Assume you added PHONEPE variables to your config
+import { config, isBillingEnabled } from '@config';
 
-// For Sandbox/UAT testing, PhonePe provides these default credentials:
-const MERCHANT_ID = process.env.PHONEPE_MERCHANT_ID || 'PGTESTPAYUAT';
-const SALT_KEY = process.env.PHONEPE_SALT_KEY || '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
-const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
-const PHONEPE_URL = 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay';
+/** Pay API per PHONEPE_ENV. */
+export const PHONEPE_PAY_URLS = {
+  sandbox: 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay',
+  production: 'https://api.phonepe.com/apis/hermes/pg/v1/pay',
+} as const;
+
+/** Credentials from config; throws BILLING_NOT_CONFIGURED when billing is off. */
+function credentials() {
+  if (!isBillingEnabled()) throw new Error('BILLING_NOT_CONFIGURED');
+  return {
+    merchantId: config.PHONEPE_MERCHANT_ID as string,
+    saltKey: config.PHONEPE_SALT_KEY as string,
+    saltIndex: String(config.PHONEPE_SALT_INDEX),
+    payUrl: PHONEPE_PAY_URLS[config.PHONEPE_ENV],
+  };
+}
 
 export class PhonePeUtils {
   /** Unique per checkout, 33 chars (PhonePe allows up to 38). The webhook looks the user up by this id. */
@@ -23,8 +34,9 @@ export class PhonePeUtils {
   }
 
   static generateCheckoutPayload(merchantTransactionId: string, userId: string, amountInPaise: number, redirectUrl: string) {
+    const { merchantId, saltKey, saltIndex, payUrl } = credentials();
     const payload = {
-      merchantId: MERCHANT_ID,
+      merchantId,
       merchantTransactionId,
       merchantUserId: PhonePeUtils.merchantUserIdFor(userId),
       amount: amountInPaise, 
@@ -38,18 +50,19 @@ export class PhonePeUtils {
     const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
     
     // Generate X-VERIFY Checksum
-    const stringToHash = base64Payload + '/pg/v1/pay' + SALT_KEY;
+    const stringToHash = base64Payload + '/pg/v1/pay' + saltKey;
     const sha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const checksum = `${sha256}###${SALT_INDEX}`;
+    const checksum = `${sha256}###${saltIndex}`;
 
-    return { base64Payload, checksum, merchantTransactionId, url: PHONEPE_URL };
+    return { base64Payload, checksum, merchantTransactionId, merchantId, url: payUrl };
   }
 
   static verifyWebhookSignature(base64Response: string, xVerifyHeader: string): boolean {
-    const stringToHash = base64Response + SALT_KEY;
-    const expectedSha256 = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    const expectedChecksum = `${expectedSha256}###${SALT_INDEX}`;
-    
-    return xVerifyHeader === expectedChecksum;
+    const { saltKey, saltIndex } = credentials();
+    const expectedSha256 = crypto.createHash('sha256').update(base64Response + saltKey).digest('hex');
+    const expected = Buffer.from(`${expectedSha256}###${saltIndex}`);
+    const given = Buffer.from(String(xVerifyHeader));
+    // constant-time comparison so the signature can't be guessed byte by byte
+    return given.length === expected.length && crypto.timingSafeEqual(given, expected);
   }
 }

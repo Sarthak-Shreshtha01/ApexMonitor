@@ -25,11 +25,9 @@ _None open._
 
 ## P1
 
-### KI-7 Billing is sandbox-only and incomplete
-- `shared/utils/phonepe.utils.ts` falls back to the public sandbox merchant ID and salt when env vars are missing, so production silently runs against sandbox.
-- `modules/billing/billing.service.ts` hardcodes `X-MERCHANT-ID: PGTESTPAYUAT` and redirect `http://localhost:3000/dashboard/billing`.
-- One-time payment upgrades to PRO forever: no period, renewal, expiry, or downgrade. Billing is per user, not per org. Webhook handling is not idempotent (no event log).
-**Fix:** plan Phase 0 (config) + Phase 5 (real subscriptions).
+### KI-7 Billing has no subscription lifecycle
+`modules/billing/*`: one successful payment upgrades the user to PRO forever. There is no billing period, renewal, expiry or downgrade, and billing is per user, not per org. (Configuration was fixed: no sandbox fallbacks, production guard, redirect from `FRONTEND_URL`, 401 on bad signatures.)
+**Fix:** plan Phase 5 (real subscriptions).
 
 ### KI-18 Alerting is not usable
 - No HTTP routes for alert rules. `modules/alerts/` only has a repository; the web `AlertRuleBuilder` has nothing to call.
@@ -42,10 +40,6 @@ _None open._
 
 ### KI-12 TS SDK exposes endpoints the server doesn't have
 `packages/sdk/src/client.ts` defines `metrics.rps` and `metrics.endpoints` (`/api/v1/metrics/rps`, `/api/v1/metrics/endpoints`); the server only serves `overview`, `latency`, `operations`. Web `shared/api/endpoints.ts` lists them too.
-
-### KI-14 Configuration loading
-- `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` are read from `process.env` directly and are not validated.
-- README previously documented wrong names (`MONGODB_URI`, `POSTGRES_URL`) and location (`apps/server/.env`).
 
 ### KI-15 No migration runner
 Schema lives in `scripts/init-postgres.sql` (auto-applied only on first Postgres container start) + manual `migrate-v*.sql`. Nothing records which migrations ran. `validate-migrations.mjs` only checks that files exist and contain a few strings.

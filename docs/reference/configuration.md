@@ -17,20 +17,25 @@ Read from the process environment and validated with Zod by `apps/server/src/con
 | `ARGON2_PEPPER` | **yes** | n/a | ≥32 chars. Appended to API keys before hashing; changing it invalidates all keys |
 | `CORS_ORIGINS` | **yes** | n/a | Comma-separated origins (HTTP + Socket.IO) |
 | `RATE_LIMIT_RPM` | no | `60000` | Base limit; RUM default is 2× this |
+| `RUM_RATE_LIMIT_RPM` | no | `2 × RATE_LIMIT_RPM` | RUM events per minute per project |
 | `LOG_LEVEL` | no | `info` | `debug` \| `info` \| `warn` \| `error` |
 | `API_BASE_URL` | no | `http://localhost:3000` | Public API URL (OAuth redirects) |
 | `FRONTEND_URL` | no | `http://localhost:3001` | Web URL (OAuth callback redirect) |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | no | n/a | Google OAuth |
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_REDIRECT_URI` | no | n/a | GitHub OAuth |
 
-Read directly from `process.env` (not validated):
+### Billing (PhonePe)
+
+Billing is **off** unless both `PHONEPE_MERCHANT_ID` and `PHONEPE_SALT_KEY` are set; then `POST /billing/checkout` and the webhook answer `503`. There are no built-in credentials.
 
 | Variable | Default | Description |
 |---|---|---|
-| `RUM_RATE_LIMIT_RPM` | `2 × RATE_LIMIT_RPM` | RUM per-minute limit per project |
-| `PHONEPE_MERCHANT_ID` | sandbox `PGTESTPAYUAT` | **Must** be set in production (KI-7) |
-| `PHONEPE_SALT_KEY` | public sandbox key | **Must** be set in production |
+| `PHONEPE_ENV` | `sandbox` | `sandbox` \| `production`; selects the PhonePe pay endpoint |
+| `PHONEPE_MERCHANT_ID` | unset | Set together with `PHONEPE_SALT_KEY` |
+| `PHONEPE_SALT_KEY` | unset | Signs checkout requests and verifies webhooks |
 | `PHONEPE_SALT_INDEX` | `1` | |
+
+The server refuses to start with `NODE_ENV=production` if billing is enabled with `PHONEPE_ENV=sandbox` or with PhonePe's public test merchant `PGTESTPAYUAT`. For local sandbox testing, set PhonePe's published test values: `PHONEPE_MERCHANT_ID=PGTESTPAYUAT`, `PHONEPE_SALT_KEY=099eb0cd-02cf-4e2a-8aca-3e6c6aff0399`, `PHONEPE_SALT_INDEX=1`. After payment PhonePe sends the user to `${FRONTEND_URL}/billing?checkout=<transaction id>`.
 
 Generate secrets with:
 

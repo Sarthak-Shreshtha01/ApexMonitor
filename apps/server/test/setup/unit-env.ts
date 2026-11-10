@@ -10,6 +10,11 @@ process.env.JWT_SECRET = 'unit-test-access-secret-0123456789abcdef';
 process.env.ARGON2_PEPPER = 'unit-test-pepper-0123456789abcdefghijkl';
 process.env.CORS_ORIGINS = 'http://localhost:3001';
 process.env.FRONTEND_URL = 'http://localhost:3001';
+// PhonePe's public sandbox test credentials, set explicitly (the server has no built-in defaults).
+process.env.PHONEPE_ENV = 'sandbox';
+process.env.PHONEPE_MERCHANT_ID = 'PGTESTPAYUAT';
+process.env.PHONEPE_SALT_KEY = '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
+process.env.PHONEPE_SALT_INDEX = '1';
 delete process.env.JWT_REFRESH_SECRET;
 delete process.env.GOOGLE_CLIENT_ID;
 delete process.env.GOOGLE_CLIENT_SECRET;

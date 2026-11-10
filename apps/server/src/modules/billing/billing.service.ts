@@ -1,6 +1,7 @@
 import { getPg } from '@infrastructure/db/postgres';
 import { getRedis } from '@infrastructure/redis';
 import { PhonePeUtils } from '@shared/utils/phonepe.utils';
+import { config, isBillingEnabled } from '@config';
 
 /** PRO plan: ₹2999/month. */
 export const PRO_PLAN = { tier: 'PRO', amountPaise: 299900 } as const;
@@ -11,8 +12,8 @@ export class BillingService {
   private get db() { return getPg(); }
 
   async createCheckoutSession(userId: string) {
-    // In production, this would be your frontend Next.js URL
-    const redirectUrl = `http://localhost:3000/dashboard/billing?status=success`; 
+    // Fail before recording anything if billing is off.
+    if (!isBillingEnabled()) throw new Error('BILLING_NOT_CONFIGURED');
 
     // Record who is paying *before* sending them to PhonePe. The webhook later finds the
     // user from this row by merchantTransactionId (KI-36).
@@ -23,7 +24,9 @@ export class BillingService {
       [merchantTransactionId, userId, PRO_PLAN.tier, PRO_PLAN.amountPaise]
     );
 
-    const { base64Payload, checksum, url } = PhonePeUtils.generateCheckoutPayload(merchantTransactionId, userId, PRO_PLAN.amountPaise, redirectUrl);
+    // PhonePe sends the customer back here; the webhook decides whether the payment succeeded.
+    const redirectUrl = `${config.FRONTEND_URL}/billing?checkout=${encodeURIComponent(merchantTransactionId)}`;
+    const { base64Payload, checksum, merchantId, url } = PhonePeUtils.generateCheckoutPayload(merchantTransactionId, userId, PRO_PLAN.amountPaise, redirectUrl);
 
     // Call PhonePe S2S API to get the payment page URL
     const response = await fetch(url, {
@@ -31,7 +34,7 @@ export class BillingService {
       headers: {
         'Content-Type': 'application/json',
         'X-VERIFY': checksum,
-        'X-MERCHANT-ID': 'PGTESTPAYUAT' // Sandbox Merchant ID
+        'X-MERCHANT-ID': merchantId,
       },
       body: JSON.stringify({ request: base64Payload })
     });
@@ -50,7 +53,12 @@ export class BillingService {
     const isValid = PhonePeUtils.verifyWebhookSignature(base64Response, xVerifyHeader);
     if (!isValid) throw new Error('INVALID_SIGNATURE');
 
-    const decodedPayload = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
+    let decodedPayload: { code?: unknown; data?: { merchantTransactionId?: unknown; amount?: unknown } };
+    try {
+      decodedPayload = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
+    } catch {
+      throw new Error('INVALID_WEBHOOK_PAYLOAD');
+    }
     const code = String(decodedPayload.code ?? '');
     const txId = decodedPayload.data?.merchantTransactionId;
     if (typeof txId !== 'string' || !txId) {

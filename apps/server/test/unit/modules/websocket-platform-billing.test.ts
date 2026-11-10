@@ -1,11 +1,10 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import http from 'http';
 import { AddressInfo } from 'net';
 import crypto from 'crypto';
 import request from 'supertest';
 import { io as ioClient, Socket } from 'socket.io-client';
 import { appWith, FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B, project, fakeRabbit } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
 
 const redis = new FakeRedis();
 const pg = new FakePg();
@@ -27,6 +26,7 @@ const { PlatformController } = await import('@shared/http/platform-controller');
 const { billingRouter } = await import('@modules/billing/billing.router');
 const { BillingService } = await import('@modules/billing/billing.service');
 const { PhonePeUtils } = await import('@shared/utils/phonepe.utils');
+const { config } = await import('@config');
 
 const user = { id: 'usr_1', email: 'u@example.test' };
 
@@ -212,11 +212,49 @@ describe('billing', () => {
     expect(pg.calls).toHaveLength(0);
   });
 
-  knownBug('KI-7', 'webhook with an invalid signature is a 4xx, not a 500', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  it('webhook: an invalid signature is 401, a garbled payload 400 (KI-7)', async () => {
     const b64 = Buffer.from('{}').toString('base64');
-    const res = await request(await app).post('/billing/webhook/phonepe').set('x-verify', 'bad###1').send({ response: b64 });
-    expect(res.status).toBeLessThan(500);
+    const bad = await request(await app).post('/billing/webhook/phonepe').set('x-verify', 'bad###1').send({ response: b64 });
+    expect(bad.status).toBe(401);
+    expect(bad.body.error).toBe('UNAUTHORIZED');
+    const garbled = 'not-base64-json';
+    const res = await request(await app).post('/billing/webhook/phonepe').set('x-verify', sign(garbled)).send({ response: garbled });
+    expect(res.status).toBe(400);
+  });
+
+  describe('configuration (KI-7)', () => {
+    const original = { ...config };
+    afterEach(() => {
+      Object.assign(config, original);
+      vi.unstubAllGlobals();
+    });
+
+    it('without PhonePe credentials, checkout and webhook answer 503 and nothing is recorded', async () => {
+      Object.assign(config, { PHONEPE_MERCHANT_ID: undefined, PHONEPE_SALT_KEY: undefined });
+      pg.calls = [];
+      const token = signAccessToken({ id: 'usr_1', email: 'u@x.test' });
+      const checkout = await request(await app).post('/billing/checkout').set('authorization', `Bearer ${token}`);
+      expect(checkout.status).toBe(503);
+      expect(pg.calls).toHaveLength(0);
+      const b64 = Buffer.from('{}').toString('base64');
+      expect((await request(await app).post('/billing/webhook/phonepe').set('x-verify', sign(b64)).send({ response: b64 })).status).toBe(503);
+    });
+
+    it('uses the configured merchant, salt and environment; redirects to FRONTEND_URL', async () => {
+      Object.assign(config, { PHONEPE_MERCHANT_ID: 'M_LIVE', PHONEPE_SALT_KEY: 'live-salt', PHONEPE_SALT_INDEX: 2, PHONEPE_ENV: 'production', FRONTEND_URL: 'https://app.example' });
+      const fetchMock = vi.fn(async () => new Response(JSON.stringify({ success: true, data: { instrumentResponse: { redirectInfo: { url: 'https://pay/x' } } } })));
+      vi.stubGlobal('fetch', fetchMock);
+      await new BillingService().createCheckoutSession('usr_1');
+      const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit & { headers: Record<string, string> }];
+      expect(url).toBe('https://api.phonepe.com/apis/hermes/pg/v1/pay');
+      expect(init.headers['X-MERCHANT-ID']).toBe('M_LIVE');
+      const b64 = JSON.parse(String(init.body)).request;
+      const payload = JSON.parse(Buffer.from(b64, 'base64').toString());
+      expect(payload.merchantId).toBe('M_LIVE');
+      expect(payload.redirectUrl).toBe(`https://app.example/billing?checkout=${payload.merchantTransactionId}`);
+      expect(init.headers['X-VERIFY']).toBe(`${crypto.createHash('sha256').update(`${b64}/pg/v1/pay` + 'live-salt').digest('hex')}###2`);
+      expect(PhonePeUtils.verifyWebhookSignature(b64, sign(b64))).toBe(false); // sandbox salt no longer valid
+    });
   });
 
   it('checkout ids fit PhonePe limits and the gateway never sees the raw user id (KI-36)', () => {

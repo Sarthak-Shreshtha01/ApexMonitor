@@ -11,6 +11,9 @@ const knownErrorMap: Record<string, { status: number; code: string; message: str
   RATE_LIMITED: { status: 429, code: 'RATE_LIMIT_EXCEEDED', message: 'Rate limit exceeded' },
   KEY_NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'Key not found' },
   TRACE_NOT_FOUND: { status: 404, code: 'NOT_FOUND', message: 'Trace not found' },
+  BILLING_NOT_CONFIGURED: { status: 503, code: 'SERVICE_UNAVAILABLE', message: 'Billing is not configured on this server' },
+  INVALID_SIGNATURE: { status: 401, code: 'UNAUTHORIZED', message: 'Invalid webhook signature' },
+  INVALID_WEBHOOK_PAYLOAD: { status: 400, code: 'VALIDATION_ERROR', message: 'Webhook payload is not valid base64 JSON' },
 };
 
 function getRequestId(req: Request): string {

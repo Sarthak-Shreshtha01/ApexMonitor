@@ -13,7 +13,7 @@ This is the working plan to take ApexMonitor from a functional prototype to a pr
 | Dashboard | Most pages wired; alerts page has no backend |
 | Alerts | Evaluator exists; no CRUD API, no email, no dedup/cooldown |
 | SDKs | TS SDK works; browser SDK payload does not match server schema; Python RUM header wrong |
-| Billing | PhonePe sandbox only, one-shot payment, per-user not per-org |
+| Billing | PhonePe (sandbox or production by config), one-shot payment, per-user not per-org |
 | Tests | None |
 | Deployment | Production build does not start; no deploy manifests |
 
@@ -41,7 +41,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 - [x] **OAuth callback:** stop putting tokens in the redirect query string. Set an httpOnly refresh cookie and redirect with a one-time code the web app exchanges. (KI-4)
 - [x] **Key revocation:** on revoke, delete the Redis cache entry; cache by `sha256(rawKey)` instead of raw key. Same for RUM keys. (KI-5)
 - [x] **Webhook SSRF:** validate webhook URLs (https only, resolve DNS, block private/link-local/loopback ranges), 5 s timeout, no redirects. (KI-6)
-- [ ] **PhonePe:** remove hardcoded sandbox merchant/salt defaults; fail boot in production if billing is enabled without real credentials; build redirect URL from `FRONTEND_URL`. (KI-7)
+- [x] **PhonePe:** remove hardcoded sandbox merchant/salt defaults; fail boot in production if billing is enabled without real credentials; build redirect URL from `FRONTEND_URL`. (KI-7)
 - [x] **Aggregation math:** fix `avg_ms` to a weighted mean (store `latency_sum_ms`), stop `GREATEST()` for percentiles (interim: store a mergeable histogram column, see Phase 3), compute buckets in UTC. (KI-8, KI-9)
 - [x] **Browser SDK contract:** make `@apexmonitor/browser-sdk` send the server's RUM schema (`type ∈ page_view|web_vital|heartbeat`, top-level `path`, `ttfbMs/fcpMs/lcpMs`); add a conformance test that validates SDK output against the server Zod schema. (KI-10)
 - [x] **Dead-letter queues:** bind each `*_dlq` queue to `dlq.exchange` so rejected messages are kept instead of dropped. (KI-32)
@@ -59,7 +59,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 Goal: the code can be built and run as containers anywhere, configured only through the environment.
 
 - [x] **Production build:** compile `apps/server` with `tsup` (or `tsc` + `tsc-alias`) so path aliases resolve in `dist/`. Verify `node dist/bootstrap.js` boots. (KI-13)
-- [ ] **Config:** read config from `process.env` only; `.env` loading becomes optional and dev-only. Move `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` into the Zod schema. Add `.env.example` coverage check in CI. (KI-14)
+- [ ] **Config:** read config from `process.env` only; `.env` loading becomes optional and dev-only. Move `PHONEPE_*` and `RUM_RATE_LIMIT_RPM` into the Zod schema. Add `.env.example` coverage check in CI. (KI-14: all done except the CI check)
 - [ ] **Dockerfiles:** one per app, built from repo root using workspace-aware install. Non-root user, healthcheck, `NODE_ENV=production`. Server done (`apps/server/Dockerfile`, KI-22); web image still to do. Move under `infra/docker/` with the restructure.
 - [ ] **Compose files:** `infra/compose/docker-compose.dev.yml` (infra only, current file), `docker-compose.prod.yml` (infra + api + worker + web, with healthchecks and `depends_on: condition: service_healthy`). Remove hardcoded dev passwords from prod file.
 - [ ] **Migrations:** adopt a runner (`node-pg-migrate` recommended). Convert `init-postgres.sql` + `migrate-v2..v4*.sql` into ordered, tracked migrations. API refuses to start if migrations are pending. (KI-15)

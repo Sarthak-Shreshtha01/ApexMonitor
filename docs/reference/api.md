@@ -195,8 +195,8 @@ Traces are request logs; `traceId` = server-generated `reqId` (KI-25).
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| POST | `/checkout` | JWT | Returns PhonePe redirect URL |
-| POST | `/webhook/phonepe` | `X-VERIFY` signature | PhonePe server callback |
+| POST | `/checkout` | JWT | Returns `{url}` (PhonePe pay page). `503` when billing is not configured |
+| POST | `/webhook/phonepe` | `X-VERIFY` signature | PhonePe server callback `{response: base64}`. `200` once handled (also for replays/unknown transactions), `401` bad signature, `400` payload not base64 JSON, `503` billing not configured |
 
 ## Alerts
 

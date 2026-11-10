@@ -37,7 +37,7 @@ export class RumService {
       await redis.expire(rateKey, 120);
     }
 
-    const limit = Number(process.env.RUM_RATE_LIMIT_RPM ?? config.RATE_LIMIT_RPM * 2);
+    const limit = config.RUM_RATE_LIMIT_RPM ?? config.RATE_LIMIT_RPM * 2;
     if (current > limit) {
       throw new Error('RATE_LIMITED');
     }

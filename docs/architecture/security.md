@@ -64,7 +64,6 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 
 | ID | Gap |
 |---|---|
-| KI-7 | Payment sandbox fallbacks |
 | KI-17 | Tokens persisted in localStorage |
 | KI-30 | No server-side route protection in web |
 | n/a | `/metrics/system` is unauthenticated and exposes queue/dependency details |

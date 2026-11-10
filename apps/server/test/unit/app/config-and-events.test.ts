@@ -46,8 +46,28 @@ describe('config loading', () => {
     ['non-URL PG_URI', { PG_URI: 'not a url' }],
     ['unknown LOG_LEVEL', { LOG_LEVEL: 'trace' }],
     ['non-numeric PORT', { PORT: 'abc' }],
+    ['non-numeric RUM_RATE_LIMIT_RPM', { RUM_RATE_LIMIT_RPM: 'lots' }],
+    ['PhonePe merchant without salt', { PHONEPE_MERCHANT_ID: 'M1' }],
+    ['PhonePe salt without merchant', { PHONEPE_SALT_KEY: 'salt' }],
+    ['unknown PHONEPE_ENV', { PHONEPE_ENV: 'staging', PHONEPE_MERCHANT_ID: 'M1', PHONEPE_SALT_KEY: 's' }],
+    ['production billing against the sandbox endpoint', { NODE_ENV: 'production', PHONEPE_MERCHANT_ID: 'M1', PHONEPE_SALT_KEY: 's' }],
+    ['production with the public sandbox merchant', { NODE_ENV: 'production', PHONEPE_ENV: 'production', PHONEPE_MERCHANT_ID: 'PGTESTPAYUAT', PHONEPE_SALT_KEY: 's' }],
   ])('exits 1 for %s', (_l, override) => {
     expect(loadConfig({ ...validEnv, ...override }).status).toBe(1);
+  });
+
+  it('accepts production without billing, and production with real PhonePe settings (KI-7)', () => {
+    const off = loadConfig({ ...validEnv, NODE_ENV: 'production' });
+    expect(off.status).toBe(0);
+    expect(JSON.parse(off.stdout.trim().split('\n').pop()!)).not.toHaveProperty('PHONEPE_MERCHANT_ID');
+    const live = loadConfig({ ...validEnv, NODE_ENV: 'production', PHONEPE_ENV: 'production', PHONEPE_MERCHANT_ID: 'M_LIVE', PHONEPE_SALT_KEY: 'k', PHONEPE_SALT_INDEX: '3' });
+    expect(live.status).toBe(0);
+    expect(JSON.parse(live.stdout.trim().split('\n').pop()!)).toMatchObject({ PHONEPE_ENV: 'production', PHONEPE_SALT_INDEX: 3 });
+  });
+
+  it('parses RUM_RATE_LIMIT_RPM as a number (KI-14)', () => {
+    const r = loadConfig({ ...validEnv, RUM_RATE_LIMIT_RPM: '5000' });
+    expect(JSON.parse(r.stdout.trim().split('\n').pop()!).RUM_RATE_LIMIT_RPM).toBe(5000);
   });
 
   it('loads the file named by ENV_FILE outside tests; variables already set still win', () => {

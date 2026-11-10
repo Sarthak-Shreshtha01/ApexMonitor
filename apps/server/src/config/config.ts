@@ -27,6 +27,9 @@ if (process.env.NODE_ENV !== 'test' && envPath && fs.existsSync(envPath)) {
   dotenv.config({ path: envPath, quiet: true });
 }
 
+/** PhonePe's public test merchant; allowed only outside production. */
+export const PHONEPE_SANDBOX_MERCHANT_ID = 'PGTESTPAYUAT';
+
 // 4. Validate with Zod
 const ConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -44,6 +47,8 @@ const ConfigSchema = z.object({
   CORS_ORIGINS: z.string().transform(s => s.split(',')),
   
   RATE_LIMIT_RPM: z.coerce.number().int().positive().default(60000),
+  // Per-project RUM events per minute; defaults to 2 × RATE_LIMIT_RPM.
+  RUM_RATE_LIMIT_RPM: z.coerce.number().int().positive().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   API_BASE_URL: z.string().url().default('http://localhost:3000'),
   FRONTEND_URL: z.string().url().default('http://localhost:3001'),
@@ -55,8 +60,25 @@ const ConfigSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().optional(),
   GITHUB_REDIRECT_URI: z.string().url().optional(),
 
-  // PhonePe Configs (with defaults for sandbox testing)
-});
+  // PhonePe. Billing is enabled only when merchant id and salt key are both set; there are
+  // no built-in sandbox credentials. PHONEPE_ENV picks the gateway endpoint.
+  PHONEPE_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
+  PHONEPE_MERCHANT_ID: z.string().min(1).optional(),
+  PHONEPE_SALT_KEY: z.string().min(1).optional(),
+  PHONEPE_SALT_INDEX: z.coerce.number().int().positive().default(1),
+})
+  .refine((c) => Boolean(c.PHONEPE_MERCHANT_ID) === Boolean(c.PHONEPE_SALT_KEY), {
+    message: 'Set both PHONEPE_MERCHANT_ID and PHONEPE_SALT_KEY to enable billing, or neither to disable it',
+    path: ['PHONEPE_SALT_KEY'],
+  })
+  .refine((c) => c.NODE_ENV !== 'production' || !c.PHONEPE_MERCHANT_ID || c.PHONEPE_ENV === 'production', {
+    message: 'PHONEPE_ENV must be "production" when billing is enabled with NODE_ENV=production',
+    path: ['PHONEPE_ENV'],
+  })
+  .refine((c) => c.NODE_ENV !== 'production' || c.PHONEPE_MERCHANT_ID !== PHONEPE_SANDBOX_MERCHANT_ID, {
+    message: 'The public PhonePe sandbox merchant id cannot be used with NODE_ENV=production',
+    path: ['PHONEPE_MERCHANT_ID'],
+  });
 
 const parsed = ConfigSchema.safeParse(process.env);
 
@@ -67,3 +89,6 @@ if (!parsed.success) {
 
 export const config = parsed.data;
 export type Config = z.infer<typeof ConfigSchema>;
+
+/** True when PhonePe credentials are configured. */
+export const isBillingEnabled = (): boolean => Boolean(config.PHONEPE_MERCHANT_ID && config.PHONEPE_SALT_KEY);
