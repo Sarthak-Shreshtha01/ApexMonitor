@@ -48,9 +48,12 @@ describe('RUM (real stack)', () => {
     expect(google).toMatchObject({ path: '/pricing', device_type: 'desktop', browser_name: 'Chrome', country_code: 'IN', region_code: 'KA', page_views: 1 });
 
     const q = (p: string) => api('GET', `/api/v1/rum/${p}?projectId=${t.projectId}`, { token: t.accessToken });
-    const overview = await q('overview');
-    expect(overview.status).toBe(200);
     // 2 page views here + 1 from the origin allow-list test above (web_vital events don't count).
+    // The worker may still be aggregating the earlier batch, so wait for the total.
+    const overview = await waitFor(async () => {
+      const r = await q('overview');
+      return r.status === 200 && r.body.data.data.page_views === 3 ? r : undefined;
+    }, { label: '3 page views in the overview' });
     expect(overview.body.data.data.page_views).toBe(3);
     for (const p of ['series', 'paths', 'devices', 'geo', 'referrers']) {
       const r = await q(p);
