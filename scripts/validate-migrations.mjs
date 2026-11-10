@@ -1,42 +1,45 @@
-import { readFile } from 'node:fs/promises';
+// CI sanity check for scripts/migrations (the runner is apps/server/src/infrastructure/db/migrations.ts).
+// - file names are NNNN_snake_case.sql, numbered 0001, 0002, ... without gaps or duplicates
+// - a few objects the app depends on are created somewhere
+// - no statement that would fail when a file is re-applied to a hand-migrated database
+import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const scriptsDir = path.join(rootDir, 'scripts');
+const dir = path.join(path.dirname(fileURLToPath(import.meta.url)), 'migrations');
+const files = (await readdir(dir)).filter((f) => f.endsWith('.sql')).sort();
+const fail = (msg) => {
+  throw new Error(`Migration validation failed: ${msg}`);
+};
 
-const expectedFiles = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql', 'migrate-v6.sql', 'migrate-v7.sql', 'migrate-v8.sql', 'migrate-v9.sql'];
+if (files.length === 0) fail('no migrations found');
+files.forEach((name, i) => {
+  const match = /^(\d{4})_[a-z0-9_]+\.sql$/.exec(name);
+  if (!match) fail(`bad file name ${name} (expected NNNN_snake_case.sql)`);
+  const expected = String(i + 1).padStart(4, '0');
+  if (match[1] !== expected) fail(`expected version ${expected} but found ${name} (no gaps or duplicates)`);
+});
 
-for (const fileName of expectedFiles) {
-  const filePath = path.join(scriptsDir, fileName);
-  await readFile(filePath, 'utf8');
-}
-
-const initSql = await readFile(path.join(scriptsDir, 'init-postgres.sql'), 'utf8');
-
-const requiredSnippets = [
-  "plan           VARCHAR(32)  NOT NULL DEFAULT 'free'",
-  'log_retention_days INTEGER  NOT NULL DEFAULT 90',
+const all = (await Promise.all(files.map((f) => readFile(path.join(dir, f), 'utf8')))).join('\n');
+for (const snippet of [
+  'CREATE TABLE IF NOT EXISTS projects',
+  'CREATE TABLE IF NOT EXISTS users',
   'CREATE TABLE IF NOT EXISTS audit_logs',
+  'CREATE TABLE IF NOT EXISTS billing_checkouts',
   'idx_api_keys_lookup',
-  'idx_rum_keys_lookup',
-];
-
-for (const snippet of requiredSnippets) {
-  if (!initSql.includes(snippet)) {
-    throw new Error(`Migration validation failed: missing snippet ${snippet}`);
-  }
+  'apex_hist_percentile',
+  'project_members_role_check',
+]) {
+  if (!all.includes(snippet)) fail(`no migration contains "${snippet}"`);
 }
 
-// Tables that depend on `users` (created in migrate-v2) live in later migrations, not the init script.
-const v5Sql = await readFile(path.join(scriptsDir, 'migrate-v5.sql'), 'utf8');
-if (!v5Sql.includes('CREATE TABLE IF NOT EXISTS billing_checkouts')) {
-  throw new Error('Migration validation failed: migrate-v5.sql must create billing_checkouts');
+// Plain "ADD CONSTRAINT" / "CREATE TABLE x" without IF NOT EXISTS breaks re-application.
+for (const name of files) {
+  const sql = await readFile(path.join(dir, name), 'utf8');
+  const unguardedTable = /CREATE TABLE (?!IF NOT EXISTS)/i.test(sql);
+  const unguardedIndex = /CREATE (UNIQUE )?INDEX (?!IF NOT EXISTS)/i.test(sql);
+  const unguardedConstraint = /ADD CONSTRAINT/i.test(sql) && !/IF NOT EXISTS \(SELECT 1 FROM pg_constraint/i.test(sql);
+  if (unguardedTable || unguardedIndex || unguardedConstraint) fail(`${name} has a statement that fails when re-applied (use IF NOT EXISTS / a guarded DO block)`);
 }
 
-const v7Sql = await readFile(path.join(scriptsDir, 'migrate-v7.sql'), 'utf8');
-for (const fn of ['apex_hist_add', 'apex_hist_sum', 'apex_hist_percentile']) {
-  if (!v7Sql.includes(fn)) throw new Error(`Migration validation failed: migrate-v7.sql must define ${fn}`);
-}
-
-console.log('Migration validation passed.');
+console.log(`Migration validation passed (${files.length} files).`);

@@ -1,12 +1,8 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { Client } from 'pg';
 import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import { TEST_DB, testUrls } from './integration-urls';
-
-const MIGRATIONS = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql', 'migrate-v6.sql', 'migrate-v7.sql', 'migrate-v8.sql', 'migrate-v9.sql'];
-const scriptsDir = path.resolve(__dirname, '../../../../scripts');
+import { runMigrations } from '../../src/infrastructure/db/migrations';
 
 function hint(service: string, error: unknown): Error {
   return new Error(
@@ -27,12 +23,14 @@ async function resetPostgres() {
   await admin.query(`CREATE DATABASE ${TEST_DB}`);
   await admin.end();
 
+  // Same runner and files as production (scripts/migrations).
   const db = new Client({ connectionString: testUrls.pg });
   await db.connect();
-  for (const file of MIGRATIONS) {
-    await db.query(fs.readFileSync(path.join(scriptsDir, file), 'utf8'));
+  try {
+    await runMigrations(db);
+  } finally {
+    await db.end();
   }
-  await db.end();
 }
 
 async function resetMongo() {

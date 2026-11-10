@@ -29,9 +29,6 @@ _None open._
 `modules/billing/*`: one successful payment upgrades the user to PRO forever. There is no billing period, renewal, expiry or downgrade, and billing is per user, not per org. (Configuration was fixed: no sandbox fallbacks, production guard, redirect from `FRONTEND_URL`, 401 on bad signatures.)
 **Fix:** plan Phase 5 (real subscriptions).
 
-### KI-15 No migration runner
-Schema lives in `scripts/init-postgres.sql` (auto-applied only on first Postgres container start) + manual `migrate-v*.sql`. Nothing records which migrations ran. `validate-migrations.mjs` only checks that files exist and contain a few strings.
-
 ### KI-17 Tokens persisted in localStorage
 The web app keeps access/refresh tokens in Redux state persisted by `redux-persist` (localStorage). Any XSS reads them.
 

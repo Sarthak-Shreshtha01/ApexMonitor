@@ -39,7 +39,7 @@ Useful environment variables:
 
 `apps/server/test/setup/integration-global.ts` runs before the suite and:
 
-- drops and recreates the Postgres database `apexmonitor_test`, then applies `scripts/init-postgres.sql` and every `migrate-v*.sql`
+- drops and recreates the Postgres database `apexmonitor_test`, then applies `scripts/migrations/*` with the same runner production uses
 - drops the Mongo database `apexmonitor_test`
 - flushes Redis DB 15
 - recreates the RabbitMQ vhost `apexmonitor_test` through the management API

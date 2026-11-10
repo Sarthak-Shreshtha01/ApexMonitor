@@ -1,6 +1,6 @@
 import { createApp } from './app';
 import { connectMongo } from '@infrastructure/db/mongo';
-import { connectPostgres } from '@infrastructure/db/postgres';
+import { connectPostgres, ensureSchemaUpToDate } from '@infrastructure/db/postgres';
 import { connectRedis } from '@infrastructure/redis';
 import { connectRabbitMQ } from '@infrastructure/rabbitmq';
 import { config } from '@config';
@@ -23,6 +23,9 @@ async function bootstrap() {
       connectRedis(),
       connectRabbitMQ()
     ]);
+
+    // 2. Schema must be current before workers or HTTP use the database
+    await ensureSchemaUpToDate();
 
     // Initialize Background Workers
     console.log('⏳ Starting background workers...');

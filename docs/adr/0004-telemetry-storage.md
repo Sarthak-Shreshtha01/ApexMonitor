@@ -7,7 +7,7 @@
 
 Telemetry is split across MongoDB (raw request logs, raw RUM) and PostgreSQL (hourly aggregates). Problems:
 
-- Percentiles needed a mergeable representation; KI-8 was fixed in Postgres with an integer-array histogram and small SQL functions (`scripts/migrate-v7.sql`), which works but costs ~140 integers per row and is computed row by row.
+- Percentiles needed a mergeable representation; KI-8 was fixed in Postgres with an integer-array histogram and small SQL functions (`scripts/migrations/0008_latency_histograms.sql`), which works but costs ~140 integers per row and is computed row by row.
 - Mongo `skip/limit` and `countDocuments` degrade on large collections; full-text search is limited.
 - Self-hosters must operate five stateful services (PG, Mongo, Redis, RabbitMQ, plus the app).
 - The roadmap adds spans, structured logs, and infra metrics, all high-volume, append-only, and analytical.

@@ -102,17 +102,8 @@ Every top-level path and the files that matter. For the planned layout see [../a
 
 | Path | Purpose |
 |---|---|
-| `init-postgres.sql` | Base schema; auto-applied by the Postgres container on first start |
-| `migrate-v2.sql` | `users`, project owner FK, Apdex columns + `hourly_apdex` view |
-| `migrate-v3.sql` | `subscriptions` |
-| `migrate-v4.sql` | User profile columns |
-| `migrate-v4-rum.sql` | `hourly_rum_metrics`, `rum_public_keys` |
-| `migrate-v5.sql` | `billing_checkouts` |
-| `migrate-v6.sql` | `key_lookup` hash column on `api_keys` and `rum_public_keys` |
-| `migrate-v7.sql` | Mergeable latency stats on `hourly_metrics` (sum, min, max, histogram) + `apex_hist_*` SQL functions |
-| `migrate-v8.sql` | Alert rule state (`state`, `last_*`), alert event `kind`/`value` |
-| `migrate-v9.sql` | `project_members.role` limited to `owner` / `developer` |
-| `validate-migrations.mjs` | CI sanity check on SQL files |
+| `migrations/NNNN_*.sql` | Ordered schema migrations, applied by `apps/server/src/infrastructure/db/migrations.ts` and tracked in `schema_migrations`. 0001 initial schema · 0002 users, owner FK, Apdex · 0003 subscriptions · 0004 profile columns · 0005 RUM tables · 0006 `billing_checkouts` · 0007 key `key_lookup` · 0008 latency histograms + `apex_hist_*` · 0009 alert state · 0010 member role check |
+| `validate-migrations.mjs` | CI check: file naming, no gaps, re-runnable statements |
 | `sdk-conformance.mjs` | SDK wire-contract checks with mocked transport |
 | `check-release-version.mjs` | Ensures package versions match `RELEASE_VERSION` |
 | `rum-smoke.sh`, `rum-loop.sh` | Manual RUM traffic generators |

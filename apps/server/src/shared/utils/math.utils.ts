@@ -42,7 +42,7 @@ export function computeBatchStats(latencies: number[], statusCodes: number[]): B
   };
 }
 /**
- * Log-scale latency histogram, mergeable by adding counts (see scripts/migrate-v7.sql,
+ * Log-scale latency histogram, mergeable by adding counts (see scripts/migrations/0008_latency_histograms.sql,
  * which holds the matching percentile function). Bucket 0 holds latencies <= 1 ms;
  * bucket k holds (GROWTH^(k-1), GROWTH^k] ms. With GROWTH 1.1 a percentile read from the
  * histogram is within ~5% of the true value. 140 buckets reach ~568 s; anything slower

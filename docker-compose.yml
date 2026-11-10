@@ -27,7 +27,6 @@ services:
       - '9999:5432'
     volumes: 
       - pg_data:/var/lib/postgresql/data
-      - ./scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init-postgres.sql
     restart: unless-stopped
 
   # ==========================================

@@ -35,7 +35,9 @@ docker build -f apps/server/Dockerfile -t apexmonitor-server .   # server image 
 npm run build --workspace=apps/web
 npm run build:sdks                         # @apexmonitor/sdk + @apexmonitor/browser-sdk
 npm run conformance:sdks                   # SDK wire-contract checks (mocked transport)
-npm run validate:migrations                # sanity check of scripts/*.sql
+npm run validate:migrations                # naming/sequence/re-runnable checks on scripts/migrations
+npm run db:migrate                         # apply pending migrations (dev server also does this at boot)
+npm run db:migrate:status                  # list applied/pending (exit 2 if pending)
 npm test                                   # all suites that need no services (server unit, web, SDKs, Python SDK)
 npm run test:integration                   # server against real infra (docker compose up -d first; uses isolated *_test DBs)
 ```
@@ -71,7 +73,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 - New HTTP routes: register the path in `shared/constants/endpoints.ts`, wire `requireAuth` + `requireProjectAccess(...)` (or a key middleware) in the router, wrap handlers with `asyncHandler`.
 - Validate every input with Zod in `dto/`. Respond with `successBody(res, data)` / `errorBody(res, code, msg)` from `shared/http/api-contract.ts`. Throw known error strings (see `shared/middleware/error-handler.ts`) rather than writing ad-hoc status codes.
 - Use path aliases: `@modules/*`, `@shared/*`, `@infrastructure/*`, `@workers/*`, `@events/*`, `@config`.
-- SQL: parameterized queries only (`$1`, `$2`). Schema changes go in a new `scripts/migrate-vN.sql` and must also be reflected in `scripts/init-postgres.sql` and `scripts/validate-migrations.mjs`.
+- SQL: parameterized queries only (`$1`, `$2`). Schema changes go in a new numbered file `scripts/migrations/NNNN_snake_case.sql` (next number, re-runnable: `IF NOT EXISTS` / guarded `DO` blocks). Never edit a migration that has been applied anywhere. Update `docs/architecture/data-model.md`.
 - Outbound HTTP to user-supplied URLs (webhooks) must go through `shared/net/webhook.ts#sendWebhook` (SSRF guard).
 - Time buckets must be computed in UTC.
 - Latency across several `hourly_metrics` rows: never `AVG(avg_ms)` or `MAX(p99_ms)`; use `SQL_AVG_LATENCY_MS` / `sqlLatencyPercentile()` from `shared/utils/latency-sql.ts`.

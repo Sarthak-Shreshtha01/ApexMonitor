@@ -6,7 +6,8 @@
 #   docker build -f apps/server/Dockerfile -t apexmonitor-server .
 #
 # Configuration comes only from environment variables (see docs/reference/configuration.md);
-# no .env file is copied into the image. Database migrations are not run by the image.
+# no .env file is copied into the image. Migrations: run `node dist/migrate.js` (the API
+# refuses to start in production while migrations are pending).
 
 ARG NODE_IMAGE=node:24-alpine
 
@@ -45,6 +46,8 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=prod-deps --chown=node:node /app ./
 COPY --from=build --chown=node:node /app/apps/server/dist apps/server/dist
+# Migrations ship with the image: `node dist/migrate.js` applies them (see docs/operations).
+COPY --chown=node:node scripts/migrations scripts/migrations
 WORKDIR /app/apps/server
 USER node
 EXPOSE 3000

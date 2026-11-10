@@ -10,11 +10,18 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 2. Enforce Project Ownership Foreign Key (cite: SRS v2 DB-02)
 -- If a user is deleted, we restrict it if they still own projects to prevent orphaned data.
-ALTER TABLE projects 
-  ADD CONSTRAINT fk_projects_owner 
-  FOREIGN KEY (owner_user_id) 
-  REFERENCES users(id) 
-  ON DELETE RESTRICT;
+-- (guarded so the file can be re-applied safely)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'fk_projects_owner') THEN
+    ALTER TABLE projects
+      ADD CONSTRAINT fk_projects_owner
+      FOREIGN KEY (owner_user_id)
+      REFERENCES users(id)
+      ON DELETE RESTRICT;
+  END IF;
+END
+$$;
 
 -- 3. Prepare Metrics for Apdex
 -- Add columns to store categorized requests (T = 500ms)

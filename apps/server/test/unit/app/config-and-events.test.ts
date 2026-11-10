@@ -65,6 +65,14 @@ describe('config loading', () => {
     expect(JSON.parse(live.stdout.trim().split('\n').pop()!)).toMatchObject({ PHONEPE_ENV: 'production', PHONEPE_SALT_INDEX: 3 });
   });
 
+  it('DB_AUTO_MIGRATE defaults to on outside production and off in production (KI-15)', () => {
+    const last = (env: Record<string, string>) => JSON.parse(loadConfig(env).stdout.trim().split('\n').pop()!).DB_AUTO_MIGRATE;
+    expect(last(validEnv)).toBe(true);
+    expect(last({ ...validEnv, NODE_ENV: 'production' })).toBe(false);
+    expect(last({ ...validEnv, NODE_ENV: 'production', DB_AUTO_MIGRATE: 'true' })).toBe(true);
+    expect(loadConfig({ ...validEnv, DB_AUTO_MIGRATE: 'yes' }).status).toBe(1);
+  });
+
   it('parses RUM_RATE_LIMIT_RPM as a number (KI-14)', () => {
     const r = loadConfig({ ...validEnv, RUM_RATE_LIMIT_RPM: '5000' });
     expect(JSON.parse(r.stdout.trim().split('\n').pop()!).RUM_RATE_LIMIT_RPM).toBe(5000);

@@ -1,6 +1,6 @@
 # Data Model
 
-Source of truth: `scripts/init-postgres.sql` + `scripts/migrate-v*.sql`, Mongoose schemas in `apps/server/src/modules/{logs,rum}/*.schema.ts`, Redis key usage across `apps/server/src`, topology in `apps/server/src/infrastructure/rabbitmq.ts`.
+Source of truth: `scripts/migrations/*.sql` (applied in order, tracked in `schema_migrations`), Mongoose schemas in `apps/server/src/modules/{logs,rum}/*.schema.ts`, Redis key usage across `apps/server/src`, topology in `apps/server/src/infrastructure/rabbitmq.ts`.
 
 ## PostgreSQL
 
@@ -28,6 +28,7 @@ erDiagram
 | `project_members` | `project_id` → projects (CASCADE), `user_id`, `role` (`owner`/`developer`, CHECK constraint since v9), unique(project,user) | `user_id` has no FK |
 | `subscriptions` | `user_id` PK → users (CASCADE), `plan_tier` (`FREE`/`PRO`), `last_tx_id`, `payment_status` | Per user, not per org |
 | `billing_checkouts` | `merchant_transaction_id` PK, `user_id` → users (CASCADE), `plan_tier`, `amount_paise`, `status` (`PENDING`/`SUCCESS`/`FAILED`), `gateway_code`, `completed_at` | v5. The payment webhook finds the user here |
+| `schema_migrations` | `version` PK, `name`, `checksum` (sha256 of the file), `applied_at` | Written by the migration runner |
 | `audit_logs` | `actor_user_id`, `project_id`, `action`, `resource_type`, `resource_id`, `metadata` jsonb, `ip_address`, `user_agent` | Written by `shared/services/audit-log.service.ts` |
 
 ### Credentials
@@ -46,7 +47,7 @@ erDiagram
 | `hourly_rum_metrics` | project, path, device_type, browser_name, country_code, region_code, referrer_source, hour_bucket | page_views, unique_visitors, unique_sessions, avg + sample counts for TTFB/FCP/LCP |
 | view `hourly_apdex` | from hourly_metrics | `(satisfied + tolerating/2) / total` |
 
-To read latency across several rows (hours, endpoints), merge, don't average: `SUM(latency_sum_ms) / SUM(request_count)` for the mean and `apex_hist_percentile(apex_hist_sum(latency_hist), q, MIN(latency_min_ms), MAX(latency_max_ms))` for percentiles. `shared/utils/latency-sql.ts` has both as SQL fragments; the SQL functions are defined in `scripts/migrate-v7.sql`.
+To read latency across several rows (hours, endpoints), merge, don't average: `SUM(latency_sum_ms) / SUM(request_count)` for the mean and `apex_hist_percentile(apex_hist_sum(latency_hist), q, MIN(latency_min_ms), MAX(latency_max_ms))` for percentiles. `shared/utils/latency-sql.ts` has both as SQL fragments; the SQL functions are defined in `scripts/migrations/0008_latency_histograms.sql`.
 
 ### Alerting and insights
 

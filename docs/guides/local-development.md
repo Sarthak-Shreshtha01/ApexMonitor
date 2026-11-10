@@ -29,15 +29,14 @@ docker compose ps        # all four services should be "running"
 
 ## 3. Database schema
 
-`scripts/init-postgres.sql` runs automatically **only the first time** the Postgres volume is created. Apply the migrations manually, in order:
+Migrations live in `scripts/migrations/` (`0001_initial_schema.sql`, `0002_…`) and are tracked in the `schema_migrations` table. `npm run dev:server` applies pending ones at startup; to run them yourself:
 
 ```bash
-for f in migrate-v2.sql migrate-v3.sql migrate-v4.sql migrate-v4-rum.sql migrate-v5.sql migrate-v6.sql migrate-v7.sql migrate-v8.sql migrate-v9.sql; do
-  docker exec -i apexmonitor-postgres psql -U pulse -d apexmonitor < scripts/$f
-done
+npm run db:migrate          # apply pending migrations
+npm run db:migrate:status   # applied / pending (exits 2 if anything is pending)
 ```
 
-`migrate-v2.sql` adds a FK constraint without `IF NOT EXISTS`; re-running it errors harmlessly on that statement. To reset everything: `docker compose down -v && docker compose up -d`, then re-apply.
+A database set up by hand with the old `init-postgres.sql` + `migrate-v*.sql` files is adopted automatically: every file is safe to re-apply, so the first run re-applies them and records them. To reset everything: `docker compose down -v && docker compose up -d`, then start the server.
 
 ## 4. Configure
 

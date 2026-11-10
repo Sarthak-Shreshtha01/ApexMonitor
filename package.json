@@ -19,7 +19,9 @@
     "test": "npm run test --workspaces --if-present && npm run test:python-sdk",
     "test:integration": "npm run test:integration --workspace=apps/server",
     "test:python-sdk": "cd packages/python-sdk && python3 -m unittest discover -s tests",
-    "test:all": "npm test && npm run test:integration"
+    "test:all": "npm test && npm run test:integration",
+    "db:migrate": "npm run db:migrate --workspace=apps/server",
+    "db:migrate:status": "npm run db:migrate --workspace=apps/server -- status"
   },
   "keywords": [],
   "author": "",

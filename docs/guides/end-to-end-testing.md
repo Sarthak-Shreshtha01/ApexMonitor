@@ -59,7 +59,7 @@ Verify the services are reachable:
 
 ### 2.2 Apply schema and seed data
 
-Run the SQL bootstrap scripts in order that your environment requires. For local development, ensure the `init-postgres.sql` schema exists and the application can connect.
+Run `npm run db:migrate` (or start the dev server, which applies pending migrations at boot). `npm run db:migrate:status` should list every file as `applied`.
 
 Important tables to confirm:
 

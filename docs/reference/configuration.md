@@ -16,6 +16,8 @@ Read from the process environment and validated with Zod by `apps/server/src/con
 | `JWT_REFRESH_SECRET` | no | derived from `JWT_SECRET` | ≥32 chars. Dedicated refresh-token signing key; changing it logs everyone out |
 | `ARGON2_PEPPER` | **yes** | n/a | ≥32 chars. Appended to API keys before hashing; changing it invalidates all keys |
 | `CORS_ORIGINS` | **yes** | n/a | Comma-separated origins (HTTP + Socket.IO) |
+| `DB_AUTO_MIGRATE` | no | `true` unless `NODE_ENV=production` | Apply pending migrations at startup. When `false`, the API refuses to start while migrations are pending |
+| `MIGRATIONS_DIR` | no | `<repo>/scripts/migrations` | Where migration files are read from |
 | `RATE_LIMIT_RPM` | no | `60000` | Base limit; RUM default is 2× this |
 | `RUM_RATE_LIMIT_RPM` | no | `2 × RATE_LIMIT_RPM` | RUM events per minute per project |
 | `LOG_LEVEL` | no | `info` | `debug` \| `info` \| `warn` \| `error` |

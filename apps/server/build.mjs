@@ -9,8 +9,9 @@
 import { build } from 'esbuild';
 
 await build({
-  entryPoints: ['src/bootstrap.ts'],
-  outfile: 'dist/bootstrap.js',
+  // bootstrap: the API + workers. migrate: the database migration CLI (node dist/migrate.js).
+  entryPoints: { bootstrap: 'src/bootstrap.ts', migrate: 'src/migrate.ts' },
+  outdir: 'dist',
   bundle: true,
   platform: 'node',
   target: 'node20',

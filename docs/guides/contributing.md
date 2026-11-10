@@ -29,7 +29,7 @@ Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`
 - [ ] Tenant ID comes from the authenticated credential, not request input
 - [ ] Inputs validated with Zod; responses use `successBody` / `errorBody`
 - [ ] New/changed routes reflected in `shared/constants/endpoints.ts`, [`reference/api.md`](../reference/api.md), web `shared/api/endpoints.ts`, and SDKs
-- [ ] Schema change has a new migration + `init-postgres.sql` + `validate-migrations.mjs` updated, and [`data-model.md`](../architecture/data-model.md) updated
+- [ ] Schema change is a new `scripts/migrations/NNNN_*.sql` file (re-runnable; applied migrations are never edited), and [`data-model.md`](../architecture/data-model.md) is updated
 - [ ] New env vars added to the Zod config, `.env.example`, and [`configuration.md`](../reference/configuration.md)
 - [ ] Tests added/updated (once the harness exists, see [testing-strategy.md](testing-strategy.md))
 - [ ] Fixed known issue removed from `known-issues.md`; plan checkbox ticked

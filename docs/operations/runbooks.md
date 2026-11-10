@@ -6,6 +6,12 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 ---
 
+## Deploying a release with database migrations
+
+- **Act:** run `node dist/migrate.js` once (e.g. `docker run --rm --env-file … apexmonitor-server node dist/migrate.js`), then roll out the new API image. With `NODE_ENV=production` the API refuses to start while migrations are pending and lists them.
+- **Check:** `node dist/migrate.js status` lists every file as `applied` (exit code 0). `MODIFIED` means a file was edited after it was applied; ship a new migration instead.
+- **If a migration fails:** that file is rolled back, earlier ones stay applied. Fix forward with a new file; the runner resumes from the failed one.
+
 ## Ingest returns 202 but dashboards show no new data
 
 - **Check:** `/metrics/system` queue counts. Are `raw_log_queue` / `aggregation_queue` growing? Are consumers 0?
