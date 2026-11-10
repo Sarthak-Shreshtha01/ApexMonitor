@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { api, createIngestKey, logEntry, mongoCount, pgQuery, redisClient, registerTenant, Tenant, waitFor } from './harness';
-import { knownBug } from '../helpers/known-bug';
 
 // Path segments must not start with a digit, or the server's endpoint normaliser rewrites them (KI-37).
 const uniq = () => `x${crypto.randomUUID().replace(/-/g, '').slice(0, 10)}`;
@@ -44,7 +43,7 @@ describe('ingest → workers → query APIs (real stack)', () => {
     expect(get).toMatchObject({ request_count: 3, error_count: 1, satisfied_count: 2, tolerating_count: 0, frustrated_count: 1 });
   });
 
-  knownBug('KI-9', 'hour buckets are UTC hours even when the server runs in Asia/Kolkata', async () => {
+  it('hour buckets are UTC hours even when the server runs in Asia/Kolkata (KI-9)', async () => {
     const [row] = await pgQuery('SELECT hour_bucket FROM hourly_metrics WHERE project_id = $1 LIMIT 1', [t.projectId]);
     expect(new Date(row.hour_bucket).toISOString()).toBe(hourStart.toISOString());
   });
@@ -135,7 +134,7 @@ describe('ingest → workers → query APIs (real stack)', () => {
     expect(insight).toMatchObject({ type: 'latency_spike', severity: 'warning', projectId: t.projectId });
   });
 
-  knownBug('KI-8', 'merging batches into the same hour keeps a request-weighted average latency', async () => {
+  it('merging batches into the same hour keeps a request-weighted average latency (KI-8)', async () => {
     const endpoint = `/weighted/${uniq()}`;
     // Batch 1: 3 requests at 100ms. Batch 2: 1 request at 500ms. True mean = 200ms.
     await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [100, 100, 100].map((l) => logEntry({ endpoint, latencyMs: l, timestamp: inHour(10) })) } });
@@ -148,7 +147,7 @@ describe('ingest → workers → query APIs (real stack)', () => {
     expect(row.avg_ms).toBe(200);
   });
 
-  knownBug('KI-8', 'merged p50 reflects all requests in the hour, not only the first batch', async () => {
+  it('merged p50 reflects all requests in the hour, not only the first batch (KI-8)', async () => {
     const endpoint = `/p50/${uniq()}`;
     await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry({ endpoint, latencyMs: 10, timestamp: inHour(20) })] } });
     await waitFor(async () => (await pgQuery('SELECT 1 FROM hourly_metrics WHERE project_id=$1 AND endpoint=$2', [t.projectId, endpoint])).length === 1);
@@ -158,5 +157,53 @@ describe('ingest → workers → query APIs (real stack)', () => {
       return r?.request_count === 4 ? r : undefined;
     });
     expect(row.p50_ms).toBe(1000);
+  });
+
+  it('merged percentiles stay within 6% of the exact values over many batches (KI-8)', async () => {
+    const { computePercentile } = await import('@shared/utils/math.utils');
+    const endpoint = `/accuracy/${uniq()}`;
+    // Deterministic, skewed latencies: mostly fast with a long tail.
+    let seed = 42;
+    const rand = () => ((seed = (seed * 1_103_515_245 + 12_345) % 2 ** 31) / 2 ** 31);
+    const all: number[] = [];
+    for (let batch = 0; batch < 4; batch++) {
+      const latencies = Array.from({ length: 60 }, () => Math.round(20 + 2000 * rand() ** 4));
+      all.push(...latencies);
+      const res = await api('POST', '/api/v1/ingest', {
+        apiKey: key,
+        body: { logs: latencies.map((latencyMs, i) => logEntry({ endpoint, latencyMs, timestamp: inHour(30 + (i % 20)) })) },
+      });
+      expect(res.status).toBe(202);
+    }
+    const row = await waitFor(async () => {
+      const [r] = await pgQuery('SELECT request_count, avg_ms, p50_ms, p95_ms, p99_ms, latency_min_ms, latency_max_ms FROM hourly_metrics WHERE project_id=$1 AND endpoint=$2', [t.projectId, endpoint]);
+      return r?.request_count === all.length ? r : undefined;
+    }, { label: '240 merged requests' });
+    const sorted = [...all].sort((a, b) => a - b);
+    const exact = (p: number) => computePercentile(sorted, p);
+    expect(row.avg_ms).toBeCloseTo(all.reduce((a, b) => a + b, 0) / all.length, 6);
+    expect(row.latency_min_ms).toBe(sorted[0]);
+    expect(row.latency_max_ms).toBe(sorted.at(-1));
+    for (const [col, p] of [['p50_ms', 50], ['p95_ms', 95], ['p99_ms', 99]] as const) {
+      expect(Math.abs(row[col] - exact(p)) / exact(p), `${col}: ${row[col]} vs exact ${exact(p)}`).toBeLessThan(0.06);
+    }
+  });
+
+  it('dashboard numbers merge across endpoints instead of averaging averages (KI-8)', async () => {
+    const tenant = await registerTenant('merge-readers');
+    const ownKey = (await createIngestKey(tenant)).key;
+    // 9 fast requests on one endpoint, 1 slow on another: true mean 190 ms (an average of
+    // the two endpoint averages would say 550), p50 100 ms, p99 1000 ms.
+    const logs = [
+      ...Array.from({ length: 9 }, (_, i) => logEntry({ endpoint: '/fast', latencyMs: 100, timestamp: inHour(i) })),
+      logEntry({ endpoint: '/slow', latencyMs: 1000, timestamp: inHour(9) }),
+    ];
+    expect((await api('POST', '/api/v1/ingest', { apiKey: ownKey, body: { logs } })).status).toBe(202);
+    await waitFor(async () => (await pgQuery('SELECT 1 FROM hourly_metrics WHERE project_id=$1', [tenant.projectId])).length === 2, { label: 'two rows' });
+
+    const overview = await api('GET', `/api/v1/metrics/overview?projectId=${tenant.projectId}&timeframe=24h`, { token: tenant.accessToken });
+    expect(overview.body.data.summary).toMatchObject({ totalRequests: 10, avgLatency: 190, p99Latency: 1000 });
+    const latency = await api('GET', `/api/v1/metrics/latency?projectId=${tenant.projectId}`, { token: tenant.accessToken });
+    expect(latency.status).toBe(200);
   });
 });

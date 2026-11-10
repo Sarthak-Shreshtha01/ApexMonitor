@@ -1,4 +1,5 @@
 import { getPg } from '@infrastructure/db/postgres';
+import { sqlLatencyPercentile } from '@shared/utils/latency-sql';
 
 export interface AlertRule {
   id: number;
@@ -27,7 +28,7 @@ export class AlertsRepository {
       SELECT 
         SUM(request_count)::int as total_requests,
         SUM(error_count)::int as total_errors,
-        MAX(p99_ms) as max_p99
+        ${sqlLatencyPercentile(0.99, 'p99_ms')} as max_p99
       FROM hourly_metrics
       WHERE project_id = $1 
         AND ($2::text IS NULL OR endpoint = $2)

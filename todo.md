@@ -16,41 +16,40 @@ _All done (see Done). Next up: item 1 below._
 
 ## Next: launch blockers (P1)
 
-1. [ ] **Aggregation math:** weighted average (store sum), mergeable percentiles, update `p50`, UTC buckets. `workers/aggregation.worker.ts` (KI-8, KI-9)
-2. [ ] **Browser SDK contract:** send the server's RUM schema. (KI-10)
-3. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
-4. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
+1. [ ] **Browser SDK contract:** send the server's RUM schema. (KI-10)
+2. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
+3. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
 
 ## Soon: before real traffic (P2)
 
-5. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
-6. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-7. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-8. [ ] **Validate member roles** with a Zod enum. (KI-38)
-9. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
-10. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-11. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-12. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-13. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-14. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-15. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-16. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+4. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
+5. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+6. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+7. [ ] **Validate member roles** with a Zod enum. (KI-38)
+8. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
+9. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+10. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+11. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+12. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+13. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+14. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+15. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-17. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-18. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-19. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-20. [ ] Split `apps/api` and `apps/worker`.
-21. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-22. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+16. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+17. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+18. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+19. [ ] Split `apps/api` and `apps/worker`.
+20. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+21. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-23. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-24. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-25. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-26. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+22. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+23. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+24. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+25. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -69,6 +68,7 @@ _All done (see Done). Next up: item 1 below._
 
 ## Done
 
+- [x] 2026-11-10: Hourly metrics: UTC buckets (KI-9); exact weighted averages and mergeable histogram percentiles (~5%) in rows and in dashboard/alert queries (KI-8, KI-9)
 - [x] 2026-11-10: Server Docker image builds from the repo root with the workspace lockfile; Node 24, non-root, healthcheck, no .env in the image; CI builds it (KI-22)
 - [x] 2026-11-10: Production build: esbuild bundles the server (aliases resolved) into `dist/bootstrap.js`; `npm start --workspace=apps/server` boots it (KI-13)
 - [x] 2026-11-10: Ingest answers 202 only after RabbitMQ confirms the batch (503 + Retry-After otherwise); per-consumer channels; automatic reconnect with backoff; failed batches release their idempotency key (KI-16)

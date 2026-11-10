@@ -1,6 +1,7 @@
 import { getPg } from '@infrastructure/db/postgres';
 import { MetricsQuery } from './dto/metrics-query.dto';
 import { ApiLog } from '@modules/logs/logs.schema';
+import { SQL_AVG_LATENCY_MS, sqlLatencyPercentile } from '@shared/utils/latency-sql';
 
 type StatusClass = '2xx' | '3xx' | '4xx' | '5xx';
 
@@ -23,8 +24,8 @@ export class MetricsRepository {
         SELECT
           COALESCE(SUM(request_count), 0)::int AS total_requests,
           COALESCE(SUM(error_count), 0)::int AS total_errors,
-          COALESCE(MAX(p99_ms), 0)::float AS p99_latency,
-          COALESCE(AVG(avg_ms), 0)::float AS avg_latency,
+          ${sqlLatencyPercentile(0.99, 'p99_ms')}::float AS p99_latency,
+          ${SQL_AVG_LATENCY_MS}::float AS avg_latency,
           COALESCE(SUM(satisfied_count), 0)::int AS satisfied_count,
           COALESCE(SUM(tolerating_count), 0)::int AS tolerating_count,
           COALESCE(SUM(frustrated_count), 0)::int AS frustrated_count
@@ -38,8 +39,8 @@ export class MetricsRepository {
           method,
           SUM(request_count)::int AS requests,
           COALESCE(SUM(error_count), 0)::int AS errors,
-          COALESCE(MAX(p99_ms), 0)::float AS p99_latency,
-          COALESCE(AVG(avg_ms), 0)::float AS avg_latency
+          ${sqlLatencyPercentile(0.99, 'p99_ms')}::float AS p99_latency,
+          ${SQL_AVG_LATENCY_MS}::float AS avg_latency
         FROM hourly_metrics
         WHERE project_id = $1
           AND hour_bucket >= NOW() - $2::interval
@@ -52,7 +53,7 @@ export class MetricsRepository {
           hour_bucket AS bucket,
           SUM(request_count)::int AS request_count,
           SUM(error_count)::int AS error_count,
-          COALESCE(AVG(avg_ms), 0)::float AS avg_latency
+          ${SQL_AVG_LATENCY_MS}::float AS avg_latency
         FROM hourly_metrics
         WHERE project_id = $1
           AND hour_bucket >= NOW() - $2::interval
@@ -117,10 +118,10 @@ export class MetricsRepository {
         method,
         SUM(request_count)::int  AS request_count,
         SUM(error_count)::int    AS error_count,
-        MAX(p50_ms)              AS p50_ms,
-        MAX(p95_ms)              AS p95_ms,
-        MAX(p99_ms)              AS p99_ms,
-        AVG(avg_ms)              AS avg_ms
+        ${sqlLatencyPercentile(0.5, 'p50_ms')}  AS p50_ms,
+        ${sqlLatencyPercentile(0.95, 'p95_ms')} AS p95_ms,
+        ${sqlLatencyPercentile(0.99, 'p99_ms')} AS p99_ms,
+        ${SQL_AVG_LATENCY_MS}                   AS avg_ms
       FROM hourly_metrics
       WHERE project_id = $1
         AND hour_bucket >= NOW() - $2::interval

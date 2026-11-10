@@ -31,18 +31,6 @@ _None open._
 - One-time payment upgrades to PRO forever: no period, renewal, expiry, or downgrade. Billing is per user, not per org. Webhook handling is not idempotent (no event log).
 **Fix:** plan Phase 0 (config) + Phase 5 (real subscriptions).
 
-### KI-8 Aggregated latency statistics are wrong
-`workers/aggregation.worker.ts` upserts into `hourly_metrics`:
-- `avg_ms = (old + new) / 2`: unweighted, so it's wrong whenever batches differ in size.
-- `p95_ms/p99_ms = GREATEST(old, new)`: this is a running max of per-batch percentiles, not a percentile.
-- `p50_ms` is never updated after the first insert of an hour.
-- `rps_peak` is never written.
-**Fix:** store sum + count for averages; store a mergeable sketch/histogram for percentiles.
-
-### KI-9 Time buckets use server local time
-`aggregation.worker.ts` builds the hour bucket with `new Date(y, m, d, h)` (local timezone). Any non-UTC host produces shifted buckets, and DST transitions merge or split hours.
-**Fix:** truncate in UTC (`Date.UTC(...)` or `date_trunc('hour', ts AT TIME ZONE 'UTC')`).
-
 ### KI-10 Browser SDK payload doesn't match the server schema
 `packages/browser-sdk/src/index.ts` sends events shaped `{ type, timestamp, payload }` with `type ∈ page_view|error|custom|web_vitals`, and sends `projectId` in the body. The server (`modules/rum/dto/rum-ingest.dto.ts`) requires top-level `path`, accepts `type ∈ page_view|web_vital|heartbeat`, and reads metrics from `ttfbMs/fcpMs/lcpMs`. Real browser SDK batches fail validation (400). `scripts/sdk-conformance.mjs` only checks transport shape against a mock, so it doesn't catch this.
 **Fix:** align SDK to server contract (or extend server for `error`/`custom`); validate SDK output against the server Zod schema in conformance tests.

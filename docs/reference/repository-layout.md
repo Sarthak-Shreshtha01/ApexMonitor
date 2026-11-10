@@ -109,6 +109,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `migrate-v4-rum.sql` | `hourly_rum_metrics`, `rum_public_keys` |
 | `migrate-v5.sql` | `billing_checkouts` |
 | `migrate-v6.sql` | `key_lookup` hash column on `api_keys` and `rum_public_keys` |
+| `migrate-v7.sql` | Mergeable latency stats on `hourly_metrics` (sum, min, max, histogram) + `apex_hist_*` SQL functions |
 | `validate-migrations.mjs` | CI sanity check on SQL files |
 | `sdk-conformance.mjs` | SDK wire-contract checks with mocked transport |
 | `check-release-version.mjs` | Ensures package versions match `RELEASE_VERSION` |

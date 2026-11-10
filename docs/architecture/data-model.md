@@ -41,10 +41,12 @@ erDiagram
 
 | Table | Grain (unique key) | Measures |
 |---|---|---|
-| `hourly_metrics` | project, endpoint, method, hour_bucket | request_count, error_count, p50/p95/p99/avg_ms, rps_peak, satisfied/tolerating/frustrated counts |
+| `hourly_metrics` | project, endpoint, method, hour_bucket (UTC hour) | request_count, error_count, satisfied/tolerating/frustrated counts; mergeable latency stats (v7): `latency_sum_ms`, `latency_min_ms`, `latency_max_ms`, `latency_hist` (log-scale histogram, bucket k = (1.1^(k-1), 1.1^k] ms); derived `avg_ms` (exact) and `p50/p95/p99_ms` (from the histogram, within ~5%, clamped to min/max). `rps_peak` is unused (always 0) |
 | `five_minute_metrics` | project, endpoint, method, bucket | request_count, error_count, avg_ms (**never written**, KI-24) |
 | `hourly_rum_metrics` | project, path, device_type, browser_name, country_code, region_code, referrer_source, hour_bucket | page_views, unique_visitors, unique_sessions, avg + sample counts for TTFB/FCP/LCP |
 | view `hourly_apdex` | from hourly_metrics | `(satisfied + tolerating/2) / total` |
+
+To read latency across several rows (hours, endpoints), merge, don't average: `SUM(latency_sum_ms) / SUM(request_count)` for the mean and `apex_hist_percentile(apex_hist_sum(latency_hist), q, MIN(latency_min_ms), MAX(latency_max_ms))` for percentiles. `shared/utils/latency-sql.ts` has both as SQL fragments; the SQL functions are defined in `scripts/migrate-v7.sql`.
 
 ### Alerting and insights
 

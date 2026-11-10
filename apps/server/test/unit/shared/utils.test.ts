@@ -3,6 +3,7 @@ import { computeBatchStats, computePercentile } from '@shared/utils/math.utils';
 import { calculateZScore } from '@shared/utils/anomaly.utils';
 import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
 import { errorBody, getRequestId, successBody } from '@shared/http/api-contract';
+import { latencyBucket, latencyHistogram, LATENCY_HIST_BUCKETS, LATENCY_HIST_GROWTH } from '@shared/utils/math.utils';
 
 function fakeRes(requestId?: string) {
   return { getHeader: (name: string) => (name === 'x-request-id' ? requestId : undefined) } as never;
@@ -87,5 +88,33 @@ describe('api-contract', () => {
 
   it('falls back to "unknown" request id', () => {
     expect(getRequestId(fakeRes(undefined))).toBe('unknown');
+  });
+});
+
+describe('latency histogram (KI-8)', () => {
+  it('puts <= 1 ms in bucket 0 and k in (1.1^(k-1), 1.1^k]', () => {
+    expect([0, 0.5, 1].map(latencyBucket)).toEqual([0, 0, 0]);
+    expect(latencyBucket(1.05)).toBe(1);
+    expect(latencyBucket(1.1)).toBe(1); // upper bound is inclusive
+    expect(latencyBucket(1.11)).toBe(2);
+    for (const v of [2, 17, 250, 999, 1000, 12_345, 299_999]) {
+      const k = latencyBucket(v);
+      expect(LATENCY_HIST_GROWTH ** (k - 1)).toBeLessThan(v);
+      expect(LATENCY_HIST_GROWTH ** k).toBeGreaterThanOrEqual(v * (1 - 1e-12));
+    }
+  });
+
+  it('caps very slow requests in the last bucket', () => {
+    expect(latencyBucket(10_000_000)).toBe(LATENCY_HIST_BUCKETS - 1);
+    expect(latencyBucket(300_000)).toBeLessThan(LATENCY_HIST_BUCKETS - 1); // ingest's max still resolves
+  });
+
+  it('counts per bucket, trimmed after the last non-empty bucket', () => {
+    expect(latencyHistogram([])).toEqual([]);
+    expect(latencyHistogram([1, 1, 1.05])).toEqual([2, 1]);
+    const h = latencyHistogram([10, 10, 1000]);
+    expect(h.reduce((a, b) => a + b, 0)).toBe(3);
+    expect(h[latencyBucket(10)]).toBe(2);
+    expect(h.length).toBe(latencyBucket(1000) + 1);
   });
 });

@@ -94,7 +94,7 @@ describe('AggregationWorker', () => {
     const upserts = pg.calls.filter((c) => c.sql.includes('INSERT INTO hourly_metrics'));
     expect(upserts).toHaveLength(3);
     const get = upserts.find((c) => c.params[0] === PROJECT_A && c.params[2] === 'GET')!;
-    // [project, endpoint, method, bucket, count, errors, p50, p95, p99, avg, satisfied, tolerating, frustrated]
+    // [project, endpoint, method, bucket, count, errors, latencySum, min, max, histogram, satisfied, tolerating, frustrated]
     expect(get.params.slice(4, 6)).toEqual([4, 1]);
     expect(get.params.slice(10)).toEqual([1, 1, 2]);
     expect(emitted).toEqual([{ projectIds: [PROJECT_A, PROJECT_B] }]);
@@ -107,7 +107,7 @@ describe('AggregationWorker', () => {
     expect(channel.nacked).toHaveLength(1);
   });
 
-  knownBug('KI-9', 'hour buckets are computed in UTC regardless of server timezone', async () => {
+  it('hour buckets are computed in UTC regardless of server timezone (KI-9)', async () => {
     const tz = process.env.TZ;
     process.env.TZ = 'Asia/Kolkata';
     try {
@@ -119,10 +119,16 @@ describe('AggregationWorker', () => {
     }
   });
 
-  knownBug('KI-8', 'merging two batches keeps a request-weighted average (upsert SQL)', async () => {
-    await channel.deliver('aggregation_queue', [log()]);
-    const sql = pg.calls.find((c) => c.sql.includes('INSERT INTO hourly_metrics'))!.sql;
-    expect(sql).not.toMatch(/avg_ms\s*=\s*\(hourly_metrics\.avg_ms \+ EXCLUDED\.avg_ms\) \/ 2/);
+  it('sends mergeable statistics: latency sum, min, max and histogram (KI-8)', async () => {
+    const { latencyHistogram } = await import('@shared/utils/math.utils');
+    await channel.deliver('aggregation_queue', [log({ latencyMs: 10 }), log({ latencyMs: 30 }), log({ latencyMs: 1000 })]);
+    const call = pg.calls.find((c) => c.sql.includes('INSERT INTO hourly_metrics'))!;
+    expect(call.params.slice(4, 10)).toEqual([3, 0, 1040, 10, 1000, latencyHistogram([10, 30, 1000])]);
+    // merged on conflict, never averaged or max-ed
+    expect(call.sql).toContain('latency_sum_ms   = hourly_metrics.latency_sum_ms + EXCLUDED.latency_sum_ms');
+    expect(call.sql).toContain('apex_hist_add(hourly_metrics.latency_hist, EXCLUDED.latency_hist)');
+    expect(call.sql).not.toMatch(/\(hourly_metrics\.avg_ms \+ EXCLUDED\.avg_ms\) \/ 2/);
+    expect(call.sql).not.toMatch(/GREATEST\(hourly_metrics\.p9[59]_ms/);
   });
 });
 
