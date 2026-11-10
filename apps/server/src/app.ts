@@ -16,6 +16,7 @@ import { insightsRouter } from '@modules/insights/insights.router';
 import { keysRouter } from '@modules/keys/keys.router';
 import { tracesRouter } from '@modules/traces/traces.router';
 import { rumRouter } from '@modules/rum';
+import { alertsRouter } from '@modules/alerts/alerts.router';
 import { API_PREFIX, HEALTH_ENDPOINT, SERVER_ENDPOINTS } from '@shared/constants/endpoints';
 import { errorHandler, notFoundHandler } from '@shared/middleware/error-handler';
 import { httpLoggerOptions } from '@shared/utils/logger';
@@ -57,6 +58,7 @@ export function createApp(): Application {
   v1.use(SERVER_ENDPOINTS.modules.insights, insightsRouter);
   v1.use(SERVER_ENDPOINTS.modules.keys, keysRouter);
   v1.use(SERVER_ENDPOINTS.modules.traces, tracesRouter);
+  v1.use(SERVER_ENDPOINTS.modules.alerts, alertsRouter);
   
   app.use(API_PREFIX, v1);
 

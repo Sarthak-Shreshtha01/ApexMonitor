@@ -16,7 +16,7 @@ _All done (see Done). Next up: item 1 below._
 
 ## Next: launch blockers (P1)
 
-1. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
+1. [ ] **Alerts UI:** wire `AlertRuleBuilder` + `TriggerHistory` to `/api/v1/alerts` (backend done). (KI-18)
 
 ## Soon: before real traffic (P2)
 
@@ -65,6 +65,7 @@ _All done (see Done). Next up: item 1 below._
 
 ## Done
 
+- [x] 2026-11-10: Alerts backend: rules CRUD API, ok/firing state (notify on trigger and resolve only), evaluation over raw logs in the real window, owner-only writes (KI-18, backend)
 - [x] 2026-11-10: Billing config: no built-in sandbox credentials (billing off → 503), production boot guard, merchant/endpoint from config, redirect from `FRONTEND_URL`, bad webhook signature → 401 (KI-7, config part)
 - [x] 2026-11-10: PHONEPE_* and RUM_RATE_LIMIT_RPM validated by the Zod config; nothing reads process.env directly any more (KI-14)
 - [x] 2026-11-10: Browser SDK sends the server's RUM schema (page_view / web_vital / heartbeat, top-level path, ttfb/fcp/lcp); unit tests validate its output with the server's Zod schema (KI-10)

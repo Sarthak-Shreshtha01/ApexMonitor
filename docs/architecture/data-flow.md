@@ -111,25 +111,37 @@ sequenceDiagram
 
 ## 5. Alert evaluation
 
+Rules are managed through `/api/v1/alerts/rules` (see [api.md](../reference/api.md#alerts)) and evaluated by `workers/alert.worker.ts` once a minute.
+
 ```mermaid
 sequenceDiagram
     participant T as setInterval 60s
     participant AW as AlertWorker
+    participant M as Mongo api_logs
     participant PG as Postgres
     participant H as Webhook URL
-    T->>AW: tick
+    T->>AW: tick (skipped if the previous pass is still running)
     AW->>PG: SELECT * FROM alert_rules WHERE is_active
     loop each rule
-        AW->>PG: SUM/MAX over hourly_metrics for window
-        alt breached
-            AW->>PG: INSERT alert_events
-            AW->>AW: eventBus.emit('alert.triggered')
-            AW->>H: POST {text, source} (fire and forget)
+        AW->>M: count, errors, $percentile p99 for the last window_minutes
+        AW->>PG: UPDATE last_value, last_evaluated_at
+        alt breached and state = ok
+            AW->>PG: UPDATE state = firing WHERE state = ok + INSERT alert_events(kind = triggered)
+            AW->>H: POST {text, status: triggered, rule, value}
+        else healthy and state = firing
+            AW->>PG: UPDATE state = ok WHERE state = firing + INSERT alert_events(kind = resolved)
+            AW->>H: POST {text, status: resolved, rule, value}
         end
     end
 ```
 
-The webhook is sent through the SSRF guard in `shared/net/webhook.ts` (https only, public addresses only, no redirects, 5 s timeout). There's no CRUD API, cooldown, resolution, or email delivery yet (KI-18).
+- Only transitions notify. A rule that stays breached is not re-sent every minute; it notifies again only after it has resolved.
+- The transition and its event row are one SQL statement that changes the rule only if it is still in the old state, so two evaluators (or replicas) can't both notify.
+- No traffic in the window never breaches, and resolves a firing rule.
+- Editing a rule's condition, threshold, window or endpoint, or disabling it, resets it to `ok`.
+- `eventBus.emit('alert.triggered')` (severity `critical` or `info`) updates live dashboards.
+- Webhooks go through the SSRF guard in `shared/net/webhook.ts` (https only, public addresses only, no redirects, 5 s timeout).
+- `notify_email` is stored, but no email is sent yet (notification channels are plan Phase 4b).
 
 ## 6. Authentication
 

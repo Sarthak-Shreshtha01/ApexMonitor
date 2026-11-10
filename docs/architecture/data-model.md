@@ -52,8 +52,8 @@ To read latency across several rows (hours, endpoints), merge, don't average: `S
 
 | Table | Key columns |
 |---|---|
-| `alert_rules` | `project_id`, `name`, `condition_type` (`error_rate_high`, `latency_p99_high`), `endpoint_filter`, `threshold`, `window_minutes`, `notify_email`, `notify_webhook`, `is_active` |
-| `alert_events` | `alert_rule_id` → alert_rules (CASCADE), `project_id`, `message`, `metadata`, `triggered_at` |
+| `alert_rules` | `project_id`, `name`, `condition_type` (`error_rate_high`, `latency_p99_high`), `endpoint_filter`, `threshold` (% or ms), `window_minutes`, `notify_email` (not sent yet), `notify_webhook`, `is_active`; state (v8): `state` (`ok`/`firing`), `last_value`, `last_evaluated_at`, `last_triggered_at`, `last_resolved_at`, `updated_at` |
+| `alert_events` | `alert_rule_id` → alert_rules (CASCADE), `project_id`, `kind` (`triggered`/`resolved`, v8), `message`, `value`, `metadata`, `triggered_at` (time of the event) |
 | `insights` | `project_id`, `endpoint`, `severity`, `type` (`latency_spike`, …), `message`, `metadata`, `is_read` |
 
 ## MongoDB

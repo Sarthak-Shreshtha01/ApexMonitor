@@ -16,7 +16,7 @@ vi.mock('@modules/rum/rum.schema', () => ({ RumRawEvent: { insertMany: (...a: un
 const createInsight = vi.fn();
 vi.mock('@modules/insights/insights.repository', () => ({ InsightsRepository: class { createInsight = createInsight; } }));
 
-const alertsRepo = { getActiveRules: vi.fn(), getRecentMetrics: vi.fn(), logAlertEvent: vi.fn() };
+const alertsRepo = { getActiveRules: vi.fn(), getWindowStats: vi.fn(), recordEvaluation: vi.fn(), transition: vi.fn() };
 vi.mock('@modules/alerts/alerts.repository', () => ({ AlertsRepository: class { constructor() { return alertsRepo; } } }));
 const sendWebhook = vi.fn();
 vi.mock('@shared/net/webhook', () => ({ sendWebhook: (...a: unknown[]) => sendWebhook(...a) }));
@@ -25,7 +25,7 @@ const { RawLogWorker } = await import('@workers/raw-log.worker');
 const { AggregationWorker } = await import('@workers/aggregation.worker');
 const { AnomalyWorker } = await import('@workers/anomaly.worker');
 const { RumWorker } = await import('@workers/rum.worker');
-const { AlertWorker } = await import('@workers/alert.worker');
+const { AlertWorker, evaluateRule } = await import('@workers/alert.worker');
 const { eventBus } = await import('@events/event-bus');
 
 const log = (o: Record<string, unknown> = {}) => ({
@@ -209,75 +209,123 @@ describe('RumWorker', () => {
   });
 });
 
-describe('AlertWorker', () => {
-  const rule = (o: Record<string, unknown> = {}) => ({
-    id: 1, project_id: PROJECT_A, name: 'r', condition_type: 'error_rate_high', endpoint_filter: null, threshold: 5, window_minutes: 5, notify_webhook: null, ...o,
+describe('evaluateRule', () => {
+  const r = (condition_type: string, threshold: number) => ({ condition_type, threshold, window_minutes: 5 }) as never;
+  it('error rate: strictly above the threshold breaches; no traffic never does', () => {
+    expect(evaluateRule(r('error_rate_high', 5), { totalRequests: 100, totalErrors: 6, p99Ms: 1 })).toMatchObject({ breached: true, value: 6 });
+    expect(evaluateRule(r('error_rate_high', 5), { totalRequests: 100, totalErrors: 5, p99Ms: 1 })).toMatchObject({ breached: false, value: 5 });
+    expect(evaluateRule(r('error_rate_high', 5), { totalRequests: 0, totalErrors: 0, p99Ms: null })).toMatchObject({ breached: false, value: null });
   });
-  const worker = new AlertWorker() as unknown as { evaluateRules(): Promise<void>; start(): void; interval: NodeJS.Timeout | null };
+  it('p99 latency: compares the window p99 with the threshold in ms', () => {
+    const e = evaluateRule(r('latency_p99_high', 500), { totalRequests: 3, totalErrors: 0, p99Ms: 900.4 });
+    expect(e).toMatchObject({ breached: true, value: 900 });
+    expect(e.summary).toContain('p99 latency 900ms');
+    expect(evaluateRule(r('latency_p99_high', 500), { totalRequests: 0, totalErrors: 0, p99Ms: null }).breached).toBe(false);
+  });
+  it('unknown conditions never breach', () => {
+    expect(evaluateRule(r('cpu_high', 1), { totalRequests: 1, totalErrors: 1, p99Ms: 1 }).breached).toBe(false);
+  });
+});
+
+describe('AlertWorker (KI-18)', () => {
+  const rule = (o: Record<string, unknown> = {}) => ({
+    id: 1, project_id: PROJECT_A, name: 'r', condition_type: 'error_rate_high', endpoint_filter: null, threshold: 5, window_minutes: 5,
+    notify_webhook: null, state: 'ok', is_active: true, ...o,
+  });
+  const breaching = { totalRequests: 100, totalErrors: 6, p99Ms: 10 };
+  const healthy = { totalRequests: 100, totalErrors: 0, p99Ms: 10 };
+  const worker = new AlertWorker() as unknown as { evaluateRules(): Promise<void>; start(): void; stop(): void };
 
   beforeEach(() => {
     Object.values(alertsRepo).forEach((f) => f.mockReset());
+    alertsRepo.transition.mockResolvedValue(true);
     sendWebhook.mockReset();
     sendWebhook.mockResolvedValue(200);
   });
-  afterEach(() => {
-    if (worker.interval) clearInterval(worker.interval);
-  });
+  afterEach(() => worker.stop());
 
-  it('fires on error rate above threshold, logs the event, emits and calls the webhook', async () => {
+  it('ok → firing on breach: records the event, emits, and sends one webhook with details', async () => {
     const emitted: any[] = [];
     eventBus.once('alert.triggered', (p) => emitted.push(p));
-    alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x' })]);
-    alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 100, total_errors: 6, max_p99: 0 });
+    alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x', endpoint_filter: '/pay' })]);
+    alertsRepo.getWindowStats.mockResolvedValue(breaching);
     await worker.evaluateRules();
-    expect(alertsRepo.getRecentMetrics).toHaveBeenCalledWith(PROJECT_A, null, 5);
-    expect(alertsRepo.logAlertEvent).toHaveBeenCalledWith(1, PROJECT_A, expect.stringContaining('6.00%'));
+    expect(alertsRepo.getWindowStats).toHaveBeenCalledWith(PROJECT_A, '/pay', 5);
+    expect(alertsRepo.recordEvaluation).toHaveBeenCalledWith(1, 6);
+    expect(alertsRepo.transition).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }), 'ok', 'firing', expect.stringContaining('6.00%'), 6);
     expect(emitted[0]).toMatchObject({ alertRuleId: 1, projectId: PROJECT_A, severity: 'critical' });
-    expect(sendWebhook).toHaveBeenCalledWith('https://hooks.example/x', { text: expect.stringContaining('6.00%'), source: 'ApexMonitor' });
+    expect(sendWebhook).toHaveBeenCalledWith('https://hooks.example/x', expect.objectContaining({
+      text: expect.stringContaining('Alert: r.'), status: 'triggered', value: 6, projectId: PROJECT_A,
+      rule: expect.objectContaining({ id: 1, condition: 'error_rate_high', threshold: 5, windowMinutes: 5 }),
+    }));
   });
 
-  it('does not fire at or below threshold, or with zero traffic', async () => {
-    alertsRepo.getActiveRules.mockResolvedValue([rule(), rule({ id: 2 })]);
-    alertsRepo.getRecentMetrics
-      .mockResolvedValueOnce({ total_requests: 100, total_errors: 5, max_p99: 0 })
-      .mockResolvedValueOnce({ total_requests: 0, total_errors: 0, max_p99: 0 });
+  it('a rule that stays breached does not re-notify every minute (cooldown)', async () => {
+    alertsRepo.getActiveRules.mockResolvedValue([rule({ state: 'firing', notify_webhook: 'https://hooks.example/x' })]);
+    alertsRepo.getWindowStats.mockResolvedValue(breaching);
     await worker.evaluateRules();
-    expect(alertsRepo.logAlertEvent).not.toHaveBeenCalled();
-  });
-
-  it('fires on p99 latency above threshold', async () => {
-    alertsRepo.getActiveRules.mockResolvedValue([rule({ condition_type: 'latency_p99_high', threshold: 500 })]);
-    alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 1, total_errors: 0, max_p99: 900 });
     await worker.evaluateRules();
-    expect(alertsRepo.logAlertEvent).toHaveBeenCalledWith(1, PROJECT_A, expect.stringContaining('900ms'));
+    expect(alertsRepo.transition).not.toHaveBeenCalled();
+    expect(sendWebhook).not.toHaveBeenCalled();
+    expect(alertsRepo.recordEvaluation).toHaveBeenCalledTimes(2); // still evaluated and visible in the UI
   });
 
-  it('survives repository and webhook failures', async () => {
+  it('firing → ok when it recovers: one "resolved" event and webhook', async () => {
+    const emitted: any[] = [];
+    eventBus.once('alert.triggered', (p) => emitted.push(p));
+    alertsRepo.getActiveRules.mockResolvedValue([rule({ state: 'firing', notify_webhook: 'https://hooks.example/x' })]);
+    alertsRepo.getWindowStats.mockResolvedValue(healthy);
+    await worker.evaluateRules();
+    expect(alertsRepo.transition).toHaveBeenCalledWith(expect.anything(), 'firing', 'ok', expect.stringMatching(/^Resolved: r\./), 0);
+    expect(emitted[0]).toMatchObject({ severity: 'info' });
+    expect(sendWebhook).toHaveBeenCalledWith('https://hooks.example/x', expect.objectContaining({ status: 'resolved' }));
+  });
+
+  it('no traffic resolves a firing error-rate rule and never fires an ok one', async () => {
+    alertsRepo.getActiveRules.mockResolvedValue([rule(), rule({ id: 2, state: 'firing' })]);
+    alertsRepo.getWindowStats.mockResolvedValue({ totalRequests: 0, totalErrors: 0, p99Ms: null });
+    await worker.evaluateRules();
+    expect(alertsRepo.transition).toHaveBeenCalledTimes(1);
+    expect(alertsRepo.transition).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }), 'firing', 'ok', expect.any(String), null);
+  });
+
+  it('does not notify when another evaluator already made the transition', async () => {
+    alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x' })]);
+    alertsRepo.getWindowStats.mockResolvedValue(breaching);
+    alertsRepo.transition.mockResolvedValue(false);
+    await worker.evaluateRules();
+    expect(sendWebhook).not.toHaveBeenCalled();
+  });
+
+  it('one failing rule does not stop the others; repository and webhook failures are contained', async () => {
     alertsRepo.getActiveRules.mockRejectedValueOnce(new Error('pg down'));
     await expect(worker.evaluateRules()).resolves.toBeUndefined();
-    alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x' })]);
-    alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
+    alertsRepo.getActiveRules.mockResolvedValue([rule({ id: 1 }), rule({ id: 2, notify_webhook: 'https://hooks.example/x' })]);
+    alertsRepo.getWindowStats.mockRejectedValueOnce(new Error('mongo down')).mockResolvedValue(breaching);
     sendWebhook.mockRejectedValueOnce(new Error('ECONNREFUSED'));
     await expect(worker.evaluateRules()).resolves.toBeUndefined();
+    expect(alertsRepo.transition).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }), 'ok', 'firing', expect.any(String), 6);
+  });
+
+  it('a slow pass never overlaps the next one', async () => {
+    let release!: () => void;
+    alertsRepo.getActiveRules.mockImplementationOnce(() => new Promise((r) => { release = () => r([]); }));
+    const first = worker.evaluateRules();
+    await worker.evaluateRules(); // skipped while the first is running
+    expect(alertsRepo.getActiveRules).toHaveBeenCalledTimes(1);
+    release();
+    await first;
   });
 
   it('sends webhooks only through the SSRF-guarded sender (KI-6)', async () => {
     const fetchSpy = vi.fn();
     vi.stubGlobal('fetch', fetchSpy);
     alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'http://169.254.169.254/latest/meta-data' })]);
-    alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
+    alertsRepo.getWindowStats.mockResolvedValue(breaching);
     sendWebhook.mockRejectedValueOnce(new Error('Webhook URL must use https'));
     await worker.evaluateRules();
     expect(sendWebhook).toHaveBeenCalledWith('http://169.254.169.254/latest/meta-data', expect.anything());
     expect(fetchSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
-  });
-
-  knownBug('KI-18', 'a rule that stays breached does not re-notify every minute (cooldown)', async () => {
-    alertsRepo.getActiveRules.mockResolvedValue([rule({ notify_webhook: 'https://hooks.example/x' })]);
-    alertsRepo.getRecentMetrics.mockResolvedValue({ total_requests: 10, total_errors: 10, max_p99: 0 });
-    await worker.evaluateRules();
-    await worker.evaluateRules();
-    expect(sendWebhook).toHaveBeenCalledTimes(1);
   });
 });

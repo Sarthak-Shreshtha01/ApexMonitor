@@ -198,9 +198,29 @@ Traces are request logs; `traceId` = server-generated `reqId` (KI-25).
 | POST | `/checkout` | JWT | Returns `{url}` (PhonePe pay page). `503` when billing is not configured |
 | POST | `/webhook/phonepe` | `X-VERIFY` signature | PhonePe server callback `{response: base64}`. `200` once handled (also for replays/unknown transactions), `401` bad signature, `400` payload not base64 JSON, `503` billing not configured |
 
-## Alerts
+## Alerts: `/api/v1/alerts`
 
-No HTTP API yet (KI-18).
+Reads need project membership; writes need the **owner** role (rules send data to external URLs).
+
+| Method | Path | Auth | Body / Query | Notes |
+|---|---|---|---|---|
+| GET | `/rules` | JWT+P [query] | `?projectId` | `{projectId, rules[]}` |
+| POST | `/rules` | JWT+O [body] | `{projectId, name, conditionType, threshold, windowMinutes?, endpointFilter?, notifyWebhook?, notifyEmail?, isActive?}` | `201 {rule}` |
+| PATCH | `/rules/:ruleId` | JWT+O [query] | `?projectId`; any subset of the create fields except `projectId` | `200 {rule}`; `404` if not in this project |
+| DELETE | `/rules/:ruleId` | JWT+O [query] | `?projectId` | `204`; `404` if not in this project |
+| GET | `/events` | JWT+P [query] | `?projectId&ruleId?&limit?` (1–200, default 50) | `{projectId, events[]}`, newest first |
+
+Rule fields:
+
+- `conditionType`: `error_rate_high` (threshold = percent, 0–100, errors are status ≥ 400) or `latency_p99_high` (threshold = ms).
+- `windowMinutes`: 1–1440, default 5. Evaluated over raw logs whose `timestamp` falls in the last N minutes.
+- `endpointFilter`: a normalised endpoint such as `/orders/:id`.
+- `notifyWebhook`: must be `https://` to a public host. It receives `{text, source, status: "triggered" | "resolved", rule: {id, name, condition, threshold, windowMinutes}, projectId, value}`.
+- `notifyEmail`: stored but not sent yet.
+
+Response fields add `state` (`ok` | `firing`), `lastValue`, `lastEvaluatedAt`, `lastTriggeredAt`, `lastResolvedAt`, `createdAt` and `updatedAt`.
+
+Events are `{id, ruleId, ruleName, kind: "triggered" | "resolved", message, value, at}`.
 
 ---
 

@@ -49,10 +49,11 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 - **Check:** `GET rate:<projectId>` in Redis; owner tier `GET tier:<ownerId>`.
 - **Note:** limit counts **batches**, not events (KI-19). Upgrade path: `subscriptions.plan_tier = 'PRO'` then `DEL tier:<ownerId>`.
 
-## Alert storm (same alert every minute)
+## Alert flapping (triggered / resolved over and over)
 
-- **Cause:** no cooldown/dedup (KI-18).
-- **Act:** `UPDATE alert_rules SET is_active = false WHERE id = …;` and notify the customer.
+- **Cause:** a rule only notifies on state changes, so repeated notifications mean the metric keeps crossing the threshold (often a small window with little traffic).
+- **Check:** `SELECT kind, value, triggered_at FROM alert_events WHERE alert_rule_id = … ORDER BY triggered_at DESC LIMIT 20;`
+- **Act:** ask the owner to widen `windowMinutes` or adjust the threshold (`PATCH /api/v1/alerts/rules/:id`). To silence it now: `PATCH … {"isActive": false}` (or `UPDATE alert_rules SET is_active = false WHERE id = …`).
 
 ## Suspected leaked API key
 

@@ -14,6 +14,7 @@ export const SERVER_ENDPOINTS = {
     insights: '/insights',
     keys: '/keys',
     traces: '/traces',
+    alerts: '/alerts',
   },
   auth: {
     login: '/login',
@@ -52,6 +53,11 @@ export const SERVER_ENDPOINTS = {
   },
   logs: {
     root: '/',
+  },
+  alerts: {
+    rules: '/rules',
+    rule: '/rules/:ruleId',
+    events: '/events',
   },
   insights: {
     root: '/',
