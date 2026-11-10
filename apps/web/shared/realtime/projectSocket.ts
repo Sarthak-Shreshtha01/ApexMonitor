@@ -1,5 +1,5 @@
 import { io } from 'socket.io-client';
-import { store } from '@/lib/redux/store';
+import { getAccessToken } from '@/features/auth/state/auth.store';
 import { refreshAccessToken } from '@/shared/api/apiClient';
 
 export const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
@@ -40,7 +40,7 @@ export interface ProjectSocketDeps {
 
 const defaultDeps: ProjectSocketDeps = {
   createSocket: (url) => io(url, { transports: ['websocket'], withCredentials: true }),
-  getAccessToken: () => store.getState().auth.accessToken,
+  getAccessToken,
   refreshAccessToken,
 };
 

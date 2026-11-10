@@ -2,7 +2,7 @@
 
 import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useAppSelector } from '@/lib/redux/hooks';
+import { useAuthStore } from '@/features/auth/state/auth.store';
 import { refreshAccessToken } from '@/shared/api/apiClient';
 import { isPublicPath, loginUrlFor } from '@/shared/routes/session-gate';
 
@@ -14,7 +14,7 @@ import { isPublicPath, loginUrlFor } from '@/shared/routes/session-gate';
 export function RouteGate({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const status = useAppSelector((state) => state.auth.status);
+  const status = useAuthStore((state) => state.status);
   const isPublic = isPublicPath(pathname);
 
   useEffect(() => {

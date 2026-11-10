@@ -18,18 +18,17 @@ Next.js **16** App Router, React 19, Tailwind 4. Read `apps/web/AGENTS.md` befor
 ```
 apps/web/
 ├── app/                      routes, layouts, providers
-│   └── providers/            AppProviders (Redux, RouteGate, QueryProvider)
+│   └── providers/            AppProviders (RouteGate, QueryProvider)
 ├── features/<domain>/        feature slices
 │   ├── api/                  *.service.ts: calls apiClient
 │   ├── hooks/                TanStack Query hooks
-│   ├── state/                Redux slices / Zustand stores
+│   ├── state/                Zustand stores
 │   └── ui/                   components
 ├── shared/
 │   ├── api/                  apiClient.ts (axios + interceptors), endpoints.ts
 │   ├── layout/               AppShell, PublicNavbar, Footer, RouteGate
 │   ├── routes/routes.ts      route constants + PUBLIC_PATHS
 │   └── ui/                   shared widgets (GeoIP Leaflet map)
-├── lib/redux/                store, typed hooks, persist storage
 └── proxy.ts                  optional server-side redirect to /login (Next 16 "proxy", formerly middleware)
 ```
 
@@ -40,7 +39,7 @@ Feature slices: `ai-insights`, `alerts` (rules list, rule builder and trigger hi
 | Kind | Tool | Where |
 |---|---|---|
 | Server data | TanStack Query | `features/*/hooks`, `app/providers/QueryProvider.tsx` |
-| Auth session | Redux Toolkit, **in memory only**: `{accessToken, status}`. The refresh token is the API's httpOnly `refresh_token` cookie | `features/auth/state/auth.slice.ts`, `lib/redux/store.ts` |
+| Auth session | Zustand, **in memory only**: `{accessToken, status}` (`getAccessToken()` etc. for code outside React). The refresh token is the API's httpOnly `refresh_token` cookie | `features/auth/state/auth.store.ts` |
 | UI/project selection | Zustand | `features/projects/state/project.store.ts`, `features/dashboard/state/dashboard.store.ts` |
 
 Two client-state libraries are in use; consolidating on one is in plan Phase 1.

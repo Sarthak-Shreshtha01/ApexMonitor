@@ -2,8 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import axios, { AxiosAdapter, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { apiClient, refreshAccessToken } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
-import { store } from '@/lib/redux/store';
-import authReducer, { clearAuth, setAccessToken } from '@/features/auth/state/auth.slice';
+import { clearAuth, setAccessToken, useAuthStore } from '@/features/auth/state/auth.store';
 import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
 import { authService } from '@/features/auth/api/auth.service';
 
@@ -35,27 +34,34 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllGlobals());
 
-describe('auth slice (KI-17)', () => {
+/** The store's data, without its action functions. */
+const authState = () => {
+  const { accessToken, status } = useAuthStore.getState();
+  return { accessToken, status };
+};
+
+describe('auth store (KI-17)', () => {
   it('keeps only an in-memory access token and a session status', () => {
-    let s = authReducer(undefined, { type: 'init' });
-    expect(s).toEqual({ accessToken: null, status: 'unknown' });
-    s = authReducer(s, setAccessToken('a'));
-    expect(s).toEqual({ accessToken: 'a', status: 'authenticated' });
-    expect(authReducer(s, clearAuth())).toEqual({ accessToken: null, status: 'anonymous' });
+    useAuthStore.setState({ accessToken: null, status: 'unknown' });
+    expect(authState()).toEqual({ accessToken: null, status: 'unknown' });
+    setAccessToken('a');
+    expect(authState()).toEqual({ accessToken: 'a', status: 'authenticated' });
+    clearAuth();
+    expect(authState()).toEqual({ accessToken: null, status: 'anonymous' });
   });
 
   it('nothing about the session is written to localStorage', () => {
     const setItem = vi.fn();
     vi.stubGlobal('localStorage', { setItem, getItem: vi.fn(), removeItem: vi.fn() });
-    store.dispatch(setAccessToken('secret-access'));
+    setAccessToken('secret-access');
     expect(setItem).not.toHaveBeenCalled();
-    expect(JSON.stringify(store.getState())).not.toContain('refresh');
+    expect(JSON.stringify(authState())).not.toContain('refresh');
   });
 });
 
 describe('apiClient', () => {
   beforeEach(() => {
-    store.dispatch(setAccessToken('old-access'));
+    setAccessToken('old-access');
   });
 
   it('attaches the access token and unwraps the success envelope', async () => {
@@ -77,7 +83,7 @@ describe('apiClient', () => {
     });
     const res = await apiClient.get('/api/v1/logs');
     expect(res.data).toBe('ok');
-    expect(store.getState().auth).toEqual({ accessToken: 'new-access', status: 'authenticated' });
+    expect(authState()).toEqual({ accessToken: 'new-access', status: 'authenticated' });
     const refreshCall = seen.find((c) => c.url === ENDPOINTS.auth.refresh)!;
     expect(JSON.parse(String(refreshCall.data))).toEqual({});
     expect(refreshCall.withCredentials).toBe(true);
@@ -110,7 +116,7 @@ describe('apiClient', () => {
     });
     const outcomes = await Promise.allSettled(['/a', '/b'].map((u) => apiClient.get(u)));
     expect(outcomes.every((o) => o.status === 'rejected')).toBe(true);
-    expect(store.getState().auth).toEqual({ accessToken: null, status: 'anonymous' });
+    expect(authState()).toEqual({ accessToken: null, status: 'anonymous' });
     expect(assign).toHaveBeenCalledWith(ROUTES.auth.login);
   });
 
@@ -147,16 +153,16 @@ describe('apiClient', () => {
   });
 
   it('refreshAccessToken restores a session on page load', async () => {
-    store.dispatch(clearAuth());
+    clearAuth();
     install(() => ({ status: 200, data: { data: { accessToken: 'restored' } } }));
     await expect(refreshAccessToken()).resolves.toBe('restored');
-    expect(store.getState().auth.status).toBe('authenticated');
+    expect(authState().status).toBe('authenticated');
   });
 });
 
 describe('authService.exchangeOAuthCode (KI-4)', () => {
   beforeEach(() => {
-    store.dispatch(clearAuth());
+    clearAuth();
   });
 
   it('POSTs the one-time code and returns the tokens', async () => {
@@ -168,7 +174,7 @@ describe('authService.exchangeOAuthCode (KI-4)', () => {
   });
 
   it('a used or expired code fails without trying a token refresh', async () => {
-    store.dispatch(setAccessToken('x'));
+    setAccessToken('x');
     const seen = install(() => ({ status: 401, data: { error: 'UNAUTHORIZED' } }));
     await expect(authService.exchangeOAuthCode('used')).rejects.toBeInstanceOf(AxiosError);
     expect(seen).toHaveLength(1);

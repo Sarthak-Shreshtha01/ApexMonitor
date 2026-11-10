@@ -1,7 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { ENDPOINTS } from './endpoints';
-import { store } from '@/lib/redux/store';
-import { clearAuth, setAccessToken } from '@/features/auth/state/auth.slice';
+import { clearAuth, getAccessToken, setAccessToken } from '@/features/auth/state/auth.store';
 import { isPublicPath, loginUrlFor } from '@/shared/routes/session-gate';
 
 type ApiSuccessEnvelope<T> = {
@@ -28,7 +27,7 @@ export const apiClient = axios.create({
 
 // Request Interceptor: Attach in-memory Access Token
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-  const token = store.getState().auth.accessToken;
+  const token = getAccessToken();
   if (token && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -52,11 +51,11 @@ export function refreshAccessToken(): Promise<string> {
     })
     .then(({ data }) => {
       const { accessToken } = unwrapApiData<{ accessToken: string }>(data);
-      store.dispatch(setAccessToken(accessToken));
+      setAccessToken(accessToken);
       return accessToken;
     })
     .catch((error: unknown) => {
-      store.dispatch(clearAuth());
+      clearAuth();
       throw error;
     })
     .finally(() => {

@@ -65,7 +65,7 @@ Goal: the code can be built and run as containers anywhere, configured only thro
 - [x] **Migrations:** adopt a runner (built in: `infrastructure/db/migrations.ts`). Convert `init-postgres.sql` + `migrate-v2..v4*.sql` into ordered, tracked migrations. API refuses to start if migrations are pending. (KI-15)
 - [ ] **Graceful shutdown:** on SIGTERM/SIGINT: stop accepting HTTP, cancel consumers, wait for in-flight messages, clear intervals, close Socket.IO, close PG/Mongo/Redis/AMQP.
 - [x] **RabbitMQ resilience:** reconnect with backoff on connection/channel close; separate publish and consume channels; use a confirm channel for publishing and await confirms before returning 202. Handle `publish()` returning `false` (backpressure → 503). (KI-16)
-- [ ] **Tooling:** root `tsconfig.base.json`, ESLint + Prettier for server and SDKs, `.nvmrc` (Node 20 LTS or 22), `engines` in root `package.json`. Either configure `turbo.json` pipelines (build/lint/test with caching) or delete it. Remove stray root deps (`axios`, `zustand`) and pick one client state lib in web.
+- [ ] **Tooling:** root `tsconfig.base.json`, ESLint + Prettier for server and SDKs, `.nvmrc` (Node 20 LTS or 22), `engines` in root `package.json`. ~~`turbo.json`~~ deleted (unused); stray root deps removed; web uses Zustand only.
 - [ ] **CI:** lint → typecheck → build → (tests from Phase 2) → docker build. Cache npm. Run on PRs to `main`.
 
 **Exit criteria:** `docker compose -f infra/compose/docker-compose.prod.yml up --build` on a clean machine yields a healthy `/ready` and a working dashboard.

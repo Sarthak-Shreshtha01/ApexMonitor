@@ -149,7 +149,7 @@ sequenceDiagram
 
 1. `POST /api/v1/users/register` or `POST /api/v1/auth/login`, which validates and hashes/verifies with argon2.
 2. Server issues an access JWT (15 min, `tokenType: access`) and a refresh JWT (30 days, `tokenType: refresh`), signed with separate keys (see `shared/auth/tokens.ts`). Every verifier checks `tokenType`, so a refresh token is rejected by `requireAuth` and the websocket join. It sets an httpOnly `refresh_token` cookie and also returns both tokens in the body.
-3. Web stores tokens in Redux (persisted) and sends `Authorization: Bearer`.
+3. Web keeps the access token in memory (`auth.store.ts`), never in storage, and sends `Authorization: Bearer`; the refresh token stays in the httpOnly cookie.
 4. On 401 the web client calls `POST /api/v1/auth/refresh` (cookie or body `refreshToken`), queues concurrent requests, and replays them.
 
 **OAuth (Google/GitHub)**

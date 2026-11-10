@@ -5,15 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Activity, Eye, EyeOff, ArrowRight } from 'lucide-react';
 import { authService } from '@/features/auth/api/auth.service';
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { setAccessToken } from '@/features/auth/state/auth.slice';
+import { useAuthStore } from '@/features/auth/state/auth.store';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { ROUTES } from '@/shared/routes/routes';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const setProjects = useProjectStore((s) => s.setProjects);
 
   const [fullName, setFullName] = useState('');
@@ -49,7 +48,7 @@ export default function RegisterPage() {
         jobTitle: jobTitle || undefined,
         timezone: timezone || undefined,
       });
-      dispatch(setAccessToken(accessToken));
+      setAccessToken(accessToken);
 
       const projects = await projectsService.listMine();
       setProjects(projects);

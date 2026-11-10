@@ -2,8 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { setAccessToken } from '@/features/auth/state/auth.slice';
+import { useAuthStore } from '@/features/auth/state/auth.store';
 import { authService } from '@/features/auth/api/auth.service';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
@@ -26,7 +25,7 @@ function exchangeOnce(code: string) {
 export function OAuthCallbackPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch = useAppDispatch();
+  const setAccessToken = useAuthStore((state) => state.setAccessToken);
   const setProjects = useProjectStore((s) => s.setProjects);
 
   useEffect(() => {
@@ -43,7 +42,7 @@ export function OAuthCallbackPageClient() {
       try {
         const tokens = await exchangeOnce(code);
         if (cancelled) return;
-        dispatch(setAccessToken(tokens.accessToken)); // refresh token is the httpOnly cookie
+        setAccessToken(tokens.accessToken); // refresh token is the httpOnly cookie
       } catch {
         // Expired or already used (e.g. the page was reloaded): start the sign-in again.
         if (!cancelled) router.replace(ROUTES.auth.login);
@@ -68,7 +67,7 @@ export function OAuthCallbackPageClient() {
     return () => {
       cancelled = true;
     };
-  }, [dispatch, router, searchParams, setProjects]);
+  }, [router, searchParams, setAccessToken, setProjects]);
 
   return (
     <main className="min-h-screen bg-app text-on-surface flex items-center justify-center p-6">

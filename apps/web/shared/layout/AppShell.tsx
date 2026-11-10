@@ -14,8 +14,7 @@ import { useDashboardStore, type DashboardTimeframe } from '@/features/dashboard
 import { userService } from '@/features/settings/api/user.service';
 import { apiClient } from '@/shared/api/apiClient';
 import { ENDPOINTS } from '@/shared/api/endpoints';
-import { useAppDispatch } from '@/lib/redux/hooks';
-import { clearAuth } from '@/features/auth/state/auth.slice';
+import { useAuthStore } from '@/features/auth/state/auth.store';
 import { ROUTES } from '@/shared/routes/routes';
 
 const NAV_LINKS = [
@@ -34,7 +33,7 @@ const NAV_LINKS = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const dispatch = useAppDispatch();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   // The mobile nav is open only on the page where it was opened, so navigating closes it
   // without an effect (derived state instead of setState-in-effect).
@@ -65,12 +64,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       await apiClient.post(ENDPOINTS.auth.logout, {});
     },
     onSuccess: () => {
-      dispatch(clearAuth());
+      clearAuth();
       clearProjects();
       router.push(ROUTES.auth.login);
     },
     onError: () => {
-      dispatch(clearAuth());
+      clearAuth();
       clearProjects();
       router.push(ROUTES.auth.login);
     },

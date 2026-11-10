@@ -42,5 +42,3 @@ _None open._
 ### KI-25 "Traces" are single request logs
 `modules/traces/traces.repository.ts` reads the Mongo `api_logs` collection; `traceId` is the server-generated `reqId`. There are no spans, parent/child relationships, or cross-service propagation.
 
-### KI-31 Mixed state libraries and stray root dependencies
-Root `package.json` depends on `axios` and `zustand`; the web app uses both Redux Toolkit and Zustand stores. `turbo.json` is empty.

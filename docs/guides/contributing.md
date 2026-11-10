@@ -49,7 +49,7 @@ Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`
 **Frontend**
 - Read `apps/web/AGENTS.md` (Next.js 16 differences).
 - New domain code goes in `features/<domain>/{api,hooks,ui,state}`.
-- Server data via TanStack Query hooks; don't store server data in Redux.
+- Server data via TanStack Query hooks; don't copy server data into Zustand stores.
 
 **SDKs**
 - Never break the wire contract silently; bump versions per semver and update `scripts/sdk-conformance.mjs`.

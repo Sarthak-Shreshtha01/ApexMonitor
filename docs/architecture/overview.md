@@ -96,7 +96,7 @@ Key facts:
 | Queue | RabbitMQ 3.13 via amqplib |
 | Stores | PostgreSQL 16 (`pg`), MongoDB 7 (mongoose), Redis 7 (ioredis) |
 | Realtime | Socket.IO 4 |
-| Web | Next.js 16 (App Router), React 19, Tailwind 4, Redux Toolkit + redux-persist, TanStack Query, Recharts, React-Leaflet |
+| Web | Next.js 16 (App Router), React 19, Tailwind 4, Zustand (client state), TanStack Query (server state), Recharts, React-Leaflet |
 | CI | GitHub Actions: build, migration validation, SDK conformance, SDK release |
 
 ## Quality attributes (current)

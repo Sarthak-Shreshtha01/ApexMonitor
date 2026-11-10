@@ -33,7 +33,6 @@ _All done (see Done)._
 ## Later: cleanup (P3)
 
 6. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed. **Needs your decision.**
-7. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -52,6 +51,7 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: Web uses one client-state library: the auth session moved from Redux to a Zustand store (still memory-only); Redux packages and the empty `turbo.json` removed (KI-31)
 - [x] 2026-11-11: Anomaly detection uses time-based baselines: per-minute latency histograms per method + endpoint (by request timestamp), p99 vs a 30-minute baseline, noise floors, 5-minute cooldown per endpoint; a flat baseline no longer hides spikes (KI-27)
 - [x] 2026-11-11: Dropped the unused `five_minute_metrics` table (migration 0011); rollup tiers are planned with ClickHouse (KI-24)
 - [x] 2026-11-11: Web lint is warning-free and now fails on warnings; logs and traces reload on live traffic at most every 5 s instead of on every 2 s pulse

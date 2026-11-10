@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { AxiosAdapter, AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { apiClient } from '@/shared/api/apiClient';
-import { store } from '@/lib/redux/store';
-import { setAccessToken } from '@/features/auth/state/auth.slice';
+import { setAccessToken } from '@/features/auth/state/auth.store';
 import { alertsErrorMessage, alertsService } from '@/features/alerts/api/alerts.service';
 
 const P = 'proj_aaaaaaaaaaaaaaaaaaaaaaaa';
@@ -16,7 +15,7 @@ function install(status: number, data: unknown) {
     return response;
   };
   apiClient.defaults.adapter = adapter;
-  store.dispatch(setAccessToken('a'));
+  setAccessToken('a');
   return seen;
 }
 

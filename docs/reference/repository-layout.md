@@ -11,7 +11,6 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `plan.md` | Roadmap to ship, phase by phase |
 | `.env.example` | Template for the repo-root `.env` read by the server |
 | `package.json` | npm workspaces (`apps/*`, `packages/*`) + root scripts |
-| `turbo.json` | Turborepo config (currently empty) |
 | `docker-compose.yml` | Local infra: Mongo :27018, Postgres :9999, Redis :6379, RabbitMQ :5672/:15672 |
 | `todo.md` | Live priority-ordered task list (top = do first) with a Done log |
 | `.gitignore` | Ignores dependencies, build output, `.env*` (except `.env.example`) |
@@ -82,7 +81,6 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `shared/layout/` | AppShell, PublicNavbar, Footer, RouteGate |
 | `shared/routes/routes.ts` | Route constants, public paths |
 | `shared/ui/` | Leaflet GeoIP map |
-| `lib/redux/` | Store, hooks, persist storage |
 | `proxy.ts` | Next proxy (formerly middleware): optional server-side redirect to /login |
 | `test/` | Vitest tests for API client, auth state, routes, project websocket |
 | `e2e/`, `playwright.config.ts` | Playwright browser tests against the real API and a production build |
