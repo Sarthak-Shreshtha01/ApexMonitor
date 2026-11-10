@@ -43,7 +43,6 @@ erDiagram
 | Table | Grain (unique key) | Measures |
 |---|---|---|
 | `hourly_metrics` | project, endpoint, method, hour_bucket (UTC hour) | request_count, error_count, satisfied/tolerating/frustrated counts; mergeable latency stats (v7): `latency_sum_ms`, `latency_min_ms`, `latency_max_ms`, `latency_hist` (log-scale histogram, bucket k = (1.1^(k-1), 1.1^k] ms); derived `avg_ms` (exact) and `p50/p95/p99_ms` (from the histogram, within ~5%, clamped to min/max). `rps_peak` is unused (always 0) |
-| `five_minute_metrics` | project, endpoint, method, bucket | request_count, error_count, avg_ms (**never written**, KI-24) |
 | `hourly_rum_metrics` | project, path, device_type, browser_name, country_code, region_code, referrer_source, hour_bucket | page_views, unique_visitors, unique_sessions, avg + sample counts for TTFB/FCP/LCP |
 | view `hourly_apdex` | from hourly_metrics | `(satisfied + tolerating/2) / total` |
 

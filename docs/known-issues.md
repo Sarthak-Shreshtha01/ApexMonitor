@@ -39,9 +39,6 @@ _None open._
 - Member management lives at `/users/:projectId/members` instead of `/projects/:projectId/members`.
 - `auth.middleware.ts` (API/RUM key checks) returns errors without the canonical envelope (`requestId` missing).
 
-### KI-24 `five_minute_metrics` is never written
-The table and index exist; nothing populates it. README claimed it powers recent charts.
-
 ### KI-25 "Traces" are single request logs
 `modules/traces/traces.repository.ts` reads the Mongo `api_logs` collection; `traceId` is the server-generated `reqId`. There are no spans, parent/child relationships, or cross-service propagation.
 

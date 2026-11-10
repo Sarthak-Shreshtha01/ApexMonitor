@@ -33,9 +33,8 @@ _All done (see Done)._
 ## Later: cleanup (P3)
 
 6. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed. **Needs your decision.**
-7. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-8. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-9. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
+7. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+8. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -54,6 +53,7 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: Dropped the unused `five_minute_metrics` table (migration 0011); rollup tiers are planned with ClickHouse (KI-24)
 - [x] 2026-11-11: Web lint is warning-free and now fails on warnings; logs and traces reload on live traffic at most every 5 s instead of on every 2 s pulse
 - [x] 2026-11-11: Browser tests with Playwright (`npm run test:e2e`, CI job `browser-tests`): login redirects, sign-up, cookie session restore, sign-out, keys, ingest → overview, revocation, live traffic. They found the live-view websocket bug (KI-41) and a stale project list after creating a project on the Keys page (fixed); icon-only key buttons and the account menu got accessible names (P2d)
 - [x] 2026-11-11: Live views (live traffic, logs, traces) never received updates: their websocket join sent no access token and the server refused it. Shared `connectProjectSocket` sends the token, refreshes once on an unauthorized join, and shows LIVE only after `join:ok`; unused mock `MetricCards` removed (KI-41)

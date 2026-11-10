@@ -115,7 +115,7 @@ Goal: correct numbers at real volume, with no silent loss.
 
 - [ ] **Decide storage** (ADR-0004): move telemetry (logs, request events, spans, RUM events, metric rollups) to ClickHouse; keep Postgres for metadata only; retire MongoDB. If deferring ClickHouse, at minimum use TimescaleDB for rollups.
 - [ ] **Mergeable percentiles:** store DDSketch/t-digest (or ClickHouse `quantilesTDigestState` / `AggregatingMergeTree`) per bucket; compute p50/p95/p99 at read time.
-- [ ] **Rollup tiers:** raw (retention per plan) → 1 min → 1 h → 1 d. Populate `five_minute_metrics` or drop the table (currently unused).
+- [ ] **Rollup tiers:** raw (retention per plan) → 1 min → 1 h → 1 d. (`five_minute_metrics`, never used, was dropped in migration 0011.)
 - [ ] **Idempotent consumers:** dedupe on `batchId`/`eventId` at write (unique keys / ReplacingMergeTree), so redelivery after a crash doesn't double count.
 - [ ] **Late data policy:** accept events up to N hours late, reject beyond; document it.
 - [ ] **Backpressure:** shed load with 503 + `Retry-After` when queue depth exceeds threshold; SDKs honour `Retry-After`.
