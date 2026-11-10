@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { io } from 'socket.io-client';
+import { connectProjectSocket } from '@/shared/realtime/projectSocket';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { tracesService, TracesQuery } from '@/features/traces/api/traces.service';
@@ -45,19 +45,8 @@ export function TracesExplorer() {
   useEffect(() => {
     if (!activeProjectId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
-
-    const socket = io(wsUrl, { transports: ['websocket'], withCredentials: true });
-    socket.on('connect', () => socket.emit('join', { projectId: activeProjectId }));
-    socket.on('pulse:live', (payload: { projectId: string }) => {
-      if (payload.projectId === activeProjectId) {
-        void tracesQuery.refetch();
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    // New traffic for this project: reload the list.
+    return connectProjectSocket(activeProjectId, { onPulse: () => void tracesQuery.refetch() });
   }, [activeProjectId, tracesQuery.refetch]);
 
   const traces = tracesQuery.data?.traces ?? [];

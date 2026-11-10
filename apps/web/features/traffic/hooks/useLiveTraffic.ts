@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { io, Socket } from 'socket.io-client';
+import { connectProjectSocket } from '@/shared/realtime/projectSocket';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { useMetricsOverview } from '@/features/metrics/hooks/useMetrics';
@@ -62,38 +62,15 @@ export function useLiveTraffic() {
   useEffect(() => {
     if (!projectId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-    if (!wsUrl) return;
-
-    const socket: Socket = io(wsUrl, {
-      withCredentials: true,
-      transports: ['websocket'],
-      autoConnect: true,
+    // "Connected" means joined: the server has accepted our token for this project.
+    const disconnect = connectProjectSocket<LivePulsePayload>(projectId, {
+      onJoined: () => setIsSocketConnected(true),
+      onLeft: () => setIsSocketConnected(false),
+      onPulse: (event) => setPulse(event.data),
     });
-
-    const onConnect = () => {
-      setIsSocketConnected(true);
-      socket.emit('join', { projectId });
-    };
-
-    const onDisconnect = () => {
-      setIsSocketConnected(false);
-    };
-
-    const onPulse = (eventPayload: { projectId: string; data: LivePulsePayload }) => {
-      if (eventPayload.projectId !== projectId) return;
-      setPulse(eventPayload.data);
-    };
-
-    socket.on('connect', onConnect);
-    socket.on('disconnect', onDisconnect);
-    socket.on('pulse:live', onPulse);
-
     return () => {
-      socket.off('connect', onConnect);
-      socket.off('disconnect', onDisconnect);
-      socket.off('pulse:live', onPulse);
-      socket.disconnect();
+      disconnect();
+      setIsSocketConnected(false);
     };
   }, [projectId]);
 

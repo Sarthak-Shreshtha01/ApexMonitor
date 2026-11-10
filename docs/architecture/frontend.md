@@ -60,7 +60,7 @@ Endpoint paths are duplicated in `shared/api/endpoints.ts`. They'll move to `pac
 
 ## Realtime
 
-`features/traffic/hooks/useLiveTraffic.ts` (and logs/traces explorers) connect `socket.io-client` to `NEXT_PUBLIC_WS_URL`, emit `join {projectId, token}`, and subscribe to `pulse:live`.
+Live views (`features/traffic/hooks/useLiveTraffic.ts`, the logs and traces explorers) use `shared/realtime/projectSocket.ts#connectProjectSocket`. It connects `socket.io-client` (websocket transport only) to `NEXT_PUBLIC_WS_URL`, emits `join {projectId, token}` with the in-memory access token on every (re)connect, and passes on `pulse:live` events for that project. The server refuses joins without a valid access token for a member of the project (`join:error`). An unauthorized join (expired token) is retried once after `refreshAccessToken()`. Live traffic shows LIVE only after `join:ok`.
 
 ## Auth gating
 

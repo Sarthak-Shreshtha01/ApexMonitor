@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Copy, Search } from 'lucide-react';
 import Link from 'next/link';
-import { io } from 'socket.io-client';
+import { connectProjectSocket } from '@/shared/realtime/projectSocket';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { logsService, LogsQuery, LogItem, StatusClass } from '../api/logs.service';
@@ -62,19 +62,8 @@ export function LogsExplorer() {
   useEffect(() => {
     if (!activeProjectId) return;
 
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'http://localhost:3000';
-
-    const socket = io(wsUrl, { transports: ['websocket'], withCredentials: true });
-    socket.on('connect', () => socket.emit('join', { projectId: activeProjectId }));
-    socket.on('pulse:live', (payload: { projectId: string }) => {
-      if (payload.projectId === activeProjectId) {
-        void logsQuery.refetch();
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
+    // New traffic for this project: reload the list.
+    return connectProjectSocket(activeProjectId, { onPulse: () => void logsQuery.refetch() });
   }, [activeProjectId, logsQuery.refetch]);
 
   const onApplyFilters = (event: FormEvent) => {
