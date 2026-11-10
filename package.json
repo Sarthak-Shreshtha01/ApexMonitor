@@ -21,10 +21,21 @@
     "test:python-sdk": "cd packages/python-sdk && python3 -m unittest discover -s tests",
     "test:all": "npm test && npm run test:integration",
     "db:migrate": "npm run db:migrate --workspace=apps/server",
-    "db:migrate:status": "npm run db:migrate --workspace=apps/server -- status"
+    "db:migrate:status": "npm run db:migrate --workspace=apps/server -- status",
+    "lint": "eslint apps/server packages/sdk packages/browser-sdk scripts --max-warnings 0 && npm run lint --workspace=apps/web",
+    "test:coverage": "npm run test:coverage --workspace=apps/server"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.4",
+    "eslint": "9.39.4",
+    "globals": "14.0.0",
+    "typescript-eslint": "8.58.0"
+  }
 }

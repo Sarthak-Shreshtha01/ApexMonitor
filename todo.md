@@ -20,24 +20,24 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Soon: before real traffic (P2)
 
-1. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-2. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-3. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-4. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-5. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-6. [ ] Split `apps/api` and `apps/worker`.
-7. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-8. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+2. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+3. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+4. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+5. [ ] Split `apps/api` and `apps/worker`.
+6. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+7. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
+8. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed; clear the 6 web lint warnings.
 9. [ ] Populate or drop `five_minute_metrics`. (KI-24)
 10. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
 11. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-12. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+12. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -56,6 +56,7 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Done
 
+- [x] 2026-11-10: CI: Node 24 from `.nvmrc`, ESLint for server + SDKs + web in CI (42 web errors fixed), server coverage report as an artifact
 - [x] 2026-11-10: Production compose stack (`infra/compose`): datastores without published ports, one-shot migrate job, API, dashboard; web Docker image (Next standalone); CI builds both images and validates the compose file
 - [x] 2026-11-10: Web auth: tokens no longer in localStorage (access token in memory, refresh token httpOnly cookie, CSRF header on cookie refresh, configurable cookie flags); failed refresh clears state and redirects to /login (KI-17, KI-40)
 - [x] 2026-11-10: Rate limiting counts events in a sliding window (atomic Lua), refused batches cost nothing, 429 carries Retry-After/X-RateLimit-*, FREE tier cached, live counters pipelined (KI-19)

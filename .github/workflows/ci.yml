@@ -14,10 +14,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npm run validate:migrations
+      - run: npm run lint
       - run: npm run typecheck --workspace=apps/server
       - run: npm run build --workspace=apps/server
       - name: Server bundle has no unresolved path aliases (KI-13)
@@ -33,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: npm
       - uses: actions/setup-python@v5
         with:
@@ -42,6 +43,13 @@ jobs:
       - run: npm ci
       # Server, web, TypeScript SDK, browser SDK (vitest) + Python SDK (unittest). No services needed.
       - run: npm test
+      - name: Server unit-test coverage
+        run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-coverage
+          path: apps/server/coverage
+          retention-days: 14
 
   integration-tests:
     runs-on: ubuntu-latest
@@ -82,7 +90,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       # Creates isolated test databases / vhost, applies migrations, boots the API + workers in-process.

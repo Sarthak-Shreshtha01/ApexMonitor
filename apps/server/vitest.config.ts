@@ -24,5 +24,13 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     testTimeout: 15_000,
+    // `npm run test:coverage`: report only, no thresholds yet (see todo).
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.ts'],
+      exclude: ['src/bootstrap.ts', 'src/migrate.ts'],
+      reporter: ['text-summary', 'html', 'lcov'],
+      reportsDirectory: 'coverage',
+    },
   },
 });

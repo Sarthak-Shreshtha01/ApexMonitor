@@ -38,6 +38,8 @@ npm run conformance:sdks                   # SDK wire-contract checks (mocked tr
 npm run validate:migrations                # naming/sequence/re-runnable checks on scripts/migrations
 npm run db:migrate                         # apply pending migrations (dev server also does this at boot)
 npm run db:migrate:status                  # list applied/pending (exit 2 if pending)
+npm run lint                               # ESLint: server + SDKs (root eslint.config.mjs) and web
+npm run test:coverage                      # server unit tests with a coverage report (apps/server/coverage)
 npm test                                   # all suites that need no services (server unit, web, SDKs, Python SDK)
 npm run test:integration                   # server against real infra (docker compose up -d first; uses isolated *_test DBs)
 ```

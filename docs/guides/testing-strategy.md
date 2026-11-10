@@ -8,6 +8,7 @@ The manual end-to-end runbook is [end-to-end-testing.md](end-to-end-testing.md).
 npm test                    # everything that needs no services: server unit, web, TS SDK, browser SDK, Python SDK
 npm run test:integration    # server against real Postgres/Mongo/Redis/RabbitMQ (docker compose up -d first)
 npm run test:all            # both
+npm run test:coverage       # server unit tests + coverage report in apps/server/coverage (HTML + lcov)
 
 # per package
 npm test --workspace=apps/server            # server unit tests
@@ -71,11 +72,12 @@ While the bug exists the suite stays green. **When you fix a bug, its test start
 
 ## CI
 
-`.github/workflows/ci.yml` runs three jobs on every push and PR:
+`.github/workflows/ci.yml` runs four jobs on every push and PR, on the Node version in `.nvmrc` (24):
 
-1. **build-and-verify:** migrations check, server typecheck, builds, SDK conformance
-2. **unit-tests:** `npm test`
+1. **build-and-verify:** migration checks, `npm run lint`, server typecheck, builds (the server bundle is checked for unresolved aliases), SDK conformance
+2. **unit-tests:** `npm test`, then server coverage (uploaded as the `server-coverage` artifact; no thresholds yet)
 3. **integration-tests:** Postgres, Mongo, Redis and RabbitMQ service containers, then `npm run test:integration`
+4. **docker-image:** builds the server and web images and validates the production compose file
 
 ## Not covered yet
 

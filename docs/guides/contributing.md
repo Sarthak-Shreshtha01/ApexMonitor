@@ -43,6 +43,7 @@ Types: `feat`, `fix`, `refactor`, `perf`, `test`, `docs`, `build`, `ci`, `chore`
 - Throw known error codes (see `shared/middleware/error-handler.ts`); add new ones to the map instead of writing status codes in controllers.
 - Parameterised SQL only. UTC for every timestamp and bucket.
 - Use the pino `logger`, not `console.*`, in new code; include `requestId` / `projectId`.
+- Run `npm run lint` and `npm test` before pushing (CI runs both).
 - Outbound requests to user-supplied URLs must be SSRF-guarded and time-limited.
 
 **Frontend**
