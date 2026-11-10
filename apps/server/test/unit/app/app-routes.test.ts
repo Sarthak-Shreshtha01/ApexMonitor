@@ -2,12 +2,12 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import request from 'supertest';
-import { FakeChannel, FakePg, FakeRedis, PROJECT_A } from '../../helpers/fakes';
+import { FakeChannel, FakePg, FakeRedis, PROJECT_A, fakeRabbit } from '../../helpers/fakes';
 import { knownBug } from '../../helpers/known-bug';
 
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => new FakeRedis() }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => new FakePg() }));
-vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => new FakeChannel() }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), ...fakeRabbit(new FakeChannel()) }));
 vi.mock('mongoose', async (orig) => {
   const actual = await orig<typeof import('mongoose')>();
   return { ...actual, default: { ...actual.default, connection: { readyState: 1 } } };

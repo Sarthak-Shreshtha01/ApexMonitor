@@ -10,14 +10,14 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 - **Check:** `/metrics/system` queue counts. Are `raw_log_queue` / `aggregation_queue` growing? Are consumers 0?
 - **Check:** server logs for `[AggregationWorker] Processing failed` / `[RawLogWorker]`.
-- **Act:** consumers 0 → restart the server process (workers start at boot; there's no reconnect yet, KI-16). Errors → inspect the failing message shape.
+- **Act:** consumers 0 → check the logs for `[RabbitMQ] Reconnect failed` (the server is still trying) and `/ready`. Errors → inspect the failing message shape.
 - **Check:** `*_dlq` counts in `/metrics/system`. Rejected messages are kept there; see *Messages piling up in a dead-letter queue*.
 
 ## RabbitMQ restarted or unreachable
 
-- **Symptoms:** ingest 500s ("RabbitMQ channel not created" or channel closed), `/ready` fails.
-- **Act:** after RabbitMQ is back, **restart the API process**; the app doesn't reconnect.
-- **Data impact:** batches accepted while the channel was dead may be lost.
+- **Symptoms:** ingest and RUM return `503 SERVICE_UNAVAILABLE` with `Retry-After: 5`; `/ready` is 503; logs show `[RabbitMQ] Lost connection … reconnecting` and `Reconnect failed` lines.
+- **Act:** bring RabbitMQ back. The server reconnects by itself (backoff 1 s doubling to 30 s), redeclares the topology and restarts every consumer; `[RabbitMQ] Reconnected` in the logs and `/ready` 200 confirm it. No restart needed.
+- **Data impact:** none for clients that retry: a batch gets 202 only after RabbitMQ has confirmed it. The SDKs retry 503. Messages a worker had not acked yet are redelivered after the reconnect.
 
 ## Messages piling up in a dead-letter queue
 

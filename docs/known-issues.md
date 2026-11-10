@@ -51,12 +51,6 @@ _None open._
 `apps/server` builds with plain `tsc`, which leaves `@modules/...`, `@shared/...` imports untouched in `dist/`. `node dist/bootstrap.js` (Dockerfile `CMD`) fails with "Cannot find module". Dev works only because `tsx` resolves tsconfig paths.
 **Fix:** `tsup`/`esbuild` bundle or `tsc-alias` post-step.
 
-### KI-16 Ingest can lose accepted data
-- `modules/ingest/ingest.service.ts` calls `channel.publish(...)` on a plain channel without publisher confirms and ignores its boolean return (backpressure), yet responds `202 queued`.
-- `infrastructure/rabbitmq.ts` has no reconnect logic; a broker restart leaves the process with a dead channel.
-- One channel is shared by publishers and all consumers.
-**Fix:** confirm channel + await confirms, reconnect with backoff, separate channels.
-
 ### KI-18 Alerting is not usable
 - No HTTP routes for alert rules. `modules/alerts/` only has a repository; the web `AlertRuleBuilder` has nothing to call.
 - `alert_rules.notify_email` is stored but no email is ever sent.

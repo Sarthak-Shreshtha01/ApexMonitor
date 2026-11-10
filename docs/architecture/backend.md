@@ -79,7 +79,9 @@ Full route list: [../reference/api.md](../reference/api.md).
 
 ## Workers
 
-All consumers share the single AMQP channel from `infrastructure/rabbitmq.ts`, `ack` on success, and `nack(requeue=false)` on failure, which dead-letters to `<queue>_dlq`.
+Workers register through `consume(queue, prefetch, handler)` in `infrastructure/rabbitmq.ts`; each gets its own channel and prefetch. They `ack` on success and `nack(requeue=false)` on failure, which dead-letters to `<queue>_dlq`.
+
+Publishing (`publish()`) uses a separate confirm channel and resolves only when the broker confirms the message. It rejects with `BrokerUnavailableError` (mapped to `503` + `Retry-After: 5`) when the broker is disconnected, doesn't confirm within 5 s, or the channel's write buffer is full. If the connection or any channel closes, everything is rebuilt with exponential backoff (1 s → 30 s, jittered): topology, publisher and every registered consumer.
 
 | Worker | Queue | Prefetch | Does |
 |---|---|---|---|

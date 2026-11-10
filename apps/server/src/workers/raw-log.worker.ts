@@ -1,4 +1,4 @@
-import { getChannel } from '@infrastructure/rabbitmq';
+import { consume } from '@infrastructure/rabbitmq';
 import { ApiLog, IApiLog } from '@modules/logs/logs.schema';
 
 export class RawLogWorker {
@@ -6,16 +6,10 @@ export class RawLogWorker {
   private readonly PREFETCH = 200; // Max unacked messages in flight to prevent memory exhaustion
 
   async start(): Promise<void> {
-    const channel = getChannel();
-    
-    // Tell RabbitMQ not to overwhelm this worker with more than 200 messages at once
-    await channel.prefetch(this.PREFETCH);
-
     console.log(`👷 [Worker] RawLogWorker started, consuming from ${this.QUEUE}`);
 
-    await channel.consume(this.QUEUE, async (msg) => {
-      if (!msg) return;
-
+    // Own channel with PREFETCH unacked messages at most; restarted automatically after a reconnect.
+    await consume(this.QUEUE, this.PREFETCH, async (msg, channel) => {
       try {
         const logs: IApiLog[] = JSON.parse(msg.content.toString());
 

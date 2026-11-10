@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { getRedis } from '@infrastructure/redis';
 import { getPg } from '@infrastructure/db/postgres'; // <-- NEW IMPORT
-import { getChannel } from '@infrastructure/rabbitmq';
+import { publish } from '@infrastructure/rabbitmq';
 import { config } from '@config';
 import { IngestBatch } from './dto/ingest-batch.dto';
 
@@ -11,8 +11,6 @@ export class IngestService {
    */
   async processBatch(dto: IngestBatch): Promise<{ received: number; batchId: string }> {
     const redis = getRedis();
-    const channel = getChannel();
-    const pg = getPg();
     const batchId = crypto.randomUUID();
     const idempotencyKey = this.normalizeIdempotencyKey(dto.projectId, dto.idempotencyKey);
 
@@ -31,6 +29,27 @@ export class IngestService {
         }
       }
     }
+
+    // Everything after the idempotency lock: if any step fails (rate limit, broker down),
+    // release the lock so the client's retry with the same key is processed instead of
+    // being answered with the placeholder as if it had succeeded.
+    try {
+      const result = await this.acceptBatch(dto, batchId, idempotencyKey);
+      if (idempotencyKey) {
+        await redis.set(`ingest:idempotency:${idempotencyKey}`, JSON.stringify(result), 'EX', 300);
+      }
+      return result;
+    } catch (error) {
+      if (idempotencyKey) {
+        await redis.del(`ingest:idempotency:${idempotencyKey}`).catch(() => undefined);
+      }
+      throw error;
+    }
+  }
+
+  private async acceptBatch(dto: IngestBatch, batchId: string, idempotencyKey: string | undefined): Promise<{ received: number; batchId: string }> {
+    const redis = getRedis();
+    const pg = getPg();
 
     // ====================================================================
     // 1. DYNAMIC RATE LIMITING (Phase 7: Billing Integration)
@@ -91,12 +110,12 @@ export class IngestService {
     }));
 
     // 3. Publish to RabbitMQ
-    channel.publish(
+    // Resolves only once RabbitMQ has confirmed the message; throws BrokerUnavailableError (→ 503) otherwise.
+    await publish(
       'logs.exchange',
       'log.ingest',
       Buffer.from(JSON.stringify(normalizedLogs)),
       {
-        persistent: true,
         contentType: 'application/json',
         messageId: batchId,
         correlationId: batchId,
@@ -127,13 +146,7 @@ export class IngestService {
     }
     await redis.expire(endpointKey, 8);
 
-    const result = { received: normalizedLogs.length, batchId };
-
-    if (idempotencyKey) {
-      await redis.set(`ingest:idempotency:${idempotencyKey}`, JSON.stringify(result), 'EX', 300);
-    }
-
-    return result;
+    return { received: normalizedLogs.length, batchId };
   }
 
   /**

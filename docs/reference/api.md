@@ -106,7 +106,7 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 
 | Method | Path | Auth | Response |
 |---|---|---|---|
-| POST | `/` | KEY | `202 {status:"queued", received, batchId}`; `403 FORBIDDEN` if body `projectId` ≠ key's project |
+| POST | `/` | KEY | `202 {status:"queued", received, batchId}` once RabbitMQ has confirmed the batch; `503 SERVICE_UNAVAILABLE` + `Retry-After: 5` if it couldn't be queued (retry, same `x-idempotency-key` is safe); `403 FORBIDDEN` if body `projectId` ≠ key's project |
 
 ```jsonc
 {
@@ -131,7 +131,7 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 
 | Method | Path | Auth | Notes |
 |---|---|---|---|
-| POST | `/` | RUM | `Content-Type: application/json` required; `202` |
+| POST | `/` | RUM | `Content-Type: application/json` required; `202`, or `503` + `Retry-After` if the batch couldn't be queued |
 | GET | `/overview` | JWT (service checks access) | `?projectId&timeframe&limit` |
 | GET | `/series` | JWT | same |
 | GET | `/paths` | JWT | same |

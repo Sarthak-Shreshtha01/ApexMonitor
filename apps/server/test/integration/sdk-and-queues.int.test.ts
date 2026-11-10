@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { api, createIngestKey, createRumKey, getStack, logEntry, mongoCount, registerTenant, Tenant, waitFor } from './harness';
+import { api, createIngestKey, createRumKey, getStack, logEntry, mongoCount, pgQuery, registerTenant, Tenant, waitFor } from './harness';
 import { knownBug } from '../helpers/known-bug';
 import { ApexApiError, createApexClient } from '../../../../packages/sdk/src/index';
 import { createBrowserRumClient } from '../../../../packages/browser-sdk/src/index';
@@ -79,4 +79,44 @@ describe('RabbitMQ dead-lettering (real stack)', () => {
     expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(202);
     await waitFor(async () => (await mongoCount('api_logs', { projectId: t.projectId })) === 1, { label: 'log after poison' });
   });
+});
+
+describe('RabbitMQ connection loss (real broker, KI-16)', () => {
+  const mgmt = async (path: string, init: RequestInit = {}) => {
+    const { testUrls, TEST_DB } = await import('../setup/integration-urls');
+    const auth = Buffer.from(`${testUrls.rabbitUser}:${testUrls.rabbitPass}`).toString('base64');
+    const url = `${testUrls.rabbitMgmt}/api${path.replace('{vhost}', encodeURIComponent(TEST_DB))}`;
+    return fetch(url, { ...init, headers: { authorization: `Basic ${auth}`, 'x-reason': 'integration test', ...(init.headers ?? {}) } });
+  };
+
+  it('answers 503 while the broker connection is gone, then reconnects and resumes consuming', async () => {
+    await getStack();
+    const rabbit = await import('@infrastructure/rabbitmq');
+    const t = await registerTenant('broker-drop');
+    const { key } = await createIngestKey(t);
+
+    // Kill every connection the server holds to the test vhost, like a broker restart would.
+    let names: string[] = [];
+    await waitFor(async () => {
+      names = ((await (await mgmt('/vhosts/{vhost}/connections')).json()) as { name: string }[]).map((c) => c.name);
+      return names.length > 0;
+    }, { label: 'management API lists the connection' });
+    for (const name of names) expect((await mgmt(`/connections/${encodeURIComponent(name)}`, { method: 'DELETE' })).status).toBe(204);
+
+    await waitFor(async () => !rabbit.isRabbitConnected(), { label: 'connection loss noticed' });
+    const during = await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } });
+    expect(during.status).toBe(503);
+    expect(during.headers.get('retry-after')).toBe('5');
+    expect((await api('GET', '/ready')).status).toBe(503);
+
+    await waitFor(async () => rabbit.isRabbitConnected(), { label: 'reconnected', timeoutMs: 20_000 });
+    expect((await api('GET', '/ready')).status).toBe(200);
+    const after = await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } });
+    expect(after.status).toBe(202);
+    // Consumers were re-registered on the new connection: the batch reaches Mongo and Postgres.
+    await waitFor(async () => (await mongoCount('api_logs', { projectId: t.projectId })) === 1, { label: 'raw log after reconnect' });
+    await waitFor(async () => (await pgQuery('SELECT 1 FROM hourly_metrics WHERE project_id = $1', [t.projectId])).length > 0, {
+      label: 'aggregate after reconnect',
+    });
+  }, 40_000);
 });

@@ -1,4 +1,4 @@
-import { getChannel } from '@infrastructure/rabbitmq';
+import { consume } from '@infrastructure/rabbitmq';
 import { getRedis } from '@infrastructure/redis';
 import { eventBus } from '@events/event-bus';
 import { LogEntry } from '@modules/ingest/dto/ingest-batch.dto';
@@ -12,13 +12,10 @@ export class AnomalyWorker {
   private insightsRepo = new InsightsRepository();
 
   async start(): Promise<void> {
-    const channel = getChannel();
-    await channel.prefetch(this.PREFETCH);
     console.log(`👷 [Worker] AnomalyWorker started, consuming from ${this.QUEUE}`);
 
-    await channel.consume(this.QUEUE, async (msg) => {
-      if (!msg) return;
-
+    // Own channel with PREFETCH unacked messages at most; restarted automatically after a reconnect.
+    await consume(this.QUEUE, this.PREFETCH, async (msg, channel) => {
       try {
         const batch: (LogEntry & { projectId: string })[] = JSON.parse(msg.content.toString());
         await this.detectAnomalies(batch);

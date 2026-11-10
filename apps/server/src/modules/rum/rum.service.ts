@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { URL } from 'url';
 import { getRedis } from '@infrastructure/redis';
-import { getChannel } from '@infrastructure/rabbitmq';
+import { publish } from '@infrastructure/rabbitmq';
 import { config } from '@config';
 import { UserService } from '@modules/users/user.service';
 import { RumIngestBatch, RumEnrichedEvent } from './dto/rum-ingest.dto';
@@ -28,7 +28,6 @@ export class RumService {
 
   async processBatch(dto: RumIngestBatch, context: IngestContext): Promise<{ received: number; batchId: string }> {
     const redis = getRedis();
-    const channel = getChannel();
 
     // Keep ingress non-blocking with Redis-only safeguards.
     const nowMinute = new Date().toISOString().slice(0, 16);
@@ -110,12 +109,20 @@ export class RumService {
       receivedAt: new Date().toISOString(),
     };
 
-    channel.publish(RUM_INGEST_EXCHANGE, RUM_INGEST_KEY, Buffer.from(JSON.stringify(payload)), {
-      persistent: true,
-      contentType: 'application/json',
-      messageId: batchId,
-      correlationId: batchId,
-    });
+    // Resolves only once RabbitMQ has confirmed the message; throws BrokerUnavailableError (→ 503) otherwise.
+    try {
+      await publish(RUM_INGEST_EXCHANGE, RUM_INGEST_KEY, Buffer.from(JSON.stringify(payload)), {
+        contentType: 'application/json',
+        messageId: batchId,
+        correlationId: batchId,
+      });
+    } catch (error) {
+      // Not accepted: free the idempotency key so the client's retry is processed.
+      if (context.idempotencyKey) {
+        await redis.del(`rum:idempotency:${context.projectId}:${context.idempotencyKey}`).catch(() => undefined);
+      }
+      throw error;
+    }
 
     return { received: enrichedEvents.length, batchId };
   }

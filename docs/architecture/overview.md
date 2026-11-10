@@ -104,7 +104,7 @@ Key facts:
 | Attribute | Status |
 |---|---|
 | Tenant isolation | Enforced on dashboard reads and ingest (project from credential) |
-| Durability | Queues and messages durable; publisher confirms missing (KI-16) |
+| Durability | Queues and messages durable; publisher confirms before 202; automatic reconnect |
 | Correctness | Hourly percentiles/averages wrong when merged (KI-8) |
 | Scalability | Single process; in-process event bus; interval-based alert loop (KI-20) |
 | Observability of itself | `/health`, `/ready`, `/metrics/system`, pino request logs |

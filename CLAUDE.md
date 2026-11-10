@@ -72,6 +72,7 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 - SQL: parameterized queries only (`$1`, `$2`). Schema changes go in a new `scripts/migrate-vN.sql` and must also be reflected in `scripts/init-postgres.sql` and `scripts/validate-migrations.mjs`.
 - Outbound HTTP to user-supplied URLs (webhooks) must go through `shared/net/webhook.ts#sendWebhook` (SSRF guard).
 - Time buckets must be computed in UTC.
+- RabbitMQ: publish only with `publish()` (awaits broker confirms; failures become 503) and consume only with `consume(queue, prefetch, handler)` from `infrastructure/rabbitmq.ts`. Never use `getChannel()` for publishing or consuming; it survives reconnects only through those two functions.
 - When the wire contract changes, update all three SDKs, `scripts/sdk-conformance.mjs`, and `docs/reference/api.md` in the same change.
 
 ## Frontend

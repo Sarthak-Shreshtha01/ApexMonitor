@@ -29,6 +29,13 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
 
+  // Message broker down or pushing back: the batch was NOT accepted, so the client should retry.
+  if (err instanceof Error && err.name === 'BrokerUnavailableError') {
+    res.setHeader('Retry-After', '5');
+    res.status(503).json(errorBody(res, 'SERVICE_UNAVAILABLE', 'Ingestion is temporarily unavailable; retry shortly'));
+    return;
+  }
+
   if (err instanceof Error && knownErrorMap[err.message]) {
     const mapped = knownErrorMap[err.message];
     res.status(mapped.status).json(errorBody(res, mapped.code, mapped.message));

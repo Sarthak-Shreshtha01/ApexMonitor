@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
-import { appWith, FakeChannel, FakeRedis, PROJECT_A, PROJECT_B, project } from '../../helpers/fakes';
+import { appWith, FakeChannel, FakeRedis, PROJECT_A, PROJECT_B, project, fakeRabbit } from '../../helpers/fakes';
 
 const redis = new FakeRedis();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
-vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), ...fakeRabbit(channel) }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => ({ query: vi.fn(async () => ({ rows: [] })) }) }));
 
 const listProjects = vi.fn(async () => [project(PROJECT_A)]);
@@ -145,6 +145,15 @@ describe('RumService.processBatch', () => {
     const second = await service.processBatch({ sdkVersion: '1.0.0', events: [ev()] }, ctx({ idempotencyKey: 'idem-1' }));
     expect(second).toEqual({ received: 0, batchId: first.batchId });
     expect(channel.published).toHaveLength(1);
+  });
+
+  it('a batch RabbitMQ does not confirm is rejected and frees its idempotency key (KI-16)', async () => {
+    const rabbit = await import('@infrastructure/rabbitmq');
+    vi.mocked(rabbit.publish).mockRejectedValueOnce(new rabbit.BrokerUnavailableError('down'));
+    await expect(service.processBatch({ sdkVersion: '1.0.0', events: [ev()] }, ctx({ idempotencyKey: 'idem-fail' }))).rejects.toThrow('down');
+    expect(redis.store.has(`rum:idempotency:${PROJECT_A}:idem-fail`)).toBe(false);
+    const retry = await service.processBatch({ sdkVersion: '1.0.0', events: [ev()] }, ctx({ idempotencyKey: 'idem-fail' }));
+    expect(retry.received).toBe(1);
   });
 
   it('read methods enforce project membership', async () => {

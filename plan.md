@@ -64,7 +64,7 @@ Goal: the code can be built and run as containers anywhere, configured only thro
 - [ ] **Compose files:** `infra/compose/docker-compose.dev.yml` (infra only, current file), `docker-compose.prod.yml` (infra + api + worker + web, with healthchecks and `depends_on: condition: service_healthy`). Remove hardcoded dev passwords from prod file.
 - [ ] **Migrations:** adopt a runner (`node-pg-migrate` recommended). Convert `init-postgres.sql` + `migrate-v2..v4*.sql` into ordered, tracked migrations. API refuses to start if migrations are pending. (KI-15)
 - [ ] **Graceful shutdown:** on SIGTERM/SIGINT: stop accepting HTTP, cancel consumers, wait for in-flight messages, clear intervals, close Socket.IO, close PG/Mongo/Redis/AMQP.
-- [ ] **RabbitMQ resilience:** reconnect with backoff on connection/channel close; separate publish and consume channels; use a confirm channel for publishing and await confirms before returning 202. Handle `publish()` returning `false` (backpressure → 503). (KI-16)
+- [x] **RabbitMQ resilience:** reconnect with backoff on connection/channel close; separate publish and consume channels; use a confirm channel for publishing and await confirms before returning 202. Handle `publish()` returning `false` (backpressure → 503). (KI-16)
 - [ ] **Tooling:** root `tsconfig.base.json`, ESLint + Prettier for server and SDKs, `.nvmrc` (Node 20 LTS or 22), `engines` in root `package.json`. Either configure `turbo.json` pipelines (build/lint/test with caching) or delete it. Remove stray root deps (`axios`, `zustand`) and pick one client state lib in web.
 - [ ] **CI:** lint → typecheck → build → (tests from Phase 2) → docker build. Cache npm. Run on PRs to `main`.
 

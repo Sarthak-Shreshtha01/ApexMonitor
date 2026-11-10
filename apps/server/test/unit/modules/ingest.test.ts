@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import crypto from 'crypto';
-import { appWith, FakeChannel, FakePg, FakeRedis, logEntry, PROJECT_A, PROJECT_B } from '../../helpers/fakes';
+import { appWith, FakeChannel, FakePg, FakeRedis, logEntry, PROJECT_A, PROJECT_B, fakeRabbit } from '../../helpers/fakes';
 import { knownBug } from '../../helpers/known-bug';
 
 const redis = new FakeRedis();
@@ -9,7 +9,7 @@ const pg = new FakePg();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
-vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), ...fakeRabbit(channel) }));
 
 const validateApiKey = vi.fn();
 vi.mock('@modules/auth/auth.service', () => ({
@@ -98,6 +98,35 @@ describe('POST /ingest (controller + router)', () => {
     expect(first.body.data.batchId).toBe(second.body.data.batchId);
     expect(channel.published).toHaveLength(1);
     expect(redis.store.has(`ingest:idempotency:${PROJECT_A}:${'k'.repeat(128)}`)).toBe(true);
+  });
+
+  it('503 with Retry-After when RabbitMQ does not confirm the batch, and nothing counted as received (KI-16)', async () => {
+    const rabbit = await import('@infrastructure/rabbitmq');
+    vi.mocked(rabbit.publish).mockRejectedValueOnce(new rabbit.BrokerUnavailableError('RabbitMQ is not connected'));
+    const res = await request(await app).post('/ingest').set('x-api-key', 'key-a').send({ logs: [logEntry()] });
+    expect(res.status).toBe(503);
+    expect(res.headers['retry-after']).toBe('5');
+    expect(res.body.error).toBe('SERVICE_UNAVAILABLE');
+    expect(redis.store.has(`live:${PROJECT_A}:requests`)).toBe(false); // live counters only move for accepted batches
+  });
+
+  it('a failed batch frees its idempotency key so the retry is processed, not answered with a placeholder', async () => {
+    const rabbit = await import('@infrastructure/rabbitmq');
+    vi.mocked(rabbit.publish).mockRejectedValueOnce(new rabbit.BrokerUnavailableError('down'));
+    const failed = await request(await app).post('/ingest').set('x-api-key', 'key-a').set('x-idempotency-key', 'retry-me').send({ logs: [logEntry()] });
+    expect(failed.status).toBe(503);
+    expect(redis.store.has(`ingest:idempotency:${PROJECT_A}:retry-me`)).toBe(false);
+    const retry = await request(await app).post('/ingest').set('x-api-key', 'key-a').set('x-idempotency-key', 'retry-me').send({ logs: [logEntry()] });
+    expect(retry.status).toBe(202);
+    expect(retry.body.data.received).toBe(1);
+    expect(channel.published).toHaveLength(1);
+  });
+
+  it('a rate-limited batch also frees its idempotency key', async () => {
+    redis.store.set(`rate:${PROJECT_A}`, '60000');
+    const res = await request(await app).post('/ingest').set('x-api-key', 'key-a').set('x-idempotency-key', 'limited-batch').send({ logs: [logEntry()] });
+    expect(res.status).toBe(429);
+    expect(redis.store.has(`ingest:idempotency:${PROJECT_A}:limited-batch`)).toBe(false);
   });
 });
 

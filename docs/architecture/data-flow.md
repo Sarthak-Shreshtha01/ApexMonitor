@@ -21,7 +21,7 @@ sequenceDiagram
     API->>API: normalise endpoint (/123 → /:id), hash IP (sha256 ip:project:day)
     API->>MQ: publish routing key log.ingest (persistent)
     API->>R: INCRBY live:<project>:requests|errors|latency_total, ZINCRBY endpoints
-    API-->>SDK: 202 {status:"queued", received, batchId}
+    API-->>SDK: 202 {status:"queued", received, batchId} (only after the broker confirms; else 503 + Retry-After)
 ```
 
 Code: `modules/ingest/ingest.controller.ts`, `ingest.service.ts`, `dto/ingest-batch.dto.ts`.
@@ -38,7 +38,7 @@ flowchart LR
     Q1 & Q2 & Q3 -. nack .-> DLQ[[*_dlq via dlq.exchange]]
 ```
 
-The project is always the one bound to the API key; a body `projectId` that differs is rejected with 403. Known problems in this flow: KI-8/9 (aggregation math, local time), KI-16 (no confirms), KI-19 (rate limit per batch).
+The project is always the one bound to the API key; a body `projectId` that differs is rejected with 403. Known problems in this flow: KI-8/9 (aggregation math, local time), KI-19 (rate limit per batch).
 
 ## 2. Browser RUM ingest
 

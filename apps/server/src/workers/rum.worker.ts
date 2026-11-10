@@ -1,4 +1,4 @@
-import { getChannel } from '@infrastructure/rabbitmq';
+import { consume } from '@infrastructure/rabbitmq';
 import { getPg } from '@infrastructure/db/postgres';
 import { getRedis } from '@infrastructure/redis';
 import { RumEnrichedEvent } from '@modules/rum/dto/rum-ingest.dto';
@@ -34,13 +34,10 @@ export class RumWorker {
   private readonly PREFETCH = 150;
 
   async start(): Promise<void> {
-    const channel = getChannel();
-    await channel.prefetch(this.PREFETCH);
     console.log(`👷 [Worker] RumWorker started, consuming from ${this.QUEUE}`);
 
-    await channel.consume(this.QUEUE, async (msg) => {
-      if (!msg) return;
-
+    // Own channel with PREFETCH unacked messages at most; restarted automatically after a reconnect.
+    await consume(this.QUEUE, this.PREFETCH, async (msg, channel) => {
       try {
         const payload = JSON.parse(msg.content.toString()) as RumEnvelope;
         await this.processBatch(payload);

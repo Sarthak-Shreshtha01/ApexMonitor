@@ -4,7 +4,7 @@ import { AddressInfo } from 'net';
 import crypto from 'crypto';
 import request from 'supertest';
 import { io as ioClient, Socket } from 'socket.io-client';
-import { appWith, FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B, project } from '../../helpers/fakes';
+import { appWith, FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B, project, fakeRabbit } from '../../helpers/fakes';
 import { knownBug } from '../../helpers/known-bug';
 
 const redis = new FakeRedis();
@@ -12,7 +12,7 @@ const pg = new FakePg();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
-vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), ...fakeRabbit(channel) }));
 
 const listProjects = vi.fn(async () => [project(PROJECT_A)]);
 vi.mock('@modules/users/user.service', () => ({ UserService: class { listProjects = listProjects; } }));

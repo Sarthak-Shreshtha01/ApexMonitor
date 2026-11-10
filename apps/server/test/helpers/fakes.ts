@@ -168,6 +168,23 @@ export class FakeChannel {
   }
 }
 
+/**
+ * Stand-ins for the publish/consume API of `@infrastructure/rabbitmq`, backed by a FakeChannel.
+ * Use in a module mock: `vi.mock('@infrastructure/rabbitmq', async (orig) => ({ ...(await orig()), ...fakeRabbit(channel) }))`.
+ */
+export function fakeRabbit(channel: FakeChannel) {
+  return {
+    getChannel: () => channel,
+    publish: vi.fn(async (exchange: string, routingKey: string, content: Buffer, options: Record<string, unknown> = {}) => {
+      channel.publish(exchange, routingKey, content, { persistent: true, ...options });
+    }),
+    consume: vi.fn(async (queue: string, prefetch: number, handler: (msg: any, ch: FakeChannel) => Promise<void>) => {
+      await channel.prefetch(prefetch);
+      await channel.consume(queue, (msg) => (msg ? handler(msg, channel) : undefined));
+    }),
+  };
+}
+
 /** Minimal express app around a handler, with the same request-id + error handling as the real app. */
 export async function appWith(
   mount: (app: Express) => void,

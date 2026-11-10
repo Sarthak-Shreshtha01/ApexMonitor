@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B } from '../../helpers/fakes';
+import { FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B, fakeRabbit } from '../../helpers/fakes';
 import { knownBug } from '../../helpers/known-bug';
 
 const channel = new FakeChannel();
 const pg = new FakePg();
 const redis = new FakeRedis();
-vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), ...fakeRabbit(channel) }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 

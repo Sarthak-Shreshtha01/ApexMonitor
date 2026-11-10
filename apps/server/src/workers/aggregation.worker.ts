@@ -1,4 +1,4 @@
-import { getChannel } from '@infrastructure/rabbitmq';
+import { consume } from '@infrastructure/rabbitmq';
 import { getPg } from '@infrastructure/db/postgres';
 import { eventBus } from '@events/event-bus';
 import { computeBatchStats } from '@shared/utils/math.utils';
@@ -13,13 +13,10 @@ export class AggregationWorker {
   private readonly PREFETCH = 100;
 
   async start(): Promise<void> {
-    const channel = getChannel();
-    await channel.prefetch(this.PREFETCH);
     console.log(`👷 [Worker] AggregationWorker (v2) started, consuming from ${this.QUEUE}`);
 
-    await channel.consume(this.QUEUE, async (msg) => {
-      if (!msg) return;
-
+    // Own channel with PREFETCH unacked messages at most; restarted automatically after a reconnect.
+    await consume(this.QUEUE, this.PREFETCH, async (msg, channel) => {
       try {
         const batch: (LogEntry & { projectId: string })[] = JSON.parse(msg.content.toString());
         await this.processBatch(batch);
