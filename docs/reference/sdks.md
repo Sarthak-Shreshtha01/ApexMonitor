@@ -2,9 +2,9 @@
 
 | Package | Path | Registry | Version | Status |
 |---|---|---|---|---|
-| `@apexmonitor/sdk` | `packages/sdk` | npm | 0.1.0 | Works for ingest + read APIs; `metrics.rps`/`metrics.endpoints` hit missing routes (KI-12) |
+| `@apexmonitor/sdk` | `packages/sdk` | npm | 0.1.0 | Ingest, read APIs, alert rules; every path is checked against the server in tests |
 | `@apexmonitor/browser-sdk` | `packages/browser-sdk` | npm | 0.1.0 | Sends the server's RUM schema; `trackError`/`trackCustom` removed (no server storage yet) |
-| `apexmonitor-sdk` | `packages/python-sdk` | PyPI | 0.1.0 | RUM key sent in wrong header (KI-11) |
+| `apexmonitor-sdk` | `packages/python-sdk` | PyPI | 0.1.0 | Ingest, read APIs, key management |
 
 All three are thin API clients. None auto-instruments a framework yet: callers build log entries themselves.
 
@@ -27,6 +27,7 @@ await apex.ingest.batch(
       timestamp: new Date().toISOString(),
     }],
   },
+  // optional: ingest.batch and rum.ingest generate a fresh key per call when you don't pass one
   { idempotencyKey: crypto.randomUUID() },
 );
 ```
@@ -40,9 +41,23 @@ Auth strategies (`packages/sdk/src/types.ts`):
 { type: 'custom', getHeaders }
 ```
 
-`key`/`token` may be a string or a (async) function. Transport (`http.ts`) provides retries with backoff, timeouts, `AbortSignal`, idempotency and request-id headers, and unwraps the `{data, meta}` envelope. Errors: `ApexApiError` (HTTP error with `error`, `message`, `requestId`), `ApexNetworkError`.
+`key`/`token` may be a string or a (async) function. Transport (`http.ts`) provides retries with backoff, timeouts, `AbortSignal`, `x-idempotency-key` and `x-request-id` headers, and unwraps the `{data, meta}` envelope. Errors: `ApexApiError` (HTTP error with `error`, `message`, `requestId`, `isRetryable`), `ApexNetworkError` (network failure or timeout).
 
-Domains on `ApexClient`: `auth`, `projects`, `ingest`, `rum`, `metrics`, `logs`, `traces`, `insights`, `keys`, `billing`, and raw `request`.
+Domains on `ApexClient`: `auth`, `projects`, `ingest`, `rum`, `metrics` (`overview`, `latency`, `operations`), `alerts` (`listRules`, `createRule`, `updateRule`, `deleteRule`, `events`), `logs`, `traces`, `insights`, `keys`, `billing`, and raw `request`.
+
+### Retries (both SDKs)
+
+Retries use exponential backoff (`maxRetries` default 2) and are designed never to create anything twice:
+
+| Request | Retried on |
+|---|---|
+| GET, PUT, DELETE, HEAD, OPTIONS | 408, 425, 429, 500, 502, 503, 504, network errors, timeouts |
+| POST/PATCH **with** an idempotency key | the same |
+| POST/PATCH **without** a key | only 429 and 503 (the server rejected the request without acting on it) |
+
+- `409 Conflict` and other 4xx are never retried.
+- A request cancelled through the caller's `AbortSignal` is never retried.
+- `ingest.batch` / `rum.ingest` (TS) and `ingest` / `rum_ingest` (Python) generate an idempotency key per call when none is given, so their retries are always safe; the server stores a batch once per key for 5 minutes.
 
 ## Browser: `@apexmonitor/browser-sdk`
 
@@ -88,9 +103,9 @@ client.ingest({
 }, idempotency_key="batch-0001")
 ```
 
-Methods: `login`, `refresh`, `me`, `list_projects`, `create_project`, `ingest`, `rum_ingest`, `metrics_overview`, `logs`, `traces`, `trace_detail`, `insights`, `keys`, `create_key`, `revoke_key`, `checkout`, `request`.
+Methods: `login`, `refresh`, `me`, `list_projects`, `create_project`, `ingest`, `rum_ingest`, `metrics_overview`, `logs`, `traces`, `trace_detail`, `insights`, `keys`, `create_key`, `revoke_key(key_id, project_id)`, `checkout`, `request`.
 
-For RUM from Python, pass `headerName: "x-rum-key"` explicitly until KI-11 is fixed.
+Auth `{"type": "rumKey", "key": …}` sends `x-rum-key`; `{"type": "apiKey", …}` sends `x-api-key` (override either with `headerName`).
 
 ## Compatibility rules
 

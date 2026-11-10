@@ -1,7 +1,6 @@
 import crypto from 'node:crypto';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { api, createIngestKey, createRumKey, getStack, logEntry, mongoCount, pgQuery, registerTenant, Tenant, waitFor } from './harness';
-import { knownBug } from '../helpers/known-bug';
 import { ApexApiError, createApexClient } from '../../../../packages/sdk/src/index';
 import { createBrowserRumClient } from '../../../../packages/browser-sdk/src/index';
 
@@ -39,17 +38,26 @@ describe('TypeScript SDK against the live server', () => {
     expect(err.requestId).toBeTruthy();
   });
 
-  knownBug('KI-33', 'SDK idempotencyKey deduplicates batches on the server', async () => {
+  it('SDK idempotencyKey deduplicates batches on the server (KI-33)', async () => {
     const client = createApexClient({ baseUrl, auth: { type: 'apiKey', key } });
     const idempotencyKey = `sdk-${crypto.randomUUID()}`;
-    const a = await client.ingest.batch<{ batchId: string }>({ logs: [logEntry()] }, { idempotencyKey });
-    const b = await client.ingest.batch<{ batchId: string }>({ logs: [logEntry()] }, { idempotencyKey });
+    const endpoint = `/idem/x${crypto.randomUUID().slice(0, 8)}`;
+    const a = await client.ingest.batch<{ batchId: string }>({ logs: [logEntry({ endpoint })] }, { idempotencyKey });
+    const b = await client.ingest.batch<{ batchId: string }>({ logs: [logEntry({ endpoint })] }, { idempotencyKey });
     expect(b.batchId).toBe(a.batchId);
+    await waitFor(async () => (await mongoCount('api_logs', { projectId: t.projectId, endpoint })) === 1, { label: 'one stored log' });
+    await new Promise((r) => setTimeout(r, 300));
+    expect(await mongoCount('api_logs', { projectId: t.projectId, endpoint })).toBe(1); // the duplicate was never queued
   });
 
-  knownBug('KI-12', 'metrics.rps is served by the server', async () => {
+  it('SDK alert rule helpers work against the live server', async () => {
     const client = createApexClient({ baseUrl, auth: { type: 'bearer', token: t.accessToken }, retry: { maxRetries: 0 } });
-    await expect(client.metrics.rps({ projectId: t.projectId })).resolves.toBeDefined();
+    const created = await client.alerts.createRule<{ rule: { id: number } }>({ projectId: t.projectId, name: 'sdk', conditionType: 'error_rate_high', threshold: 10 });
+    const list = await client.alerts.listRules<{ rules: Array<{ id: number }> }>(t.projectId);
+    expect(list.rules.map((r) => r.id)).toContain(created.rule.id);
+    await client.alerts.updateRule(t.projectId, created.rule.id, { isActive: false });
+    await client.alerts.deleteRule(t.projectId, created.rule.id);
+    await expect(client.alerts.events({ projectId: t.projectId })).resolves.toMatchObject({ events: [] });
   });
 
   it('browser SDK batches are accepted by the RUM endpoint and reach the RUM tables (KI-10)', async () => {

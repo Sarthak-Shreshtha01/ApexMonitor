@@ -29,12 +29,6 @@ _None open._
 `modules/billing/*`: one successful payment upgrades the user to PRO forever. There is no billing period, renewal, expiry or downgrade, and billing is per user, not per org. (Configuration was fixed: no sandbox fallbacks, production guard, redirect from `FRONTEND_URL`, 401 on bad signatures.)
 **Fix:** plan Phase 5 (real subscriptions).
 
-### KI-11 Python SDK sends RUM keys in the wrong header
-`packages/python-sdk/src/apexmonitor_sdk/client.py#_auth_headers` defaults both `apiKey` and `rumKey` to `x-api-key`. Server expects `x-rum-key`.
-
-### KI-12 TS SDK exposes endpoints the server doesn't have
-`packages/sdk/src/client.ts` defines `metrics.rps` and `metrics.endpoints` (`/api/v1/metrics/rps`, `/api/v1/metrics/endpoints`); the server only serves `overview`, `latency`, `operations`. Web `shared/api/endpoints.ts` lists them too.
-
 ### KI-15 No migration runner
 Schema lives in `scripts/init-postgres.sql` (auto-applied only on first Postgres container start) + manual `migrate-v*.sql`. Nothing records which migrations ran. `validate-migrations.mjs` only checks that files exist and contain a few strings.
 
@@ -56,14 +50,6 @@ The web app keeps access/refresh tokens in Redux state persisted by `redux-persi
 `bootstrap.ts` only handles SIGTERM by closing the HTTP server. Consumers, intervals, DB/Redis/AMQP connections are not closed; in-flight messages can be redelivered or lost mid-write.
 
 ---
-
-### KI-33 SDK transport defects
-- TS and Python SDKs send idempotency keys as `idempotency-key`; the server reads `x-idempotency-key`, so SDK retries are never deduplicated.
-- 409 Conflict is treated as retryable (e.g. register with a taken email is sent 3 times).
-- TS SDK retries requests the caller cancelled (`AbortError` is treated as retryable).
-
-### KI-34 Python `revoke_key()` always fails
-`ApexClient.revoke_key(key_id)` sends no `projectId` query parameter, which `DELETE /api/v1/keys/:id` requires (400).
 
 ### KI-37 Endpoint normalisation is too aggressive and too lax
 `ingest.service.ts#normalizeEndpoint` replaces any `/` followed by digits, so `/auth/2fa/setup` becomes `/auth/:idfa/setup`, and it keeps query strings, so `/search?q=…` creates one endpoint per query (cardinality explosion in `hourly_metrics`).

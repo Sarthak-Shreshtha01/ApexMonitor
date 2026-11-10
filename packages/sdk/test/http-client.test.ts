@@ -112,7 +112,21 @@ describe('HttpClient', () => {
       init.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
     }));
     const c = new HttpClient({ baseUrl: 'https://a', fetcher: slow as never, timeoutMs: 20, retry: { maxRetries: 0 } });
-    await expect(c.request('GET', '/')).rejects.toThrow('aborted');
+    const err = await c.request('GET', '/').catch((e) => e);
+    expect(err).toBeInstanceOf(ApexNetworkError);
+    expect(err.message).toBe('Request timed out after 20 ms');
+  });
+
+  it('retries a request that timed out (our timeout, not the caller cancelling)', async () => {
+    let n = 0;
+    const flaky = vi.fn((_u: string, init: RequestInit) => {
+      n += 1;
+      if (n > 1) return Promise.resolve(envelope('ok'));
+      return new Promise<Response>((_r, reject) => init.signal!.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError'))));
+    });
+    const c = new HttpClient({ baseUrl: 'https://a', fetcher: flaky as never, timeoutMs: 20, retry: { maxRetries: 1, baseDelayMs: 1 } });
+    expect(await c.request('GET', '/')).toBe('ok');
+    expect(flaky).toHaveBeenCalledTimes(2);
   });
 
   // Behaves like real fetch: rejects immediately for an already-aborted signal, or when it aborts later.
@@ -129,7 +143,7 @@ describe('HttpClient', () => {
     await expect(p).rejects.toThrow('aborted');
   });
 
-  it.fails('[known bug KI-33] a request cancelled by the caller is not retried', async () => {
+  it('a request cancelled by the caller is not retried (KI-33)', async () => {
     const controller = new AbortController();
     controller.abort();
     const f = abortableFetch();
@@ -143,16 +157,46 @@ describe('HttpClient', () => {
     expect(new ApexNetworkError('x').isRetryable).toBe(true);
   });
 
-  it.fails('[known bug KI-33] sends the idempotency key in the header the server reads (x-idempotency-key)', async () => {
+  it('sends the idempotency key in the header the server reads, x-idempotency-key (KI-33)', async () => {
     const f = fetcher(envelope(1));
     await new HttpClient({ baseUrl: 'https://a', fetcher: f.fn }).request('POST', '/', { idempotencyKey: 'idem-12345' });
     expect(headersOf(f.calls[0])['x-idempotency-key']).toBe('idem-12345');
   });
 
-  it.fails('[known bug KI-33] does not retry 409 Conflict (e.g. email already registered)', async () => {
-    const f = fetcher(json({ error: 'CONFLICT' }, 409));
-    await new HttpClient({ baseUrl: 'https://a', fetcher: f.fn, retry: { maxRetries: 2, baseDelayMs: 1 } }).request('POST', '/').catch(() => undefined);
-    expect(f.calls).toHaveLength(1);
+  it('does not retry 409 Conflict, even for idempotent requests (KI-33)', async () => {
+    for (const method of ['POST', 'GET'] as const) {
+      const f = fetcher(json({ error: 'CONFLICT' }, 409));
+      const err = await new HttpClient({ baseUrl: 'https://a', fetcher: f.fn, retry: { maxRetries: 2, baseDelayMs: 1 } }).request(method, '/').catch((e) => e);
+      expect(err).toMatchObject({ status: 409, isRetryable: false });
+      expect(f.calls).toHaveLength(1);
+    }
+  });
+
+  describe('POST/PATCH retries never risk creating something twice', () => {
+    const client = (f: ReturnType<typeof fetcher>) => new HttpClient({ baseUrl: 'https://a', fetcher: f.fn, retry: { maxRetries: 2, baseDelayMs: 1 } });
+
+    it('without an idempotency key: no retry on 500/502/504 or network errors', async () => {
+      for (const first of [json({}, 500), json({}, 502), json({}, 504), new TypeError('socket hang up')]) {
+        const f = fetcher(first, envelope('second'));
+        await expect(client(f).request('POST', '/')).rejects.toBeDefined();
+        expect(f.calls).toHaveLength(1);
+      }
+      const p = fetcher(json({}, 500), envelope('second'));
+      await expect(client(p).request('PATCH', '/')).rejects.toBeDefined();
+      expect(p.calls).toHaveLength(1);
+    });
+
+    it('without an idempotency key: still retries 429 and 503 (the server did not act on them)', async () => {
+      const f = fetcher(json({}, 429), json({}, 503), envelope('ok'));
+      expect(await client(f).request('POST', '/')).toBe('ok');
+      expect(f.calls).toHaveLength(3);
+    });
+
+    it('with an idempotency key: retries 5xx and network errors, sending the same key each time', async () => {
+      const f = fetcher(json({}, 500), new TypeError('reset'), envelope('ok'));
+      expect(await client(f).request('POST', '/', { idempotencyKey: 'idem-abc' })).toBe('ok');
+      expect(f.calls.map((c) => headersOf(c)['x-idempotency-key'])).toEqual(['idem-abc', 'idem-abc', 'idem-abc']);
+    });
   });
 });
 
@@ -197,10 +241,37 @@ describe('ApexClient endpoint mapping', () => {
     ['keys.create', (c) => c.keys.create({}), 'POST', '/api/v1/keys'],
     ['keys.revoke', (c) => c.keys.revoke(5, { query: { projectId: 'p' } }), 'DELETE', '/api/v1/keys/5?projectId=p'],
     ['billing.checkout', (c) => c.billing.checkout({}), 'POST', '/api/v1/billing/checkout'],
+    ['alerts.listRules', (c) => c.alerts.listRules('p'), 'GET', '/api/v1/alerts/rules?projectId=p'],
+    ['alerts.createRule', (c) => c.alerts.createRule({ projectId: 'p' }), 'POST', '/api/v1/alerts/rules'],
+    ['alerts.updateRule', (c) => c.alerts.updateRule('p', 3, { isActive: false }), 'PATCH', '/api/v1/alerts/rules/3?projectId=p'],
+    ['alerts.deleteRule', (c) => c.alerts.deleteRule('p', 3), 'DELETE', '/api/v1/alerts/rules/3?projectId=p'],
+    ['alerts.events', (c) => c.alerts.events({ projectId: 'p', limit: 5 }), 'GET', '/api/v1/alerts/events?projectId=p&limit=5'],
     ['request.put', (c) => c.request.put('/custom', { a: 1 }), 'PUT', '/custom'],
   ])('%s → %s %s', async (_name, invoke, method, path) => {
     await invoke(client);
     expect(last().init.method).toBe(method);
     expect(last().url).toBe(`https://a${path}`);
+  });
+});
+
+describe('telemetry batches get an idempotency key automatically (KI-33)', () => {
+  it('ingest.batch and rum.ingest send a fresh key per call, and keep a caller-provided one', async () => {
+    const f = fetcher(envelope({}));
+    const client = createApexClient({ baseUrl: 'https://a', fetcher: f.fn });
+    await client.ingest.batch({ logs: [] });
+    await client.ingest.batch({ logs: [] });
+    await client.rum.ingest({ events: [] }, { idempotencyKey: 'mine-12345' });
+    const keys = f.calls.map((c) => headersOf(c)['x-idempotency-key']);
+    expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(keys[1]).not.toBe(keys[0]);
+    expect(keys[2]).toBe('mine-12345');
+  });
+
+  it('so a timed-out ingest is retried with the same key', async () => {
+    const f = fetcher(new TypeError('socket hang up'), envelope({ status: 'queued' }));
+    const client = createApexClient({ baseUrl: 'https://a', fetcher: f.fn, retry: { maxRetries: 1, baseDelayMs: 1 } });
+    await client.ingest.batch({ logs: [] });
+    expect(f.calls).toHaveLength(2);
+    expect(headersOf(f.calls[0])['x-idempotency-key']).toBe(headersOf(f.calls[1])['x-idempotency-key']);
   });
 });

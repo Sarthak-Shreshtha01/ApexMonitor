@@ -15,7 +15,23 @@ const DEFAULT_RETRY: RetryConfig = {
   baseDelayMs: 300,
 };
 
-const RETRYABLE_STATUS = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+/**
+ * Statuses worth retrying. 409 is not one of them: a conflict (e.g. email already taken)
+ * comes back the same every time.
+ */
+const RETRYABLE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+/**
+ * The server rejected the request without acting on it, so even a POST without an
+ * idempotency key can be sent again.
+ */
+const REJECTED_UNPROCESSED_STATUS = new Set([429, 503]);
+
+/** Methods that are safe to repeat: the second call can't create anything twice. */
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS']);
+
+/** Header the server reads for deduplication. */
+export const IDEMPOTENCY_HEADER = 'x-idempotency-key';
 
 export class HttpClient {
   private readonly baseUrl: string;
@@ -54,6 +70,9 @@ export class HttpClient {
     const url = this.buildUrl(path, options.query);
     const headers = await this.buildHeaders(options);
     const timeoutMs = options.timeoutMs ?? this.timeoutMs;
+    // Re-sending a POST/PATCH that may have reached the server could create it twice,
+    // unless the server can deduplicate it by idempotency key.
+    const safeToRepeat = IDEMPOTENT_METHODS.has(method.toUpperCase()) || Boolean(options.idempotencyKey);
 
     let attempt = 0;
 
@@ -85,7 +104,7 @@ export class HttpClient {
           };
         }
 
-        const retryable = RETRYABLE_STATUS.has(response.status);
+        const retryable = RETRYABLE_STATUS.has(response.status) && (safeToRepeat || REJECTED_UNPROCESSED_STATUS.has(response.status));
         const errorPayload = this.toErrorPayload(payload);
         errorPayload.requestId = errorPayload.requestId ?? response.headers.get('x-request-id') ?? undefined;
         const error = new ApexApiError(response.status, errorPayload, retryable);
@@ -96,10 +115,20 @@ export class HttpClient {
       } catch (error) {
         clearTimeout(timeout);
 
-        const retryable = this.isRetryableError(error);
+        // Cancelled by the caller: give up immediately, never retry.
+        if (options.signal?.aborted) {
+          throw error;
+        }
+
+        // Our own timeout fired: report it as a network error (retryable).
+        const failure = controller.signal.aborted && isAbortError(error)
+          ? new ApexNetworkError(`Request timed out after ${timeoutMs} ms`)
+          : error;
+
+        const retryable = failure instanceof ApexApiError ? failure.isRetryable : safeToRepeat && this.isRetryableError(failure);
         if (!retryable || attempt >= this.retry.maxRetries) {
-          if (error instanceof Error) {
-            throw error;
+          if (failure instanceof Error) {
+            throw failure;
           }
 
           throw new ApexNetworkError('Unexpected network failure');
@@ -137,7 +166,7 @@ export class HttpClient {
     };
 
     if (options.idempotencyKey) {
-      headers['idempotency-key'] = options.idempotencyKey;
+      headers[IDEMPOTENCY_HEADER] = options.idempotencyKey;
     }
 
     if (!headers['x-request-id']) {
@@ -201,10 +230,6 @@ export class HttpClient {
       return error.isRetryable;
     }
 
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return true;
-    }
-
     if (error instanceof TypeError) {
       return true;
     }
@@ -224,6 +249,10 @@ async function resolveValue(value: string | (() => string | Promise<string>)): P
   }
 
   return value;
+}
+
+function isAbortError(error: unknown): boolean {
+  return typeof error === 'object' && error !== null && (error as { name?: string }).name === 'AbortError';
 }
 
 function wait(ms: number): Promise<void> {

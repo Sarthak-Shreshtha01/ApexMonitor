@@ -3,7 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import request from 'supertest';
 import { FakeChannel, FakePg, FakeRedis, PROJECT_A, fakeRabbit } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
 
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => new FakeRedis() }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => new FakePg() }));
@@ -180,13 +179,13 @@ describe('client/server path drift', () => {
     return false;
   };
 
-  knownBug('KI-12', 'every path the TypeScript SDK calls exists on the server', async () => {
+  it('every path the TypeScript SDK calls exists on the server (KI-12)', async () => {
     const missing = [];
     for (const p of extractPaths('packages/sdk/src/client.ts')) if (!(await isMounted(p))) missing.push(p);
     expect(missing).toEqual([]);
   });
 
-  knownBug('KI-12', 'every path the web app calls exists on the server', async () => {
+  it('every path the web app calls exists on the server (KI-12)', async () => {
     const missing = [];
     for (const p of extractPaths('apps/web/shared/api/endpoints.ts')) if (!(await isMounted(p))) missing.push(p);
     expect(missing).toEqual([]);

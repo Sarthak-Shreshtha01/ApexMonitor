@@ -78,7 +78,50 @@ class TransportTests(ClientTestCase):
     def test_idempotency_key_header(self):
         self.request.return_value = response(202, {})
         ApexClient("https://a").ingest({"logs": []}, idempotency_key="idem-1")
-        self.assertEqual(self.last_call()["headers"]["idempotency-key"], "idem-1")
+        self.assertEqual(self.last_call()["headers"]["x-idempotency-key"], "idem-1")
+
+    def test_ingest_generates_a_fresh_idempotency_key_per_call(self):
+        self.request.return_value = response(202, {})
+        client = ApexClient("https://a")
+        client.ingest({"logs": []})
+        first = self.last_call()["headers"]["x-idempotency-key"]
+        client.rum_ingest({"events": []})
+        second = self.last_call()["headers"]["x-idempotency-key"]
+        self.assertEqual(len(first), 36)
+        self.assertNotEqual(first, second)
+
+    def test_rum_key_defaults_to_x_rum_key_header(self):
+        self.request.return_value = response(202, {})
+        ApexClient("https://a", auth={"type": "rumKey", "key": "rum_k"}).rum_ingest({"events": []})
+        headers = self.last_call()["headers"]
+        self.assertEqual(headers.get("x-rum-key"), "rum_k")
+        self.assertNotIn("x-api-key", headers)
+
+    def test_409_conflict_is_not_retried(self):
+        self.request.return_value = response(409, {"error": "CONFLICT"})
+        with self.assertRaises(ApexApiError):
+            ApexClient("https://a", max_retries=2).request("GET", "/x")
+        self.assertEqual(self.request.call_count, 1)
+
+    def test_post_without_idempotency_key_is_not_retried_on_500_or_network_errors(self):
+        for failure in (response(500, {}), requests.ConnectionError("reset")):
+            with self.subTest(failure=type(failure).__name__):
+                self.request.reset_mock()
+                self.request.side_effect = [failure, response(200, {})]
+                with self.assertRaises((ApexApiError, ApexNetworkError)):
+                    ApexClient("https://a", max_retries=2).request("POST", "/x", body={})
+                self.assertEqual(self.request.call_count, 1)
+
+    def test_post_without_key_still_retries_429_and_503(self):
+        self.request.side_effect = [response(429, {}), response(503, {}), response(200, {"ok": 1})]
+        self.assertEqual(ApexClient("https://a", max_retries=2).request("POST", "/x", body={}), {"ok": 1})
+
+    def test_ingest_retries_network_errors_with_the_same_key(self):
+        self.request.side_effect = [requests.ConnectionError("reset"), response(202, {})]
+        ApexClient("https://a", max_retries=1).ingest({"logs": []})
+        keys = [c.kwargs["headers"]["x-idempotency-key"] for c in self.request.call_args_list]
+        self.assertEqual(len(keys), 2)
+        self.assertEqual(keys[0], keys[1])
 
     def test_api_error_mapping_without_retry_for_4xx(self):
         self.request.return_value = response(403, {"error": "FORBIDDEN", "message": "nope", "requestId": "rid", "details": {"a": 1}})
@@ -114,17 +157,8 @@ class TransportTests(ClientTestCase):
             ApexClient("https://a", max_retries=2).me()
         self.assertEqual(self.request.call_count, 3)
 
-    @unittest.expectedFailure
-    def test_known_bug_ki_11_rum_key_uses_x_rum_key_header(self):
-        self.request.return_value = response(202, {})
-        ApexClient("https://a", auth={"type": "rumKey", "key": "rum_k"}).rum_ingest({"events": []})
-        self.assertEqual(self.last_call()["headers"].get("x-rum-key"), "rum_k")
 
-    @unittest.expectedFailure
-    def test_known_bug_ki_33_idempotency_header_matches_server(self):
-        self.request.return_value = response(202, {})
-        ApexClient("https://a").ingest({"logs": []}, idempotency_key="idem-1")
-        self.assertEqual(self.last_call()["headers"].get("x-idempotency-key"), "idem-1")
+
 
 
 class EndpointTests(ClientTestCase):
@@ -144,7 +178,7 @@ class EndpointTests(ClientTestCase):
             (lambda c: c.insights(), "GET", "/api/v1/insights"),
             (lambda c: c.keys(), "GET", "/api/v1/keys"),
             (lambda c: c.create_key({}), "POST", "/api/v1/keys"),
-            (lambda c: c.revoke_key(5), "DELETE", "/api/v1/keys/5"),
+            (lambda c: c.revoke_key(5, "p"), "DELETE", "/api/v1/keys/5"),
             (lambda c: c.checkout({}), "POST", "/api/v1/billing/checkout"),
         ]
         for invoke, method, path in cases:
@@ -154,11 +188,11 @@ class EndpointTests(ClientTestCase):
                 self.assertEqual(self.last_call()["method"], method)
                 self.assertEqual(self.last_call()["url"], f"https://a{path}")
 
-    @unittest.expectedFailure
-    def test_known_bug_ki_34_revoke_key_sends_project_id(self):
+    def test_revoke_key_sends_project_id(self):
         self.request.return_value = response(204)
-        ApexClient("https://a").revoke_key(5)
-        self.assertIn("projectId", self.last_call()["params"] or {})
+        ApexClient("https://a").revoke_key(5, "proj_abc")
+        self.assertEqual(self.last_call()["params"], {"projectId": "proj_abc"})
+        self.assertTrue(self.last_call()["url"].endswith("/api/v1/keys/5"))
 
 
 if __name__ == "__main__":

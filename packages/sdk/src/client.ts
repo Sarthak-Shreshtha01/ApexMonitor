@@ -37,8 +37,11 @@ const PATHS = {
     overview: '/api/v1/metrics/overview',
     latency: '/api/v1/metrics/latency',
     operations: '/api/v1/metrics/operations',
-    rps: '/api/v1/metrics/rps',
-    endpoints: '/api/v1/metrics/endpoints',
+  },
+  alerts: {
+    rules: '/api/v1/alerts/rules',
+    rule: (ruleId: number) => `/api/v1/alerts/rules/${ruleId}`,
+    events: '/api/v1/alerts/events',
   },
   logs: {
     root: '/api/v1/logs',
@@ -131,14 +134,18 @@ export class ApexClient {
     },
   };
 
+  /**
+   * Telemetry batches get an idempotency key automatically (unless you pass one), so a
+   * retried batch is stored once even if the first attempt reached the server.
+   */
   ingest = {
     batch: <T = unknown>(body: unknown, options?: RequestOptions): Promise<T> =>
-      this.http.request<T>('POST', PATHS.ingest.root, { ...options, body }),
+      this.http.request<T>('POST', PATHS.ingest.root, { ...options, body, idempotencyKey: options?.idempotencyKey ?? newIdempotencyKey() }),
   };
 
   rum = {
     ingest: <T = unknown>(body: unknown, options?: RequestOptions): Promise<T> =>
-      this.http.request<T>('POST', PATHS.rum.root, { ...options, body }),
+      this.http.request<T>('POST', PATHS.rum.root, { ...options, body, idempotencyKey: options?.idempotencyKey ?? newIdempotencyKey() }),
 
     overview: <T = unknown>(query?: RequestOptions['query'], options?: RequestOptions): Promise<T> =>
       this.http.request<T>('GET', PATHS.rum.overview, { ...options, query }),
@@ -168,12 +175,23 @@ export class ApexClient {
 
     operations: <T = unknown>(query?: RequestOptions['query'], options?: RequestOptions): Promise<T> =>
       this.http.request<T>('GET', PATHS.metrics.operations, { ...options, query }),
+  };
 
-    rps: <T = unknown>(query?: RequestOptions['query'], options?: RequestOptions): Promise<T> =>
-      this.http.request<T>('GET', PATHS.metrics.rps, { ...options, query }),
+  alerts = {
+    listRules: <T = unknown>(projectId: string, options?: RequestOptions): Promise<T> =>
+      this.http.request<T>('GET', PATHS.alerts.rules, { ...options, query: { projectId } }),
 
-    endpoints: <T = unknown>(query?: RequestOptions['query'], options?: RequestOptions): Promise<T> =>
-      this.http.request<T>('GET', PATHS.metrics.endpoints, { ...options, query }),
+    createRule: <T = unknown>(body: { projectId: string } & Record<string, unknown>, options?: RequestOptions): Promise<T> =>
+      this.http.request<T>('POST', PATHS.alerts.rules, { ...options, body }),
+
+    updateRule: <T = unknown>(projectId: string, ruleId: number, body: Record<string, unknown>, options?: RequestOptions): Promise<T> =>
+      this.http.request<T>('PATCH', PATHS.alerts.rule(ruleId), { ...options, body, query: { projectId } }),
+
+    deleteRule: <T = unknown>(projectId: string, ruleId: number, options?: RequestOptions): Promise<T> =>
+      this.http.request<T>('DELETE', PATHS.alerts.rule(ruleId), { ...options, query: { projectId } }),
+
+    events: <T = unknown>(query: { projectId: string; ruleId?: number; limit?: number }, options?: RequestOptions): Promise<T> =>
+      this.http.request<T>('GET', PATHS.alerts.events, { ...options, query }),
   };
 
   logs = {
@@ -216,4 +234,11 @@ export class ApexClient {
 
 export function createApexClient(options: ApexClientOptions): ApexClient {
   return new ApexClient(options);
+}
+
+function newIdempotencyKey(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `idem_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`;
 }

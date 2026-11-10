@@ -20,31 +20,30 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Soon: before real traffic (P2)
 
-1. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-2. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-3. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-4. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-5. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-6. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-7. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-8. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
-9. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+1. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+2. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+3. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+4. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+5. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+6. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+7. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, web Docker image, Node 24 in CI + `.nvmrc` (CI still uses Node 20, which is end-of-life), coverage report. (P1)
+8. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-10. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-11. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-12. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-13. [ ] Split `apps/api` and `apps/worker`.
-14. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-15. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+9. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+10. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+11. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+12. [ ] Split `apps/api` and `apps/worker`.
+13. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+14. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-16. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-17. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-18. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-19. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+15. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+16. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+17. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+18. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -63,6 +62,7 @@ _All done (see Done). Remaining P1 gap: KI-7 subscription lifecycle, planned for
 
 ## Done
 
+- [x] 2026-11-10: SDK fixes: `x-idempotency-key`, no retry on 409 / caller abort / unsafe POSTs, automatic idempotency keys for ingest, Python `x-rum-key` + `revoke_key(project_id)`, removed nonexistent metrics endpoints, TS alerts helpers (KI-33, KI-34, KI-11, KI-12)
 - [x] 2026-11-10: Member roles limited to owner/developer (Zod + DB check); the last owner can't be demoted; web settings use the same roles (KI-38)
 - [x] 2026-11-10: Malformed JSON → 400, body over 2 MB → 413, bad charset → 415; missing bodies treated as {}; login validated with Zod (KI-39)
 - [x] 2026-11-10: Alerts page in the dashboard: create rules, see ok/firing state and last value, pause/resume/delete, trigger history (KI-18 complete; email delivery stays in Phase 4b) (KI-18)

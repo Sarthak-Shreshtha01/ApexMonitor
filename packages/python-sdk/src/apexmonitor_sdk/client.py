@@ -2,13 +2,22 @@ from __future__ import annotations
 
 import random
 import time
+import uuid
 from typing import Any
 
 import requests
 
 from .errors import ApexApiError, ApexNetworkError
 
-RETRYABLE_STATUS = {408, 409, 425, 429, 500, 502, 503, 504}
+# 409 is not retryable: a conflict (e.g. email already taken) comes back the same every time.
+RETRYABLE_STATUS = {408, 425, 429, 500, 502, 503, 504}
+# The server rejected these without acting on them, so even a POST without a key can be resent.
+REJECTED_UNPROCESSED_STATUS = {429, 503}
+# Repeating these can't create anything twice.
+IDEMPOTENT_METHODS = {"GET", "HEAD", "PUT", "DELETE", "OPTIONS"}
+# Header the server reads for deduplication.
+IDEMPOTENCY_HEADER = "x-idempotency-key"
+DEFAULT_KEY_HEADERS = {"apiKey": "x-api-key", "rumKey": "x-rum-key"}
 
 
 class ApexClient:
@@ -34,6 +43,9 @@ class ApexClient:
     def request(self, method: str, path: str, query: dict[str, Any] | None = None, body: Any = None, headers: dict[str, str] | None = None, idempotency_key: str | None = None):
         url = f"{self.base_url}{path if path.startswith('/') else '/' + path}"
         attempt = 0
+        # Re-sending a POST/PATCH that may have reached the server could create it twice,
+        # unless the server can deduplicate it by idempotency key.
+        safe_to_repeat = method.upper() in IDEMPOTENT_METHODS or bool(idempotency_key)
 
         while True:
             try:
@@ -56,11 +68,14 @@ class ApexClient:
                 code = payload.get("code") or payload.get("error") or "API_ERROR"
                 message = payload.get("message") or f"Request failed with status {response.status_code}"
                 request_id = payload.get("requestId") or response.headers.get("x-request-id")
-                if response.status_code not in RETRYABLE_STATUS or attempt >= self.max_retries:
+                retryable = response.status_code in RETRYABLE_STATUS and (
+                    safe_to_repeat or response.status_code in REJECTED_UNPROCESSED_STATUS
+                )
+                if not retryable or attempt >= self.max_retries:
                     raise ApexApiError(response.status_code, message, code=code, details=payload.get("details"), request_id=request_id)
 
             except requests.RequestException as exc:
-                if attempt >= self.max_retries:
+                if not safe_to_repeat or attempt >= self.max_retries:
                     raise ApexNetworkError(str(exc)) from exc
 
             attempt += 1
@@ -83,10 +98,11 @@ class ApexClient:
         return self.request("POST", "/api/v1/projects", body=payload)
 
     def ingest(self, payload: dict[str, Any], idempotency_key: str | None = None):
-        return self.request("POST", "/api/v1/ingest", body=payload, idempotency_key=idempotency_key)
+        """Sends a log batch. A fresh idempotency key is used unless given, so retries are stored once."""
+        return self.request("POST", "/api/v1/ingest", body=payload, idempotency_key=idempotency_key or str(uuid.uuid4()))
 
     def rum_ingest(self, payload: dict[str, Any], idempotency_key: str | None = None):
-        return self.request("POST", "/api/v1/rum", body=payload, idempotency_key=idempotency_key)
+        return self.request("POST", "/api/v1/rum", body=payload, idempotency_key=idempotency_key or str(uuid.uuid4()))
 
     def metrics_overview(self, query: dict[str, Any] | None = None):
         return self.request("GET", "/api/v1/metrics/overview", query=query)
@@ -109,8 +125,9 @@ class ApexClient:
     def create_key(self, payload: dict[str, Any]):
         return self.request("POST", "/api/v1/keys", body=payload)
 
-    def revoke_key(self, key_id: int):
-        return self.request("DELETE", f"/api/v1/keys/{key_id}")
+    def revoke_key(self, key_id: int, project_id: str):
+        """Revokes an ingest key. The server needs the key's project to check ownership."""
+        return self.request("DELETE", f"/api/v1/keys/{key_id}", query={"projectId": project_id})
 
     def checkout(self, payload: dict[str, Any], idempotency_key: str | None = None):
         return self.request("POST", "/api/v1/billing/checkout", body=payload, idempotency_key=idempotency_key)
@@ -126,7 +143,7 @@ class ApexClient:
         headers.update(auth_headers)
 
         if idempotency_key:
-            headers["idempotency-key"] = idempotency_key
+            headers[IDEMPOTENCY_HEADER] = idempotency_key
 
         return headers
 
@@ -141,7 +158,7 @@ class ApexClient:
 
         if auth_type in ("apiKey", "rumKey"):
             key = self.auth.get("key")
-            header_name = self.auth.get("headerName", "x-api-key")
+            header_name = self.auth.get("headerName", DEFAULT_KEY_HEADERS[auth_type])
             return {header_name: key}
 
         if auth_type == "custom":

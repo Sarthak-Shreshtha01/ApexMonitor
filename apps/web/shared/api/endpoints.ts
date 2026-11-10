@@ -15,8 +15,6 @@ export const ENDPOINTS = {
     overview: '/api/v1/metrics/overview',
     latency: '/api/v1/metrics/latency',
     operations: '/api/v1/metrics/operations',
-    rps: '/api/v1/metrics/rps',
-    endpoints: '/api/v1/metrics/endpoints',
   },
   projects: {
     listMine: '/api/v1/projects',
