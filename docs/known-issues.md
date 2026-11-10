@@ -70,12 +70,6 @@ _None open._
 Keys are looked up by their first 10 characters and `findKeyByPrefix` returns only `rows[0]`. Keys from `POST /keys` are `pk_live_` + random, so the prefix has only **2 random characters** (4,096 values). A test generating 500 keys measured **37 collisions** (463 distinct prefixes). Any key whose prefix matches an older key fails verification forever. (`proj_` keys from the legacy route have 5 random chars, still collision-prone.)
 **Fix:** store a longer prefix (e.g. 16 chars after the type marker) or look up by a deterministic hash (HMAC-SHA256 of the key) and keep argon2 only for verification; handle multiple rows.
 
-### KI-36 Successful payments can never upgrade the account
-`PhonePeUtils.generateCheckoutPayload` truncates `merchantUserId` to 34 characters, but user ids are `usr_` + 32 hex = 36 characters. The webhook upserts `subscriptions` for the truncated id, which violates the `subscriptions.user_id → users.id` foreign key, so the upgrade fails after the customer has paid.
-**Fix:** map the transaction id to the user server-side (store the checkout with `merchantTransactionId`) instead of round-tripping the user id.
-
-## P2
-
 ### KI-11 Python SDK sends RUM keys in the wrong header
 `packages/python-sdk/src/apexmonitor_sdk/client.py#_auth_headers` defaults both `apiKey` and `rumKey` to `x-api-key`. Server expects `x-rum-key`.
 

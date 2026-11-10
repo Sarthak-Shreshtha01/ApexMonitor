@@ -8,6 +8,7 @@ Source of truth: `scripts/init-postgres.sql` + `scripts/migrate-v*.sql`, Mongoos
 erDiagram
     users ||--o{ projects : owns
     users ||--o| subscriptions : has
+    users ||--o{ billing_checkouts : starts
     projects ||--o{ project_members : has
     projects ||--o{ api_keys : has
     projects ||--o{ rum_public_keys : has
@@ -26,6 +27,7 @@ erDiagram
 | `projects` | `id` PK (`proj_…`), `name`, `owner_user_id` → users (RESTRICT), `plan`, `rate_limit_rpm`, `log_retention_days` (90) | `plan`, `rate_limit_rpm`, `log_retention_days` aren't read by code yet |
 | `project_members` | `project_id` → projects (CASCADE), `user_id`, `role` (`owner`/`developer`), unique(project,user) | `user_id` has no FK |
 | `subscriptions` | `user_id` PK → users (CASCADE), `plan_tier` (`FREE`/`PRO`), `last_tx_id`, `payment_status` | Per user, not per org |
+| `billing_checkouts` | `merchant_transaction_id` PK, `user_id` → users (CASCADE), `plan_tier`, `amount_paise`, `status` (`PENDING`/`SUCCESS`/`FAILED`), `gateway_code`, `completed_at` | v5. The payment webhook finds the user here |
 | `audit_logs` | `actor_user_id`, `project_id`, `action`, `resource_type`, `resource_id`, `metadata` jsonb, `ip_address`, `user_agent` | Written by `shared/services/audit-log.service.ts` |
 
 ### Credentials

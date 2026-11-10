@@ -2,16 +2,28 @@ import { getPg } from '@infrastructure/db/postgres';
 import { getRedis } from '@infrastructure/redis';
 import { PhonePeUtils } from '@shared/utils/phonepe.utils';
 
+/** PRO plan: ₹2999/month. */
+export const PRO_PLAN = { tier: 'PRO', amountPaise: 299900 } as const;
+
+type WebhookOutcome = 'upgraded' | 'failed' | 'ignored';
+
 export class BillingService {
   private get db() { return getPg(); }
 
   async createCheckoutSession(userId: string) {
-    // PRO Plan costs ₹2999/month -> 299900 Paise
-    const amountInPaise = 299900; 
     // In production, this would be your frontend Next.js URL
     const redirectUrl = `http://localhost:3000/dashboard/billing?status=success`; 
 
-    const { base64Payload, checksum, url } = PhonePeUtils.generateCheckoutPayload(userId, amountInPaise, redirectUrl);
+    // Record who is paying *before* sending them to PhonePe. The webhook later finds the
+    // user from this row by merchantTransactionId (KI-36).
+    const merchantTransactionId = PhonePeUtils.newMerchantTransactionId();
+    await this.db.query(
+      `INSERT INTO billing_checkouts (merchant_transaction_id, user_id, plan_tier, amount_paise)
+       VALUES ($1, $2, $3, $4)`,
+      [merchantTransactionId, userId, PRO_PLAN.tier, PRO_PLAN.amountPaise]
+    );
+
+    const { base64Payload, checksum, url } = PhonePeUtils.generateCheckoutPayload(merchantTransactionId, userId, PRO_PLAN.amountPaise, redirectUrl);
 
     // Call PhonePe S2S API to get the payment page URL
     const response = await fetch(url, {
@@ -28,35 +40,68 @@ export class BillingService {
     
     if (result.success) {
       return result.data.instrumentResponse.redirectInfo.url;
-    } else {
-      throw new Error(`PhonePe Checkout Failed: ${result.message}`);
     }
+
+    await this.markCheckout(merchantTransactionId, 'FAILED', 'CHECKOUT_REJECTED');
+    throw new Error(`PhonePe Checkout Failed: ${result.message}`);
   }
 
-  async handlePhonePeWebhook(base64Response: string, xVerifyHeader: string) {
+  async handlePhonePeWebhook(base64Response: string, xVerifyHeader: string): Promise<WebhookOutcome> {
     const isValid = PhonePeUtils.verifyWebhookSignature(base64Response, xVerifyHeader);
     if (!isValid) throw new Error('INVALID_SIGNATURE');
 
     const decodedPayload = JSON.parse(Buffer.from(base64Response, 'base64').toString('utf-8'));
-    
-    if (decodedPayload.code === 'PAYMENT_SUCCESS') {
-      const userId = decodedPayload.data.merchantUserId;
-      const txId = decodedPayload.data.merchantTransactionId;
+    const code = String(decodedPayload.code ?? '');
+    const txId = decodedPayload.data?.merchantTransactionId;
+    if (typeof txId !== 'string' || !txId) {
+      console.warn(`[Billing] Webhook ${code} without merchantTransactionId ignored`);
+      return 'ignored';
+    }
 
-      // 1. Upgrade User to PRO in DB
-      await this.db.query(
-        `INSERT INTO subscriptions (user_id, plan_tier, last_tx_id, payment_status) 
-         VALUES ($1, 'PRO', $2, 'SUCCESS')
-         ON CONFLICT (user_id) DO UPDATE SET 
-         plan_tier = 'PRO', last_tx_id = $2, payment_status = 'SUCCESS', updated_at = NOW()`,
-        [userId, txId]
+    if (code === 'PAYMENT_SUCCESS') {
+      // One statement, so it is atomic: complete the checkout only if it is still pending
+      // and the paid amount matches what we asked for, then upgrade *that checkout's* user.
+      // Replayed webhooks find no pending row and change nothing.
+      const { rows } = await this.db.query(
+        `WITH done AS (
+           UPDATE billing_checkouts
+              SET status = 'SUCCESS', gateway_code = $2, completed_at = NOW()
+            WHERE merchant_transaction_id = $1 AND status = 'PENDING' AND amount_paise = $3
+        RETURNING user_id, plan_tier, merchant_transaction_id
+         )
+         INSERT INTO subscriptions (user_id, plan_tier, last_tx_id, payment_status)
+         SELECT user_id, plan_tier, merchant_transaction_id, 'SUCCESS' FROM done
+         ON CONFLICT (user_id) DO UPDATE SET
+           plan_tier = EXCLUDED.plan_tier, last_tx_id = EXCLUDED.last_tx_id,
+           payment_status = 'SUCCESS', updated_at = NOW()
+         RETURNING user_id`,
+        [txId, code, Number(decodedPayload.data?.amount)]
       );
 
-      // 2. Clear Redis cache so the IngestService instantly applies new limits
-      const redis = getRedis();
-      await redis.del(`tier:${userId}`);
-      
+      const userId: string | undefined = rows[0]?.user_id;
+      if (!userId) {
+        console.warn(`[Billing] PAYMENT_SUCCESS for ${txId} not applied (unknown, already processed, or amount mismatch)`);
+        return 'ignored';
+      }
+
+      // Clear Redis cache so the IngestService instantly applies new limits
+      await getRedis().del(`tier:${userId}`);
       console.log(`💰 [Billing] User ${userId} upgraded to PRO tier!`);
+      return 'upgraded';
     }
+
+    // Still in progress: wait for the final callback.
+    if (code === 'PAYMENT_PENDING') return 'ignored';
+
+    await this.markCheckout(txId, 'FAILED', code || 'UNKNOWN');
+    return 'failed';
+  }
+
+  private async markCheckout(merchantTransactionId: string, status: 'FAILED', gatewayCode: string) {
+    await this.db.query(
+      `UPDATE billing_checkouts SET status = $2, gateway_code = $3, completed_at = NOW()
+        WHERE merchant_transaction_id = $1 AND status = 'PENDING'`,
+      [merchantTransactionId, status, gatewayCode.slice(0, 64)]
+    );
   }
 }

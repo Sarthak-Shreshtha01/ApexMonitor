@@ -8,14 +8,25 @@ const SALT_INDEX = process.env.PHONEPE_SALT_INDEX || '1';
 const PHONEPE_URL = 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay';
 
 export class PhonePeUtils {
-  static generateCheckoutPayload(userId: string, amountInPaise: number, redirectUrl: string) {
-    const merchantTransactionId = `TX_${Date.now()}_${userId.substring(4, 10)}`;
-    
+  /** Unique per checkout, 33 chars (PhonePe allows up to 38). The webhook looks the user up by this id. */
+  static newMerchantTransactionId(): string {
+    return `TX_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`;
+  }
+
+  /**
+   * Stable, opaque id PhonePe uses to group a customer's payments. It is never mapped back
+   * to a user: our user ids (36 chars) don't fit PhonePe's limit, and the webhook finds the
+   * user through `billing_checkouts` instead.
+   */
+  static merchantUserIdFor(userId: string): string {
+    return `MU${crypto.createHash('sha256').update(userId).digest('hex').slice(0, 30)}`;
+  }
+
+  static generateCheckoutPayload(merchantTransactionId: string, userId: string, amountInPaise: number, redirectUrl: string) {
     const payload = {
       merchantId: MERCHANT_ID,
-      merchantTransactionId: merchantTransactionId,
-      // FIX: Truncate to 34 characters to satisfy PhonePe's strict limit
-      merchantUserId: userId.substring(0, 34), 
+      merchantTransactionId,
+      merchantUserId: PhonePeUtils.merchantUserIdFor(userId),
       amount: amountInPaise, 
       redirectUrl: redirectUrl,
       redirectMode: 'REDIRECT',

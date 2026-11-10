@@ -155,6 +155,6 @@ The webhook is sent through the SSRF guard in `shared/net/webhook.ts` (https onl
 
 ## 8. Billing (PhonePe)
 
-1. `POST /api/v1/billing/checkout` (JWT) builds a PhonePe pay request (₹2,999), signs it with salt key, and returns the redirect URL.
-2. PhonePe calls `POST /api/v1/billing/webhook/phonepe` with a base64 payload + `X-VERIFY`. On a valid signature and `PAYMENT_SUCCESS`, the server upserts `subscriptions` → `PRO` and deletes `tier:<userId>` from Redis.
+1. `POST /api/v1/billing/checkout` (JWT) creates a random `merchantTransactionId`, records it in `billing_checkouts` (user, plan, amount, `PENDING`), builds a PhonePe pay request (₹2,999) signed with the salt key, and returns the redirect URL. PhonePe gets an opaque `merchantUserId` (hash of the user id), never the user id itself.
+2. PhonePe calls `POST /api/v1/billing/webhook/phonepe` with a base64 payload + `X-VERIFY`. On a valid signature and `PAYMENT_SUCCESS`, one SQL statement marks the checkout `SUCCESS` (only if it is still `PENDING` and the paid amount matches) and upserts `subscriptions` → `PRO` for the user stored on that checkout. Then `tier:<userId>` is deleted from Redis. Replays and unknown or wrong-amount transactions change nothing and still get 200. Failure codes mark the checkout `FAILED`; `PAYMENT_PENDING` is ignored.
 3. The ingest rate limit for projects owned by that user becomes 600k per window.

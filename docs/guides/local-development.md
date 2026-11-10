@@ -32,7 +32,7 @@ docker compose ps        # all four services should be "running"
 `scripts/init-postgres.sql` runs automatically **only the first time** the Postgres volume is created. Apply the migrations manually, in order:
 
 ```bash
-for f in migrate-v2.sql migrate-v3.sql migrate-v4.sql migrate-v4-rum.sql; do
+for f in migrate-v2.sql migrate-v3.sql migrate-v4.sql migrate-v4-rum.sql migrate-v5.sql; do
   docker exec -i apexmonitor-postgres psql -U pulse -d apexmonitor < scripts/$f
 done
 ```

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { io as ioClient, Socket } from 'socket.io-client';
 import { api, createIngestKey, createRumKey, getStack, logEntry, pgQuery, registerTenant, Tenant, waitFor } from './harness';
@@ -116,5 +117,69 @@ describe('platform endpoints (real stack)', () => {
     for (const q of queues.filter((x) => x.queue.endsWith('_queue'))) expect(q.consumerCount, q.queue).toBeGreaterThanOrEqual(1);
     // Dead-letter queues are reported (for backlog visibility) but nothing consumes them.
     expect(queues.filter((x) => x.queue.endsWith('_dlq')).map((x) => x.consumerCount)).toEqual([0, 0, 0, 0]);
+  });
+});
+
+describe('billing (real stack)', () => {
+  const SANDBOX_SALT = '099eb0cd-02cf-4e2a-8aca-3e6c6aff0399';
+  const realFetch = globalThis.fetch;
+  let t: Tenant;
+
+  beforeAll(async () => {
+    t = await registerTenant('billing');
+    // Only PhonePe is faked; every other request (including the test client) is real.
+    globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes('phonepe.com')) {
+        return new Response(JSON.stringify({ success: true, data: { instrumentResponse: { redirectInfo: { url: 'https://pay.example/session' } } } }));
+      }
+      return realFetch(input, init);
+    }) as typeof fetch;
+  });
+  afterAll(() => {
+    globalThis.fetch = realFetch;
+  });
+
+  const webhook = (payload: unknown) => {
+    const b64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+    const sig = `${crypto.createHash('sha256').update(b64 + SANDBOX_SALT).digest('hex')}###1`;
+    return api('POST', '/api/v1/billing/webhook/phonepe', { body: { response: b64 }, headers: { 'x-verify': sig } });
+  };
+  const checkout = async () => {
+    const res = await api('POST', '/api/v1/billing/checkout', { token: t.accessToken });
+    expect(res.status).toBe(200);
+    const [row] = await pgQuery<{ merchant_transaction_id: string }>(
+      'SELECT merchant_transaction_id FROM billing_checkouts WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [t.userId]);
+    return row.merchant_transaction_id;
+  };
+  const plan = async () => (await pgQuery<{ plan_tier: string; last_tx_id: string }>('SELECT plan_tier, last_tx_id FROM subscriptions WHERE user_id = $1', [t.userId]))[0];
+
+  it('a paid checkout upgrades the real (36-char) user to PRO, exactly once (KI-36)', async () => {
+    expect(t.userId).toHaveLength(36);
+    const txId = await checkout();
+    const [pending] = await pgQuery('SELECT status, amount_paise, plan_tier FROM billing_checkouts WHERE merchant_transaction_id = $1', [txId]);
+    expect(pending).toEqual({ status: 'PENDING', amount_paise: 299900, plan_tier: 'PRO' });
+
+    expect((await webhook({ code: 'PAYMENT_SUCCESS', data: { merchantTransactionId: txId, amount: 299900 } })).status).toBe(200);
+    expect(await plan()).toEqual({ plan_tier: 'PRO', last_tx_id: txId });
+    const [done] = await pgQuery('SELECT status, gateway_code FROM billing_checkouts WHERE merchant_transaction_id = $1', [txId]);
+    expect(done).toEqual({ status: 'SUCCESS', gateway_code: 'PAYMENT_SUCCESS' });
+
+    // A replay is accepted but changes nothing.
+    expect((await webhook({ code: 'PAYMENT_SUCCESS', data: { merchantTransactionId: txId, amount: 299900 } })).status).toBe(200);
+    expect(await plan()).toEqual({ plan_tier: 'PRO', last_tx_id: txId });
+  });
+
+  it('a wrong amount or an unknown transaction never upgrades anyone', async () => {
+    const before = await plan();
+    const txId = await checkout();
+    await webhook({ code: 'PAYMENT_SUCCESS', data: { merchantTransactionId: txId, amount: 100 } });
+    await webhook({ code: 'PAYMENT_SUCCESS', data: { merchantTransactionId: 'TX_made_up', amount: 299900 } });
+    expect(await plan()).toEqual(before);
+    const [row] = await pgQuery('SELECT status FROM billing_checkouts WHERE merchant_transaction_id = $1', [txId]);
+    expect(row.status).toBe('PENDING');
+
+    await webhook({ code: 'PAYMENT_DECLINED', data: { merchantTransactionId: txId } });
+    const [failed] = await pgQuery('SELECT status, gateway_code FROM billing_checkouts WHERE merchant_transaction_id = $1', [txId]);
+    expect(failed).toEqual({ status: 'FAILED', gateway_code: 'PAYMENT_DECLINED' });
   });
 });
