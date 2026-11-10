@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { api, createIngestKey, logEntry, pgQuery, redisClient, registerTenant, Tenant } from './harness';
+import { api, createIngestKey, logEntry, pgQuery, redisClient, registerTenant, Tenant, waitFor } from './harness';
 
 describe('API keys (real stack)', () => {
   let owner: Tenant;
@@ -22,8 +22,10 @@ describe('API keys (real stack)', () => {
     expect(stats.body.data.totalKeys).toBeGreaterThanOrEqual(1);
 
     expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(202);
-    const [used] = await pgQuery('SELECT last_used_at FROM api_keys WHERE id = $1', [keyId]);
-    expect(used.last_used_at).not.toBeNull();
+    // last_used_at is written fire-and-forget after the request is accepted.
+    await waitFor(async () => (await pgQuery('SELECT last_used_at FROM api_keys WHERE id = $1', [keyId]))[0].last_used_at !== null, {
+      label: 'last_used_at',
+    });
   });
 
   it('a never-used key stops working immediately after revocation', async () => {
@@ -118,8 +120,12 @@ describe('project members and roles (real stack)', () => {
   });
 
   it('member changes are audited', async () => {
-    const rows = await pgQuery<{ action: string }>('SELECT action FROM audit_logs WHERE project_id = $1', [owner.projectId]);
-    expect(rows.map((r) => r.action)).toEqual(expect.arrayContaining(['project.member_added', 'project.member_role_updated', 'project.member_removed']));
+    // Audit rows are written fire-and-forget after each response.
+    const expected = ['project.member_added', 'project.member_role_updated', 'project.member_removed'];
+    await waitFor(async () => {
+      const rows = await pgQuery<{ action: string }>('SELECT action FROM audit_logs WHERE project_id = $1', [owner.projectId]);
+      return expected.every((a) => rows.some((r) => r.action === a));
+    }, { label: 'member audit rows' });
   });
 
   it('creating a project makes the creator its owner', async () => {

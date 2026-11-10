@@ -87,9 +87,13 @@ describe('authentication (real stack)', () => {
   });
 
   it('audit log records sign-up and login', async () => {
-    const { pgQuery } = await import('./harness');
-    const rows = await pgQuery<{ action: string }>('SELECT action FROM audit_logs WHERE actor_user_id = $1', [t.userId]);
-    expect(rows.map((r) => r.action)).toEqual(expect.arrayContaining(['user.registered', 'auth.login', 'user.logged_in']));
+    const { pgQuery, waitFor } = await import('./harness');
+    // Audit rows are written fire-and-forget after each response.
+    const expected = ['user.registered', 'auth.login', 'user.logged_in'];
+    await waitFor(async () => {
+      const rows = await pgQuery<{ action: string }>('SELECT action FROM audit_logs WHERE actor_user_id = $1', [t.userId]);
+      return expected.every((a) => rows.some((r) => r.action === a));
+    }, { label: 'auth audit rows' });
   });
 
   it('request logs never contain issued tokens (set-cookie / x-access-token) (KI-35)', async () => {
