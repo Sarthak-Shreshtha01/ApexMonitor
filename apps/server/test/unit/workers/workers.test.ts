@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FakeChannel, FakePg, FakeRedis, PROJECT_A, PROJECT_B, fakeRabbit } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
 
 const channel = new FakeChannel();
 const pg = new FakePg();
@@ -23,7 +22,7 @@ vi.mock('@shared/net/webhook', () => ({ sendWebhook: (...a: unknown[]) => sendWe
 
 const { RawLogWorker } = await import('@workers/raw-log.worker');
 const { AggregationWorker } = await import('@workers/aggregation.worker');
-const { AnomalyWorker } = await import('@workers/anomaly.worker');
+const { AnomalyWorker, minuteHistKey, cooldownKey } = await import('@workers/anomaly.worker');
 const { RumWorker } = await import('@workers/rum.worker');
 const { AlertWorker, evaluateRule, ALERT_PASS_LOCK_KEY } = await import('@workers/alert.worker');
 const { eventBus } = await import('@events/event-bus');
@@ -132,39 +131,98 @@ describe('AggregationWorker', () => {
   });
 });
 
-describe('AnomalyWorker', () => {
+describe('AnomalyWorker (time-based baselines, KI-27)', () => {
+  // Fixed clock: "now" is 10:15:30 UTC; minute(-n) is a timestamp n minutes earlier.
+  const NOW = Date.parse('2026-03-01T10:15:30.000Z');
+  const at = (minutesAgo: number, second = 10) => new Date(NOW - minutesAgo * 60_000 - 30_000 + second * 1000).toISOString();
+  /** `perMinute` requests at `latencyMs` in each of the given minutes. */
+  const traffic = (minutesAgo: number[], latencyMs: number, perMinute = 5, o: Record<string, unknown> = {}) =>
+    minutesAgo.flatMap((m) => Array.from({ length: perMinute }, (_, i) => log({ latencyMs, timestamp: at(m, i), ...o })));
+  const history = (n: number) => Array.from({ length: n }, (_, i) => i + 1); // minutes 1..n ago
+
   beforeEach(async () => {
     createInsight.mockReset();
-    await new AnomalyWorker().start();
+    redis.hashes.clear();
+    for (const k of [...redis.store.keys()]) if (k.startsWith('anomaly:')) redis.store.delete(k);
+    await new AnomalyWorker(() => NOW).start();
   });
 
-  it('builds a 20-point p99 baseline per endpoint with a 1h TTL', async () => {
-    for (let i = 0; i < 25; i++) await channel.deliver('anomaly_queue', [log({ latencyMs: 10 + (i % 3) })]);
-    const key = `baseline:${PROJECT_A}:/a:p99`;
-    expect(redis.lists.get(key)).toHaveLength(20);
-    expect(redis.ttl.get(key)).toBe(3600);
+  it('records a latency histogram per method, endpoint and UTC minute of the request, with a TTL', async () => {
+    await channel.deliver('anomaly_queue', [log({ latencyMs: 10, timestamp: at(0) }), log({ latencyMs: 10, timestamp: at(0) }), log({ method: 'POST', latencyMs: 10, timestamp: at(3) })]);
+    const minute = Math.floor(NOW / 60_000);
+    const get = redis.hashes.get(minuteHistKey(PROJECT_A, 'GET', '/a', minute));
+    expect([...get!.values()].map(Number)).toEqual([2]);
+    expect(redis.hashes.has(minuteHistKey(PROJECT_A, 'POST', '/a', minute - 3))).toBe(true);
+    expect(redis.ttl.get(minuteHistKey(PROJECT_A, 'GET', '/a', minute))).toBe(35 * 60);
+    expect(channel.acked).toHaveLength(1);
+  });
+
+  it('a spike after enough stable minutes creates one insight and emits anomaly.detected', async () => {
+    const events: any[] = [];
+    eventBus.once('anomaly.detected', (p) => events.push(p));
+    await channel.deliver('anomaly_queue', traffic(history(10), 20));
+    expect(createInsight).not.toHaveBeenCalled();
+
+    await channel.deliver('anomaly_queue', traffic([0], 5000));
+    expect(createInsight).toHaveBeenCalledTimes(1);
+    const insight = createInsight.mock.calls[0][0];
+    expect(insight).toMatchObject({ projectId: PROJECT_A, endpoint: '/a', type: 'latency_spike', severity: 'warning' });
+    expect(insight.message).toContain('GET /a');
+    expect(insight.metadata).toMatchObject({ method: 'GET', baselineMinutes: 10 });
+    expect(insight.metadata.currentP99).toBeGreaterThan(4500);
+    expect(insight.metadata.baselineP99).toBeLessThan(25);
+    expect(events[0]).toMatchObject({ projectId: PROJECT_A, endpoint: '/a', type: 'latency_spike' });
+  });
+
+  it('a perfectly flat baseline still detects a spike (zero spread)', async () => {
+    await channel.deliver('anomaly_queue', [...traffic(history(6), 20), ...traffic([0], 900)]);
+    expect(createInsight).toHaveBeenCalledTimes(1);
+  });
+
+  it('later batches in the same spike are in cooldown: one insight, not one per batch', async () => {
+    await channel.deliver('anomaly_queue', traffic(history(10), 20));
+    for (let i = 0; i < 4; i++) await channel.deliver('anomaly_queue', traffic([0], 5000));
+    expect(createInsight).toHaveBeenCalledTimes(1);
+    expect(redis.ttl.get(cooldownKey(PROJECT_A, 'GET', '/a'))).toBe(300);
+  });
+
+  it('needs at least 5 minutes of baseline', async () => {
+    await channel.deliver('anomaly_queue', [...traffic(history(4), 20), ...traffic([0], 5000)]);
     expect(createInsight).not.toHaveBeenCalled();
   });
 
-  it('creates an insight and emits anomaly.detected when z > 3', async () => {
-    const events: any[] = [];
-    eventBus.once('anomaly.detected', (p) => events.push(p));
-    for (const v of [10, 12, 11, 13, 10, 12]) await channel.deliver('anomaly_queue', [log({ latencyMs: v })]);
-    await channel.deliver('anomaly_queue', [log({ latencyMs: 5000 })]);
-    expect(createInsight).toHaveBeenCalledWith(expect.objectContaining({ projectId: PROJECT_A, endpoint: '/a', type: 'latency_spike', severity: 'warning' }));
-    expect(events[0]).toMatchObject({ projectId: PROJECT_A, endpoint: '/a', type: 'latency_spike' });
+  it('batch size does not matter: one request per batch builds the same baseline as one big batch', async () => {
+    for (const entry of traffic(history(8), 20)) await channel.deliver('anomaly_queue', [entry]);
+    for (const entry of traffic([0], 5000)) await channel.deliver('anomaly_queue', [entry]);
+    expect(createInsight).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores small or thinly sampled changes', async () => {
+    // 20 ms -> 40 ms is a big z-score on a flat line but only 20 ms slower: not worth an alert.
+    await channel.deliver('anomaly_queue', [...traffic(history(10), 20), ...traffic([0], 40)]);
+    // One slow request in a minute is not enough to judge a p99.
+    await channel.deliver('anomaly_queue', [...traffic(history(10), 20, 5, { endpoint: '/b' }), log({ endpoint: '/b', latencyMs: 9000, timestamp: at(0) })]);
+    expect(createInsight).not.toHaveBeenCalled();
+  });
+
+  it('baselines are kept per method (GET and POST on the same path are separate)', async () => {
+    // A slow POST /a is normal; it must not look like a GET /a spike, nor be judged against fast GETs.
+    await channel.deliver('anomaly_queue', [...traffic(history(10), 20), ...traffic(history(10), 2000, 5, { method: 'POST' })]);
+    await channel.deliver('anomaly_queue', traffic([0], 2000, 5, { method: 'POST' }));
+    expect(createInsight).not.toHaveBeenCalled();
+    await channel.deliver('anomaly_queue', traffic([0], 2000));
+    expect(createInsight).toHaveBeenCalledWith(expect.objectContaining({ metadata: expect.objectContaining({ method: 'GET' }) }));
+  });
+
+  it('old (late or backfilled) minutes feed the baseline but are not evaluated', async () => {
+    await channel.deliver('anomaly_queue', [...traffic(history(20).map((m) => m + 10), 20), ...traffic([8], 5000)]);
+    expect(createInsight).not.toHaveBeenCalled();
   });
 
   it('dead-letters on failure', async () => {
     createInsight.mockRejectedValueOnce(new Error('pg down'));
-    for (const v of [10, 12, 11, 13, 10, 12]) await channel.deliver('anomaly_queue', [log({ latencyMs: v })]);
-    await channel.deliver('anomaly_queue', [log({ latencyMs: 9000 })]);
+    await channel.deliver('anomaly_queue', [...traffic(history(10), 20), ...traffic([0], 9000)]);
     expect(channel.nacked).toHaveLength(1);
-  });
-
-  knownBug('KI-27', 'baselines are kept per method (GET and POST on the same path are separate)', async () => {
-    await channel.deliver('anomaly_queue', [log({ method: 'POST' })]);
-    expect([...redis.lists.keys()].some((k) => k.includes('POST'))).toBe(true);
   });
 });
 

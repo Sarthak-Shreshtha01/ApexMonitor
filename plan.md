@@ -212,7 +212,7 @@ Goal: correct numbers at real volume, with no silent loss.
 ## Later / not before GA
 
 - AI layer (anomaly explanations, incident summaries, NL query) on top of deterministic detection. See `docs/architecture/target-architecture.md#ai-layer`.
-- Seasonality-aware baselines (replace 20-sample z-score).
+- Seasonality-aware baselines (today: rolling 30-minute baseline of per-minute p99s).
 - Session replay, profiling, mobile SDKs.
 - gRPC OTLP, Kafka/Redpanda for replayable ingest log.
 

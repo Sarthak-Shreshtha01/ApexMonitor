@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { computeBatchStats, computePercentile } from '@shared/utils/math.utils';
-import { calculateZScore } from '@shared/utils/anomaly.utils';
+import { calculateZScore, detectLatencySpike, histogramPercentile } from '@shared/utils/anomaly.utils';
+import { latencyHistogram } from '@shared/utils/math.utils';
 import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
 import { errorBody, getRequestId, successBody } from '@shared/http/api-contract';
 import { latencyBucket, latencyHistogram, LATENCY_HIST_BUCKETS, LATENCY_HIST_GROWTH } from '@shared/utils/math.utils';
@@ -116,5 +117,35 @@ describe('latency histogram (KI-8)', () => {
     expect(h.reduce((a, b) => a + b, 0)).toBe(3);
     expect(h[latencyBucket(10)]).toBe(2);
     expect(h.length).toBe(latencyBucket(1000) + 1);
+  });
+});
+
+describe('anomaly.utils.histogramPercentile', () => {
+  it('is within ~10% of the exact percentile', () => {
+    const values = Array.from({ length: 200 }, (_, i) => 10 + i * 5); // 10..1005
+    const p99 = histogramPercentile(latencyHistogram(values), 0.99);
+    expect(p99).toBeGreaterThanOrEqual(995);
+    expect(p99).toBeLessThanOrEqual(995 * 1.1);
+    expect(histogramPercentile([], 0.99)).toBe(0);
+    expect(histogramPercentile(latencyHistogram([0.5, 1]), 0.5)).toBe(1);
+  });
+});
+
+describe('anomaly.utils.detectLatencySpike', () => {
+  const flat = [20, 20, 20, 20, 20];
+  it('flags a large, significant increase', () => {
+    expect(detectLatencySpike(500, flat)).toMatchObject({ baselineMs: 20 });
+  });
+  it('needs 5 baseline points', () => {
+    expect(detectLatencySpike(500, [20, 20, 20, 20])).toBeNull();
+  });
+  it('ignores increases under 1.5x or under 50 ms', () => {
+    expect(detectLatencySpike(60, flat)).toBeNull(); // 3x but only +40 ms
+    expect(detectLatencySpike(1400, [1000, 1000, 1000, 1000, 1000])).toBeNull(); // +400 ms but 1.4x
+  });
+  it('a noisy baseline needs a bigger jump', () => {
+    const noisy = [100, 300, 100, 300, 100, 300];
+    expect(detectLatencySpike(450, noisy)).toBeNull();
+    expect(detectLatencySpike(1000, noisy)).not.toBeNull();
   });
 });

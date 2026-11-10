@@ -42,8 +42,5 @@ _None open._
 ### KI-25 "Traces" are single request logs
 `modules/traces/traces.repository.ts` reads the Mongo `api_logs` collection; `traceId` is the server-generated `reqId`. There are no spans, parent/child relationships, or cross-service propagation.
 
-### KI-27 Anomaly baseline is per batch, not per time window
-`workers/anomaly.worker.ts` pushes the p99 of each incoming batch into a 20-item Redis list. Baselines depend on SDK batch size and flush rate rather than time; small batches produce noisy p99s and false positives. Endpoint key is not method-qualified.
-
 ### KI-31 Mixed state libraries and stray root dependencies
 Root `package.json` depends on `axios` and `zustand`; the web app uses both Redux Toolkit and Zustand stores. `turbo.json` is empty.

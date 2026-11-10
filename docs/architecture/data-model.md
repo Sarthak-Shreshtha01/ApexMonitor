@@ -83,7 +83,8 @@ To read latency across several rows (hours, endpoints), merge, don't average: `S
 | `rum:idempotency:<projectId>:<key>` | string (batchId) | 300 s | rum.service |
 | `live:<projectId>:requests` / `:errors` / `:latency_total` | counter / float | 5 s | ingest.service → websocket |
 | `live:<projectId>:endpoints` | sorted set | 8 s | ingest.service → websocket |
-| `baseline:<projectId>:<endpoint>:p99` | list (≤20) | 3600 s | anomaly.worker |
+| `anomaly:hist:<projectId>:<method>:<endpoint>:<minute>` | hash (latency bucket → count) | 35 min | anomaly.worker: one per endpoint per UTC minute (minute = epoch ms / 60000) |
+| `anomaly:cooldown:<projectId>:<method>:<endpoint>` | string | 300 s | anomaly.worker: set when an insight is created |
 | `rum:hll:*` | HyperLogLog | n/a | rum.worker |
 | `metrics:<projectId>:<view>:…` | JSON | short | metrics.service (query cache) |
 

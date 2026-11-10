@@ -120,18 +120,19 @@ describe('ingest → workers → query APIs (real stack)', () => {
     expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry({ timestamp: 'yesterday' })] } })).status).toBe(400);
   });
 
-  it('anomaly worker: a latency spike after a stable baseline creates an insight', async () => {
+  it('anomaly worker: a latency spike after a stable baseline creates an insight (KI-27)', async () => {
     const endpoint = `/spiky/${uniq()}`;
-    for (const latencyMs of [20, 22, 21, 23, 20, 22]) {
-      await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry({ endpoint, latencyMs })] } });
-      await new Promise((r) => setTimeout(r, 120));
-    }
-    await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry({ endpoint, latencyMs: 9000 })] } });
+    const ago = (minutes: number, i: number) => new Date(Date.now() - minutes * 60_000 + i * 100).toISOString();
+    // Ten minutes of normal traffic (by request timestamp, not by batch), then a slow current minute.
+    const baseline = Array.from({ length: 10 }, (_, m) => [20, 22, 21, 23, 20].map((latencyMs, i) => logEntry({ endpoint, latencyMs, timestamp: ago(m + 1, i) }))).flat();
+    const spike = Array.from({ length: 5 }, (_, i) => logEntry({ endpoint, latencyMs: 9000, timestamp: ago(0, i) }));
+    expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [...baseline, ...spike] } })).status).toBe(202);
     const insight = await waitFor(async () => {
       const res = await api('GET', `/api/v1/insights?projectId=${t.projectId}&limit=50`, { token: t.accessToken });
       return res.body.data.insights.find((i: any) => i.endpoint === endpoint);
     }, { label: 'latency_spike insight' });
     expect(insight).toMatchObject({ type: 'latency_spike', severity: 'warning', projectId: t.projectId });
+    expect(insight.message).toContain(`GET ${endpoint}`);
   });
 
   it('merging batches into the same hour keeps a request-weighted average latency (KI-8)', async () => {

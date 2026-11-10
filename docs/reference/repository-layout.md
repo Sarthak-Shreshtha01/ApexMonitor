@@ -49,7 +49,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `src/modules/websocket/` | Socket.IO live pulse |
 | `src/workers/raw-log.worker.ts` | `raw_log_queue` → Mongo |
 | `src/workers/aggregation.worker.ts` | `aggregation_queue` → `hourly_metrics` |
-| `src/workers/anomaly.worker.ts` | `anomaly_queue` → z-score → `insights` |
+| `src/workers/anomaly.worker.ts` | `anomaly_queue` → per-minute latency histograms → spike vs 30-minute baseline → `insights` |
 | `src/workers/rum.worker.ts` | `rum_queue` → Mongo + `hourly_rum_metrics` |
 | `src/workers/alert.worker.ts` | 60 s rule evaluation loop + webhooks |
 | `src/shared/constants/endpoints.ts` | API prefix + route path constants |
@@ -64,7 +64,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `test/setup/`, `test/helpers/` | Test env, isolated-DB global setup, fakes, `knownBug()` helper |
 | `test/e2e/serve.ts` | Starts the API with fresh `apexmonitor_e2e` stores for the browser tests |
 | `vitest.config.ts`, `vitest.integration.config.ts` | Unit / integration runner configs |
-| `src/shared/utils/` | `logger` (pino; redacts credentials from request logs), `math.utils` (percentiles), `anomaly.utils` (z-score), `cookie.utils`, `phonepe.utils` |
+| `src/shared/utils/` | `logger` (pino; redacts credentials from request logs), `math.utils` (percentiles), `anomaly.utils` (spike detection, histogram percentile), `cookie.utils`, `phonepe.utils` |
 
 ## `apps/web`: Next.js dashboard
 

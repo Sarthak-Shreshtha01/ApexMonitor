@@ -13,7 +13,7 @@ Self-hostable application performance monitoring: API request metrics, browser R
 | Metrics | Hourly p50/p95/p99, error rate, Apdex per endpoint | Working; merge math wrong (KI-8) |
 | Logs and traces | Searchable raw request logs; per-request detail view | Working (no distributed spans yet) |
 | Live traffic | RPS, error rate, top endpoints over WebSocket every 2 s | Working |
-| Insights | Z-score latency spike detection | Working (basic) |
+| Insights | Latency spike detection against a rolling 30-minute baseline, per method + endpoint | Working (basic) |
 | Alerts | Error-rate / p99 rules with webhook delivery | Working: dashboard page, API, triggered/resolved webhooks; email not sent yet |
 | Teams | Projects with owner/developer roles | Working |
 | Auth | Email/password, Google and GitHub OAuth | Working |

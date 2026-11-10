@@ -87,7 +87,7 @@ Publishing (`publish()`) uses a separate confirm channel and resolves only when 
 |---|---|---|---|
 | `RawLogWorker` | `raw_log_queue` | 200 | `insertMany` normalised logs into Mongo `api_logs` (unordered; duplicates acked) |
 | `AggregationWorker` | `aggregation_queue` | 100 | Groups by project/endpoint/method/hour, computes stats, upserts `hourly_metrics`, emits `aggregation.completed` |
-| `AnomalyWorker` | `anomaly_queue` | 50 | Per endpoint: batch p99 vs Redis baseline (last 20 values); z > 3 → `insights` row + `anomaly.detected` |
+| `AnomalyWorker` | `anomaly_queue` | 50 | Counts each request into a per-minute latency histogram for its method + endpoint (by the request's timestamp, so batching doesn't matter). For recent minutes: p99 vs the p99s of up to 30 earlier minutes (≥5 minutes with ≥3 requests each); a spike (z > 3, ≥1.5× and ≥50 ms above normal) → `insights` row + `anomaly.detected`, then a 5-minute cooldown per endpoint. Tuning: `ANOMALY` in `shared/utils/anomaly.utils.ts` |
 | `RumWorker` | `rum_queue` | 150 | Writes `rum_raw_events` (Mongo, 7-day TTL), aggregates into `hourly_rum_metrics`, HyperLogLog for uniques |
 | `AlertWorker` | n/a (interval 60 s) | n/a | One replica per minute (Redis lock `alerts:evaluation-pass`); evaluates active `alert_rules` over raw logs, records triggered/resolved events, emits `alert.triggered`, POSTs webhooks |
 

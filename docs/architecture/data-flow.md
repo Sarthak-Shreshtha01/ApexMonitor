@@ -32,7 +32,7 @@ Fan-out after publish (`log.ingest` is bound to three queues):
 flowchart LR
     MQ[[logs.exchange<br/>log.ingest]] --> Q1[raw_log_queue] --> W1[RawLogWorker] --> M[(Mongo api_logs<br/>TTL 90d)]
     MQ --> Q2[aggregation_queue] --> W2[AggregationWorker] --> P[(PG hourly_metrics)]
-    MQ --> Q3[anomaly_queue] --> W3[AnomalyWorker] --> B[(Redis baseline:*)]
+    MQ --> Q3[anomaly_queue] --> W3[AnomalyWorker] --> B[(Redis anomaly:hist:*)]
     W3 -- z>3 --> I[(PG insights)]
     W2 & W3 --> EB((EventBus))
     Q1 & Q2 & Q3 -. nack .-> DLQ[[*_dlq via dlq.exchange]]

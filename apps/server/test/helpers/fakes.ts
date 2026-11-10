@@ -9,6 +9,7 @@ export class FakeRedis {
   zsets = new Map<string, Map<string, number>>();
   lists = new Map<string, string[]>();
   hll = new Map<string, Set<string>>();
+  hashes = new Map<string, Map<string, string>>();
   ttl = new Map<string, number>();
 
   get = vi.fn(async (key: string) => this.store.get(key) ?? null);
@@ -59,7 +60,7 @@ export class FakeRedis {
         return results;
       },
     };
-    for (const name of ['incrby', 'incrbyfloat', 'expire', 'zincrby', 'set', 'get', 'del']) {
+    for (const name of ['incrby', 'incrbyfloat', 'expire', 'zincrby', 'set', 'get', 'del', 'hincrby', 'hgetall']) {
       chain[name] = (...args: unknown[]) => {
         queued.push([name, args]);
         return chain;
@@ -74,7 +75,7 @@ export class FakeRedis {
   });
   del = vi.fn(async (...keys: string[]) => {
     let n = 0;
-    for (const k of keys) if (this.store.delete(k) || this.zsets.delete(k) || this.lists.delete(k)) n++;
+    for (const k of keys) if (this.store.delete(k) || this.zsets.delete(k) || this.lists.delete(k) || this.hashes.delete(k)) n++;
     return n;
   });
   incr = vi.fn(async (key: string) => {
@@ -92,6 +93,14 @@ export class FakeRedis {
     this.store.set(key, String(v));
     return String(v);
   });
+  hincrby = vi.fn(async (key: string, field: string, by: number) => {
+    const h = this.hashes.get(key) ?? new Map<string, string>();
+    const v = Number(h.get(field) ?? 0) + Number(by);
+    h.set(field, String(v));
+    this.hashes.set(key, h);
+    return v;
+  });
+  hgetall = vi.fn(async (key: string) => Object.fromEntries(this.hashes.get(key) ?? new Map()));
   expire = vi.fn(async (key: string, seconds: number) => {
     this.ttl.set(key, seconds);
     return 1;
