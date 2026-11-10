@@ -66,6 +66,31 @@ describe('API keys (real stack)', () => {
     expect(await redis.ttl('api_key:revoked:lua-1')).toBeGreaterThan(500);
   });
 
+  it('keys that share a 10-char prefix all keep working (KI-26)', async () => {
+    const a = await createIngestKey(owner, 'collide-a');
+    const b = await createIngestKey(owner, 'collide-b');
+    // Force the collision the old prefix lookup could not handle.
+    await pgQuery('UPDATE api_keys SET key_prefix = $1 WHERE id = $2', [a.key.slice(0, 10), b.keyId]);
+    for (const { key } of [a, b]) {
+      expect((await api('POST', '/api/v1/ingest', { apiKey: key, body: { logs: [logEntry()] } })).status).toBe(202);
+    }
+    const rows = await pgQuery<{ key_lookup: string }>('SELECT key_lookup FROM api_keys WHERE id = ANY($1)', [[a.keyId, b.keyId]]);
+    expect(rows.every((r) => /^[0-9a-f]{64}$/.test(r.key_lookup))).toBe(true);
+  });
+
+  it('a key created before the lookup column existed still works and gets its lookup filled in (KI-26)', async () => {
+    const legacy = await createIngestKey(owner, 'legacy-no-lookup');
+    const twin = await createIngestKey(owner, 'legacy-twin');
+    // Simulate pre-migration rows that also collide on prefix.
+    await pgQuery('UPDATE api_keys SET key_lookup = NULL, key_prefix = $1 WHERE id = ANY($2)', [twin.key.slice(0, 10), [legacy.keyId, twin.keyId]]);
+    expect((await api('POST', '/api/v1/ingest', { apiKey: twin.key, body: { logs: [logEntry()] } })).status).toBe(202);
+    await waitFor(async () => (await pgQuery('SELECT key_lookup FROM api_keys WHERE id = $1', [twin.keyId]))[0].key_lookup !== null, {
+      label: 'lookup backfill',
+    });
+    const [untouched] = await pgQuery('SELECT key_lookup FROM api_keys WHERE id = $1', [legacy.keyId]);
+    expect(untouched.key_lookup).toBeNull(); // only the key that was actually presented is backfilled
+  });
+
   it('legacy /auth/keys issues working proj_ keys for owners', async () => {
     const res = await api('POST', '/api/v1/auth/keys', { token: owner.accessToken, body: { projectId: owner.projectId, label: 'legacy' } });
     expect(res.status).toBe(201);

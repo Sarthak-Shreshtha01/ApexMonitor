@@ -1,4 +1,3 @@
-import argon2 from 'argon2';
 import { config } from '@config';
 import { getRedis } from '@infrastructure/redis';
 import { AuthRepository } from './auth.repository';
@@ -6,6 +5,7 @@ import crypto from 'crypto';
 import { UserService } from '@modules/users/user.service';
 import { signToken, verifyToken } from '@shared/auth/tokens';
 import { cacheValidatedKey, digestKey, readCachedKey } from './key-cache';
+import { displayPrefix, keyLookupHash, prepareKeyForStorage, verifyKeyHash } from './key-material';
 
 /** How long the web app has to exchange an OAuth login code for tokens. */
 export const OAUTH_LOGIN_CODE_TTL_SECONDS = 60;
@@ -26,15 +26,11 @@ export class AuthService {
     const cached = await readCachedKey<{ projectId: string }>(redis, 'api', rawKey);
     if (cached?.projectId) return cached.projectId;
 
-    // 2. DB Lookup by prefix
-    const keyRecord = await this.repo.findKeyByPrefix(rawKey.substring(0, 10));
+    // 2. Find the row by lookup hash (or legacy prefix) and verify it with argon2
+    const keyRecord = await this.findVerifiedKey('api_keys', rawKey);
     if (!keyRecord) throw new Error('UNAUTHORIZED');
 
-    // 3. Verify Argon2id Hash (cite: 1043-1048)
-    const isValid = await argon2.verify(keyRecord.key_hash, rawKey + config.ARGON2_PEPPER);
-    if (!isValid) throw new Error('UNAUTHORIZED');
-
-    // 4. Cache, unless the key was revoked while we were verifying it
+    // 3. Cache, unless the key was revoked while we were verifying it
     const cachedOk = await cacheValidatedKey(redis, 'api', rawKey, keyRecord.id, { projectId: keyRecord.project_id });
     if (!cachedOk) throw new Error('UNAUTHORIZED');
     this.repo.updateLastUsed(keyRecord.id); // Fire and forget
@@ -43,36 +39,14 @@ export class AuthService {
   }
 
   async generateApiKey(projectId: string, label?: string): Promise<string> {
-    const raw = crypto.randomBytes(32).toString('base64url');
-    const key = `proj_${raw}`;
-    const prefix = key.substring(0, 10);
-
-    const hash = await argon2.hash(key + config.ARGON2_PEPPER, {
-      type: argon2.argon2id,
-      memoryCost: 65536,  // 64 MB
-      timeCost: 3,
-      parallelism: 4,
-    });
-
-    // We need to add this insert method to our repo
-    await this.repo.insertKey({ projectId, keyPrefix: prefix, keyHash: hash, label });
-    
+    const key = `proj_${crypto.randomBytes(32).toString('base64url')}`;
+    await this.repo.insertKey({ projectId, ...(await prepareKeyForStorage(key)), label });
     return key;  // Shown to user exactly once
   }
 
   async generateRumWriteKey(projectId: string, label?: string, allowedOrigins?: string[]): Promise<string> {
-    const raw = crypto.randomBytes(32).toString('base64url');
-    const key = `rum_${raw}`;
-    const prefix = key.substring(0, 10);
-
-    const hash = await argon2.hash(key + config.ARGON2_PEPPER, {
-      type: argon2.argon2id,
-      memoryCost: 65536,
-      timeCost: 3,
-      parallelism: 4,
-    });
-
-    await this.repo.insertRumKey({ projectId, keyPrefix: prefix, keyHash: hash, label, allowedOrigins });
+    const key = `rum_${crypto.randomBytes(32).toString('base64url')}`;
+    await this.repo.insertRumKey({ projectId, ...(await prepareKeyForStorage(key)), label, allowedOrigins });
     return key;
   }
 
@@ -87,11 +61,8 @@ export class AuthService {
       return cached.projectId;
     }
 
-    const keyRecord = await this.repo.findRumKeyByPrefix(rawKey.substring(0, 10));
+    const keyRecord = await this.findVerifiedKey('rum_public_keys', rawKey);
     if (!keyRecord) throw new Error('UNAUTHORIZED');
-
-    const isValid = await argon2.verify(keyRecord.key_hash, rawKey + config.ARGON2_PEPPER);
-    if (!isValid) throw new Error('UNAUTHORIZED');
 
     const allowedOrigins: string[] = Array.isArray(keyRecord.allowed_origins) ? keyRecord.allowed_origins : [];
     this.assertOriginAllowed(allowedOrigins, origin);
@@ -101,6 +72,29 @@ export class AuthService {
     this.repo.updateRumLastUsed(keyRecord.id);
 
     return keyRecord.project_id;
+  }
+
+  /**
+   * Returns the active row this raw key belongs to, or undefined. Candidates are the row
+   * with the key's lookup hash plus legacy rows sharing its display prefix; each is checked
+   * with argon2. Several keys can share a prefix, so we never assume the first row is ours.
+   */
+  private async findVerifiedKey(table: 'api_keys' | 'rum_public_keys', rawKey: string) {
+    const lookup = keyLookupHash(rawKey);
+    const prefix = displayPrefix(rawKey);
+    const candidates = table === 'api_keys'
+      ? await this.repo.findKeyCandidates(lookup, prefix)
+      : await this.repo.findRumKeyCandidates(lookup, prefix);
+
+    for (const row of candidates) {
+      if (!(await verifyKeyHash(row.key_hash, rawKey))) continue;
+      if (!row.key_lookup) {
+        // Legacy key: remember its lookup hash so the next miss is a direct hit.
+        this.repo.backfillKeyLookup(table, row.id, lookup).catch(() => undefined);
+      }
+      return row;
+    }
+    return undefined;
   }
 
   private assertOriginAllowed(allowedOrigins: string[], origin: string): void {

@@ -29,12 +29,14 @@ CREATE TABLE IF NOT EXISTS api_keys (
     project_id     VARCHAR(64)  NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     key_prefix     VARCHAR(10)  NOT NULL,               
     key_hash       VARCHAR(255) NOT NULL UNIQUE,        
+    key_lookup     CHAR(64),                            -- HMAC-SHA256 of the key (v6)
     label          VARCHAR(100),                        
     last_used_at   TIMESTAMPTZ,
     revoked_at     TIMESTAMPTZ,                         
     created_at     TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_api_keys_prefix ON api_keys (key_prefix);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_lookup ON api_keys (key_lookup) WHERE key_lookup IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_api_keys_project ON api_keys (project_id);
 
 -- Table 2b: rum_public_keys
@@ -43,6 +45,7 @@ CREATE TABLE IF NOT EXISTS rum_public_keys (
     project_id      VARCHAR(64)  NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
     key_prefix      VARCHAR(10)  NOT NULL,
     key_hash        VARCHAR(255) NOT NULL UNIQUE,
+    key_lookup      CHAR(64),                            -- HMAC-SHA256 of the key (v6)
     label           VARCHAR(100),
     allowed_origins TEXT[]       NOT NULL DEFAULT '{}',
     last_used_at    TIMESTAMPTZ,
@@ -50,6 +53,7 @@ CREATE TABLE IF NOT EXISTS rum_public_keys (
     created_at      TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_rum_keys_prefix ON rum_public_keys (key_prefix);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_rum_keys_lookup ON rum_public_keys (key_lookup) WHERE key_lookup IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_rum_keys_project ON rum_public_keys (project_id);
 
 -- Table 2c: hourly_rum_metrics

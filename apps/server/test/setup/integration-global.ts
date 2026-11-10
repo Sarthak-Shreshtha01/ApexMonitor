@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 import Redis from 'ioredis';
 import { TEST_DB, testUrls } from './integration-urls';
 
-const MIGRATIONS = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql'];
+const MIGRATIONS = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql', 'migrate-v6.sql'];
 const scriptsDir = path.resolve(__dirname, '../../../../scripts');
 
 function hint(service: string, error: unknown): Error {

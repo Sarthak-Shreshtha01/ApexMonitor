@@ -84,12 +84,12 @@ export class KeysRepository {
     }));
   }
 
-  async insertKey(data: { projectId: string; keyPrefix: string; keyHash: string; label: string }): Promise<number> {
+  async insertKey(data: { projectId: string; keyPrefix: string; keyHash: string; keyLookup: string; label: string }): Promise<number> {
     const { rows } = await this.db.query(
-      `INSERT INTO api_keys (project_id, key_prefix, key_hash, label)
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO api_keys (project_id, key_prefix, key_hash, key_lookup, label)
+       VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [data.projectId, data.keyPrefix, data.keyHash, data.label]
+      [data.projectId, data.keyPrefix, data.keyHash, data.keyLookup, data.label]
     );
 
     return Number(rows[0].id);

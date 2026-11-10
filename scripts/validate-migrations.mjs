@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const scriptsDir = path.join(rootDir, 'scripts');
 
-const expectedFiles = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql'];
+const expectedFiles = ['init-postgres.sql', 'migrate-v2.sql', 'migrate-v3.sql', 'migrate-v4.sql', 'migrate-v4-rum.sql', 'migrate-v5.sql', 'migrate-v6.sql'];
 
 for (const fileName of expectedFiles) {
   const filePath = path.join(scriptsDir, fileName);
@@ -18,6 +18,8 @@ const requiredSnippets = [
   "plan           VARCHAR(32)  NOT NULL DEFAULT 'free'",
   'log_retention_days INTEGER  NOT NULL DEFAULT 90',
   'CREATE TABLE IF NOT EXISTS audit_logs',
+  'idx_api_keys_lookup',
+  'idx_rum_keys_lookup',
 ];
 
 for (const snippet of requiredSnippets) {

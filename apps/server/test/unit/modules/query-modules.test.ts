@@ -42,7 +42,6 @@ const { MetricsService } = await import('@modules/metrics/metrics.service');
 const { KeysService } = await import('@modules/keys/keys.service');
 const { eventBus } = await import('@events/event-bus');
 const { signAccessToken } = await import('@shared/auth/tokens');
-const { knownBug } = await import('../../helpers/known-bug');
 
 const app = appWith((a) => {
   a.use('/metrics', metricsRouter);
@@ -181,14 +180,22 @@ describe('keys routes', () => {
     expect((await request(await app).delete('/keys/5').set(auth)).status).toBe(400);
   });
 
-  knownBug('KI-26', 'key prefixes are unique enough to identify a key (no collisions in 500 keys)', async () => {
+  it('every created key gets a unique lookup hash, even when display prefixes collide (KI-26)', async () => {
+    const { keyLookupHash } = await import('@modules/auth/key-material');
     const service = new KeysService();
     const prefixes = new Set<string>();
+    const lookups = new Set<string>();
+    keysRepo.insertKey.mockClear();
     for (let i = 0; i < 500; i++) {
       const created = await service.create('usr_1', { projectId: PROJECT_A, label: `k${i}` });
       prefixes.add(created.keyPrefix);
+      const stored = keysRepo.insertKey.mock.calls.at(-1)![0];
+      expect(stored.keyLookup).toBe(keyLookupHash(created.plaintextKey));
+      lookups.add(stored.keyLookup);
     }
-    expect(prefixes.size).toBe(500);
+    expect(lookups.size).toBe(500);
+    // The 10-char display prefix is still collision-prone; it is no longer used to find keys.
+    expect(prefixes.size).toBeLessThan(500);
   });
 });
 

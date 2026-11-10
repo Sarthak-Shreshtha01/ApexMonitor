@@ -9,10 +9,11 @@ vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => ({ query: vi.fn(async () => ({ rows: [] })) }) }));
 
 const authRepo = {
-  findKeyByPrefix: vi.fn(),
+  findKeyCandidates: vi.fn(),
+  backfillKeyLookup: vi.fn(async () => undefined),
   updateLastUsed: vi.fn(),
   insertKey: vi.fn(),
-  findRumKeyByPrefix: vi.fn(),
+  findRumKeyCandidates: vi.fn(),
   insertRumKey: vi.fn(),
   updateRumLastUsed: vi.fn(),
   getProjectMember: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock('@modules/users/user.repository', () => ({ UserRepository: class { const
 
 const { AuthService } = await import('@modules/auth/auth.service');
 const { cacheValidatedKey, digestKey, evictRevokedKey, keyCacheNames } = await import('@modules/auth/key-cache');
+const { keyLookupHash } = await import('@modules/auth/key-material');
 const { UserService } = await import('@modules/users/user.service');
 const { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } = await import('@shared/auth/tokens');
 
@@ -55,39 +57,39 @@ describe('AuthService.validateApiKey', () => {
   it('returns the cached project without touching the database', async () => {
     redis.store.set(cacheName('pk_live_abc'), JSON.stringify({ projectId: PROJECT_A }));
     await expect(service.validateApiKey('pk_live_abc')).resolves.toBe(PROJECT_A);
-    expect(authRepo.findKeyByPrefix).not.toHaveBeenCalled();
+    expect(authRepo.findKeyCandidates).not.toHaveBeenCalled();
   });
 
   it('verifies against the stored argon2 hash, caches for 5 minutes and touches last_used', async () => {
     const key = 'pk_live_XYZ123456789';
-    authRepo.findKeyByPrefix.mockResolvedValue({ id: 7, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 7, project_id: PROJECT_A, key_hash: await fastHash(key) }]);
     await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
-    expect(authRepo.findKeyByPrefix).toHaveBeenCalledWith(key.substring(0, 10));
+    expect(authRepo.findKeyCandidates).toHaveBeenCalledWith(keyLookupHash(key), key.substring(0, 10));
     expect(redis.ttl.get(cacheName(key))).toBe(300);
     expect(redis.store.get('api_key:ref:7')).toBe(digestKey(key));
     expect(authRepo.updateLastUsed).toHaveBeenCalledWith(7);
     // second call is served from the cache
     await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
-    expect(authRepo.findKeyByPrefix).toHaveBeenCalledTimes(1);
+    expect(authRepo.findKeyCandidates).toHaveBeenCalledTimes(1);
   });
 
   it('rejects unknown prefixes and wrong keys with the same prefix', async () => {
-    authRepo.findKeyByPrefix.mockResolvedValueOnce(undefined);
+    authRepo.findKeyCandidates.mockResolvedValueOnce([]);
     await expect(service.validateApiKey('pk_live_nope')).rejects.toThrow('UNAUTHORIZED');
-    authRepo.findKeyByPrefix.mockResolvedValueOnce({ id: 1, project_id: PROJECT_A, key_hash: await fastHash('pk_live_REAL') });
+    authRepo.findKeyCandidates.mockResolvedValueOnce([{ id: 1, project_id: PROJECT_A, key_hash: await fastHash('pk_live_REAL') }]);
     await expect(service.validateApiKey('pk_live_FAKE')).rejects.toThrow('UNAUTHORIZED');
     expect(redis.store.size).toBe(0);
   });
 
   it('a key hashed without the pepper is rejected', async () => {
     const key = 'pk_live_nopepper';
-    authRepo.findKeyByPrefix.mockResolvedValue({ id: 1, project_id: PROJECT_A, key_hash: await argon2.hash(key) });
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 1, project_id: PROJECT_A, key_hash: await argon2.hash(key) }]);
     await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
   });
 
   it('the raw secret is not used as a Redis key name or value (KI-5)', async () => {
     const key = 'pk_live_SECRET123';
-    authRepo.findKeyByPrefix.mockResolvedValue({ id: 1, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 1, project_id: PROJECT_A, key_hash: await fastHash(key) }]);
     await service.validateApiKey(key);
     expect(redis.store.size).toBeGreaterThan(0);
     expect([...redis.store.entries()].flat().some((v) => v.includes(key))).toBe(false);
@@ -95,9 +97,9 @@ describe('AuthService.validateApiKey', () => {
 
   it('stops working as soon as the key is evicted after revocation (KI-5)', async () => {
     const key = 'pk_live_REVOKE_ME_1';
-    authRepo.findKeyByPrefix.mockResolvedValue({ id: 9, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 9, project_id: PROJECT_A, key_hash: await fastHash(key) }]);
     await service.validateApiKey(key);
-    authRepo.findKeyByPrefix.mockResolvedValue(undefined); // revoked rows are no longer found
+    authRepo.findKeyCandidates.mockResolvedValue([]); // revoked rows are no longer found
     await evictRevokedKey(redis as never, 'api', 9);
     await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
     expect(redis.store.has(cacheName(key))).toBe(false);
@@ -106,10 +108,10 @@ describe('AuthService.validateApiKey', () => {
   it('a validation racing a revoke does not re-cache the revoked key (KI-5)', async () => {
     const key = 'pk_live_RACE_REVOKE';
     // The DB read happens before the revoke commits, so the row still looks valid...
-    authRepo.findKeyByPrefix.mockImplementation(async () => {
+    authRepo.findKeyCandidates.mockImplementation(async () => {
       const row = { id: 11, project_id: PROJECT_A, key_hash: await fastHash(key) };
       await evictRevokedKey(redis as never, 'api', 11); // ...and the revoke finishes before we cache
-      return row;
+      return [row];
     });
     await expect(service.validateApiKey(key)).rejects.toThrow('UNAUTHORIZED');
     expect(redis.store.has(cacheName(key))).toBe(false);
@@ -118,9 +120,61 @@ describe('AuthService.validateApiKey', () => {
   it('treats an unreadable cache entry as a miss', async () => {
     const key = 'pk_live_GARBLED_123';
     redis.store.set(cacheName(key), 'not-json');
-    authRepo.findKeyByPrefix.mockResolvedValue({ id: 3, project_id: PROJECT_A, key_hash: await fastHash(key) });
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 3, project_id: PROJECT_A, key_hash: await fastHash(key) }]);
     await expect(service.validateApiKey(key)).resolves.toBe(PROJECT_A);
-    expect(authRepo.findKeyByPrefix).toHaveBeenCalledTimes(1);
+    expect(authRepo.findKeyCandidates).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('key lookup with shared prefixes (KI-26)', () => {
+  const service = new AuthService();
+
+  it('finds the right key when several active keys share its 10-char prefix', async () => {
+    const mine = 'pk_live_AB_mine_0000000000';
+    const other = 'pk_live_AB_other_000000000';
+    expect(mine.substring(0, 10)).toBe(other.substring(0, 10));
+    authRepo.findKeyCandidates.mockResolvedValue([
+      { id: 1, project_id: 'proj_other', key_hash: await fastHash(other), key_lookup: null },
+      { id: 2, project_id: PROJECT_A, key_hash: await fastHash(mine), key_lookup: null },
+    ]);
+    await expect(service.validateApiKey(mine)).resolves.toBe(PROJECT_A);
+  });
+
+  it('fills in the lookup hash of a legacy key after it verifies, and only then', async () => {
+    const key = 'pk_live_LEGACY_000000000';
+    authRepo.findKeyCandidates.mockResolvedValue([
+      { id: 4, project_id: 'proj_other', key_hash: await fastHash('pk_live_LEGACY_other'), key_lookup: null },
+      { id: 5, project_id: PROJECT_A, key_hash: await fastHash(key), key_lookup: null },
+    ]);
+    await service.validateApiKey(key);
+    expect(authRepo.backfillKeyLookup).toHaveBeenCalledTimes(1);
+    expect(authRepo.backfillKeyLookup).toHaveBeenCalledWith('api_keys', 5, keyLookupHash(key));
+  });
+
+  it('does not backfill keys that already have a lookup hash', async () => {
+    const key = 'pk_live_HASHED_00000000';
+    authRepo.findKeyCandidates.mockResolvedValue([{ id: 6, project_id: PROJECT_A, key_hash: await fastHash(key), key_lookup: keyLookupHash(key) }]);
+    await service.validateApiKey(key);
+    expect(authRepo.backfillKeyLookup).not.toHaveBeenCalled();
+  });
+
+  it('RUM keys use the same lookup and backfill', async () => {
+    const key = 'rum_SHARED_PREFIX_000000';
+    authRepo.findRumKeyCandidates.mockResolvedValue([
+      { id: 8, project_id: 'proj_other', key_hash: await fastHash('rum_SHARED_PREFIX_other'), key_lookup: null, allowed_origins: [] },
+      { id: 9, project_id: PROJECT_A, key_hash: await fastHash(key), key_lookup: null, allowed_origins: [] },
+    ]);
+    await expect(service.validateRumWriteKey(key, '')).resolves.toBe(PROJECT_A);
+    expect(authRepo.findRumKeyCandidates).toHaveBeenCalledWith(keyLookupHash(key), key.substring(0, 10));
+    expect(authRepo.backfillKeyLookup).toHaveBeenCalledWith('rum_public_keys', 9, keyLookupHash(key));
+  });
+
+  it('lookup hashes are keyed (not a plain sha256 of the key)', async () => {
+    const crypto = await import('node:crypto');
+    const key = 'pk_live_anything';
+    expect(keyLookupHash(key)).toMatch(/^[0-9a-f]{64}$/);
+    expect(keyLookupHash(key)).not.toBe(crypto.createHash('sha256').update(key).digest('hex'));
+    expect(keyLookupHash(key)).toBe(keyLookupHash(key));
   });
 });
 
@@ -145,7 +199,7 @@ describe('AuthService key generation', () => {
     const key = await service.generateApiKey(PROJECT_A, 'ci');
     expect(key).toMatch(/^proj_[A-Za-z0-9_-]{43}$/);
     const stored = authRepo.insertKey.mock.calls[0][0];
-    expect(stored).toMatchObject({ projectId: PROJECT_A, keyPrefix: key.substring(0, 10), label: 'ci' });
+    expect(stored).toMatchObject({ projectId: PROJECT_A, keyPrefix: key.substring(0, 10), keyLookup: keyLookupHash(key), label: 'ci' });
     expect(stored.keyHash).not.toContain(key);
     expect(await argon2.verify(stored.keyHash, key + config.ARGON2_PEPPER)).toBe(true);
   });
@@ -153,7 +207,7 @@ describe('AuthService key generation', () => {
   it('generates rum_ keys with allowed origins', async () => {
     const key = await service.generateRumWriteKey(PROJECT_A, 'web', ['https://a.example']);
     expect(key.startsWith('rum_')).toBe(true);
-    expect(authRepo.insertRumKey.mock.calls[0][0]).toMatchObject({ projectId: PROJECT_A, allowedOrigins: ['https://a.example'] });
+    expect(authRepo.insertRumKey.mock.calls[0][0]).toMatchObject({ projectId: PROJECT_A, allowedOrigins: ['https://a.example'], keyLookup: keyLookupHash(key) });
   });
 
   it('assertProjectOwner only passes owners', async () => {
@@ -171,7 +225,7 @@ describe('AuthService.validateRumWriteKey', () => {
   const key = 'rum_ABCDEFGHIJKLMNOP';
 
   it('allows listed origins case-insensitively and caches', async () => {
-    authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://Shop.Example'] });
+    authRepo.findRumKeyCandidates.mockResolvedValue([{ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://Shop.Example'] }]);
     await expect(service.validateRumWriteKey(key, 'https://shop.example')).resolves.toBe(PROJECT_A);
     const cached = redis.store.get(keyCacheNames('rum', 0, digestKey(key)).cache)!;
     expect(JSON.parse(cached)).toEqual({ projectId: PROJECT_A, allowedOrigins: ['https://Shop.Example'] });
@@ -179,26 +233,26 @@ describe('AuthService.validateRumWriteKey', () => {
   });
 
   it('still enforces the origin allow-list on cache hits', async () => {
-    authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://shop.example'] });
+    authRepo.findRumKeyCandidates.mockResolvedValue([{ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://shop.example'] }]);
     await expect(service.validateRumWriteKey(key, 'https://shop.example')).resolves.toBe(PROJECT_A);
     await expect(service.validateRumWriteKey(key, 'https://evil.example')).rejects.toThrow('ORIGIN_NOT_ALLOWED');
-    expect(authRepo.findRumKeyByPrefix).toHaveBeenCalledTimes(1);
+    expect(authRepo.findRumKeyCandidates).toHaveBeenCalledTimes(1);
   });
 
   it('rejects origins not in the allow-list', async () => {
-    authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://shop.example'] });
+    authRepo.findRumKeyCandidates.mockResolvedValue([{ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: ['https://shop.example'] }]);
     await expect(service.validateRumWriteKey(key, 'https://evil.example')).rejects.toThrow('ORIGIN_NOT_ALLOWED');
   });
 
   it('accepts any origin when the allow-list is empty', async () => {
-    authRepo.findRumKeyByPrefix.mockResolvedValue({ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: [] });
+    authRepo.findRumKeyCandidates.mockResolvedValue([{ id: 2, project_id: PROJECT_A, key_hash: await fastHash(key), allowed_origins: [] }]);
     await expect(service.validateRumWriteKey(key, 'https://any.example')).resolves.toBe(PROJECT_A);
   });
 
   it('rejects unknown and wrong keys', async () => {
-    authRepo.findRumKeyByPrefix.mockResolvedValueOnce(undefined);
+    authRepo.findRumKeyCandidates.mockResolvedValueOnce([]);
     await expect(service.validateRumWriteKey(key, '')).rejects.toThrow('UNAUTHORIZED');
-    authRepo.findRumKeyByPrefix.mockResolvedValueOnce({ id: 2, project_id: PROJECT_A, key_hash: await fastHash('rum_other'), allowed_origins: [] });
+    authRepo.findRumKeyCandidates.mockResolvedValueOnce([{ id: 2, project_id: PROJECT_A, key_hash: await fastHash('rum_other'), allowed_origins: [] }]);
     await expect(service.validateRumWriteKey(key, '')).rejects.toThrow('UNAUTHORIZED');
   });
 });

@@ -14,7 +14,7 @@ sequenceDiagram
     participant MQ as RabbitMQ (logs.exchange)
     SDK->>API: batch ≤500 logs, x-api-key, [x-idempotency-key]
     API->>API: projectId := key's project (body projectId must match, else 403)
-    API->>R: api_key:cache:<sha256(key)>  (miss → PG prefix lookup + argon2 verify)
+    API->>R: api_key:cache:<sha256(key)>  (miss → PG lookup by HMAC of the key + argon2 verify)
     API->>R: ingest:idempotency:<project>:<key> SET NX (5 min)
     API->>R: project_owner:<project>, tier:<owner> (miss → PG)
     API->>R: INCR rate:<project> (60 s window, per batch)

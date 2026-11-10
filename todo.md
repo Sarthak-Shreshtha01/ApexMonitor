@@ -16,45 +16,44 @@ _All done (see Done). Next up: item 1 below._
 
 ## Next: launch blockers (P1)
 
-1. [ ] **API key prefix collisions:** longer prefix or HMAC lookup; handle multiple rows. (KI-26)
-2. [ ] **Publisher confirms + reconnect:** confirm channel, await confirms before 202, 503 on backpressure, separate publish/consume channels, reconnect with backoff. (KI-16)
-3. [ ] **Production build:** resolve path aliases (`tsup` or `tsc-alias`); verify `node dist/bootstrap.js` boots. (KI-13)
-4. [ ] **Monorepo-aware Dockerfile** built from repo root. (KI-22)
-5. [ ] **Aggregation math:** weighted average (store sum), mergeable percentiles, update `p50`, UTC buckets. `workers/aggregation.worker.ts` (KI-8, KI-9)
-6. [ ] **Browser SDK contract:** send the server's RUM schema. (KI-10)
-7. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
-8. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
+1. [ ] **Publisher confirms + reconnect:** confirm channel, await confirms before 202, 503 on backpressure, separate publish/consume channels, reconnect with backoff. (KI-16)
+2. [ ] **Production build:** resolve path aliases (`tsup` or `tsc-alias`); verify `node dist/bootstrap.js` boots. (KI-13)
+3. [ ] **Monorepo-aware Dockerfile** built from repo root. (KI-22)
+4. [ ] **Aggregation math:** weighted average (store sum), mergeable percentiles, update `p50`, UTC buckets. `workers/aggregation.worker.ts` (KI-8, KI-9)
+5. [ ] **Browser SDK contract:** send the server's RUM schema. (KI-10)
+6. [ ] **Billing config:** remove sandbox fallbacks, redirect from `FRONTEND_URL`, invalid webhook signature → 4xx, fail boot in production without real credentials. (KI-7)
+7. [ ] **Alert rules API:** CRUD routes + wire `AlertRuleBuilder`; cooldown + resolve state; evaluate on finer-grained data. (KI-18)
 
 ## Soon: before real traffic (P2)
 
-9. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
-10. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
-11. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
-12. [ ] **Validate member roles** with a Zod enum. (KI-38)
-13. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
-14. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
-15. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
-16. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
-17. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
-18. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
-19. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, docker build job, `.nvmrc`, coverage report. (P1)
-20. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
+8. [ ] **Request body errors:** honour body-parser status (400/413); validate bodies with Zod on login, members, webhook. (KI-39)
+9. [ ] **SDK fixes:** `x-idempotency-key` header, no retry on 409/caller abort, Python RUM header + `revoke_key` projectId, remove or implement `metrics.rps` / `metrics.endpoints`. (KI-33, KI-34, KI-11, KI-12)
+10. [ ] **Endpoint normalisation:** whole-segment ids only, strip query/hash. (KI-37)
+11. [ ] **Validate member roles** with a Zod enum. (KI-38)
+12. [ ] **Config:** validate `PHONEPE_*`, `RUM_RATE_LIMIT_RPM` in Zod. (KI-14, remainder)
+13. [ ] **Migration runner** (`node-pg-migrate`); convert existing SQL files. (KI-15)
+14. [ ] **Graceful shutdown:** drain consumers, clear intervals, close all clients. (KI-21)
+15. [ ] **Rate limiting:** count events not batches, sliding window/GCRA, fix FREE tier cache miss, pipeline live-counter writes. (KI-19)
+16. [ ] **Web auth hardening:** httpOnly cookies instead of localStorage; clear tokens + redirect when refresh fails. (KI-17, KI-40)
+17. [ ] **Production compose file** (infra + api + web, healthchecks) under `infra/compose/`. (P1)
+18. [ ] **CI remainder:** ESLint/Prettier for server and SDKs, docker build job, `.nvmrc`, coverage report. (P1)
+19. [ ] **Multi-replica safety:** broker-based events, Socket.IO Redis adapter, singleton scheduled jobs (pg-boss). (KI-20)
 
 ## Then: restructure (P2 phase)
 
-21. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
-22. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
-23. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
-24. [ ] Split `apps/api` and `apps/worker`.
-25. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-26. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
+20. [ ] Write and accept ADRs 0002–0005 (tenancy, API/worker split, ClickHouse, OTLP). `docs/adr/`
+21. [ ] Extract `packages/contracts` (Zod schemas, endpoint paths, message types); delete duplicated endpoint maps.
+22. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
+23. [ ] Split `apps/api` and `apps/worker`.
+24. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
+25. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-27. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-28. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-29. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
-30. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
+26. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+27. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+28. [ ] Server-side route protection in web `middleware.ts`. (KI-30)
+29. [ ] One client-state library in web; remove root `axios`/`zustand`; configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -73,6 +72,7 @@ _All done (see Done). Next up: item 1 below._
 
 ## Done
 
+- [x] 2026-11-10: Keys found by an HMAC lookup hash instead of the collision-prone 10-char prefix; legacy keys tried by prefix and backfilled on first use (KI-26)
 - [x] 2026-11-10: Paid checkouts upgrade the right user: checkouts recorded in `billing_checkouts` and matched by transaction id and amount; replays are no-ops (KI-36)
 - [x] 2026-11-10: OAuth callback redirects with a 60 s single-use code; the web app exchanges it via `POST /auth/oauth/exchange`; tokens never appear in URLs (KI-4)
 - [x] 2026-11-10: Revoked API keys stop working immediately; key cache named by sha256, never the raw key; RUM origin allow-list enforced on cache hits (KI-5)

@@ -1,11 +1,10 @@
 import crypto from 'crypto';
-import argon2 from 'argon2';
-import { config } from '@config';
 import { UserService } from '@modules/users/user.service';
 import { CreateKeyInput, KeysStatsQuery, ListKeysQuery } from './dto/keys.dto';
 import { KeysRepository } from './keys.repository';
 import { getRedis } from '@infrastructure/redis';
 import { evictRevokedKey } from '@modules/auth/key-cache';
+import { prepareKeyForStorage } from '@modules/auth/key-material';
 
 export class KeysService {
   private usersService = new UserService();
@@ -53,25 +52,17 @@ export class KeysService {
 
     const random = crypto.randomBytes(24).toString('base64url');
     const plaintextKey = `pk_live_${random}`;
-    const prefix = plaintextKey.substring(0, 10);
-
-    const hash = await argon2.hash(plaintextKey + config.ARGON2_PEPPER, {
-      type: argon2.argon2id,
-      memoryCost: 65536,
-      timeCost: 3,
-      parallelism: 4,
-    });
+    const stored = await prepareKeyForStorage(plaintextKey);
 
     const createdId = await this.repository.insertKey({
       projectId: input.projectId,
-      keyPrefix: prefix,
-      keyHash: hash,
+      ...stored,
       label: input.label,
     });
 
     return {
       keyId: createdId,
-      keyPrefix: prefix,
+      keyPrefix: stored.keyPrefix,
       plaintextKey,
       label: input.label,
       projectId: input.projectId,

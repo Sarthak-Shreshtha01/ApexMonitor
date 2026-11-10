@@ -24,7 +24,7 @@
 | Secret | Storage |
 |---|---|
 | User passwords | argon2id |
-| API / RUM keys | argon2id(key + `ARGON2_PEPPER`) (64 MB memory cost); only a 10-char prefix stored in clear. Validated keys are cached in Redis for 5 min under sha256(key), and revoking a key evicts it at once (`modules/auth/key-cache.ts`) |
+| API / RUM keys | argon2id(key + `ARGON2_PEPPER`) (64 MB memory cost); only a 10-char display prefix stored in clear. Rows are found by `key_lookup` = HMAC-SHA256 of the key with a secret derived from the pepper (`modules/auth/key-material.ts`), then verified with argon2. Validated keys are cached in Redis for 5 min under sha256(key), and revoking a key evicts it at once (`modules/auth/key-cache.ts`) |
 | JWT signing | Access: `JWT_SECRET`. Refresh: `JWT_REFRESH_SECRET`, or a key derived from `JWT_SECRET` (HMAC) when unset. OAuth state: derived key. All HS256 with a `tokenType` claim checked on verify (`shared/auth/tokens.ts`) |
 | OAuth / PhonePe | env vars |
 

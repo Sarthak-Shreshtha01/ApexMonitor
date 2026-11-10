@@ -66,10 +66,6 @@ _None open._
 ### KI-22 Server Dockerfile is not monorepo-aware
 `apps/server/Dockerfile` runs `npm ci` with `apps/server/package*.json`, but the lockfile is at the repo root. The image build fails (or installs unpinned deps).
 
-### KI-26 API key prefixes collide; colliding keys can never authenticate
-Keys are looked up by their first 10 characters and `findKeyByPrefix` returns only `rows[0]`. Keys from `POST /keys` are `pk_live_` + random, so the prefix has only **2 random characters** (4,096 values). A test generating 500 keys measured **37 collisions** (463 distinct prefixes). Any key whose prefix matches an older key fails verification forever. (`proj_` keys from the legacy route have 5 random chars, still collision-prone.)
-**Fix:** store a longer prefix (e.g. 16 chars after the type marker) or look up by a deterministic hash (HMAC-SHA256 of the key) and keep argon2 only for verification; handle multiple rows.
-
 ### KI-11 Python SDK sends RUM keys in the wrong header
 `packages/python-sdk/src/apexmonitor_sdk/client.py#_auth_headers` defaults both `apiKey` and `rumKey` to `x-api-key`. Server expects `x-rum-key`.
 

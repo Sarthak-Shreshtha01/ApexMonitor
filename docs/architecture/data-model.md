@@ -34,7 +34,7 @@ erDiagram
 
 | Table | Key columns | Notes |
 |---|---|---|
-| `api_keys` | `project_id`, `key_prefix` (10 chars, indexed), `key_hash` (argon2id, unique), `label`, `last_used_at`, `revoked_at` | Ingest keys `proj_…` |
+| `api_keys` | `project_id`, `key_prefix` (10 chars, display only, not unique), `key_lookup` (HMAC-SHA256 of the key, unique; v6), `key_hash` (argon2id, unique), `label`, `last_used_at`, `revoked_at` | Ingest keys `pk_live_…` / legacy `proj_…`. Found by `key_lookup`; rows created before v6 are found by prefix and get `key_lookup` on first use |
 | `rum_public_keys` | as above + `allowed_origins text[]` | Browser write keys |
 
 ### Telemetry aggregates
