@@ -42,6 +42,7 @@ npm run lint                               # ESLint: server + SDKs (root eslint.
 npm run test:coverage                      # server unit tests with a coverage report (apps/server/coverage)
 npm test                                   # all suites that need no services (server unit, web, SDKs, Python SDK)
 npm run test:integration                   # server against real infra (docker compose up -d first; uses isolated *_test DBs)
+npm run test:e2e                           # Playwright: Chromium vs real API (:3100) + dashboard build (:3101); isolated *_e2e stores
 ```
 
 Testing rules (details: `docs/guides/testing-strategy.md`):

@@ -29,14 +29,13 @@ _All done (see Done)._
 3. [ ] Extract `packages/platform` + composition roots; remove module-level singletons.
 4. [ ] Split `apps/api` and `apps/worker`.
 5. [ ] Merge auth + users flows; single key-issuance route; members under `/projects/:id/members`. (KI-23)
-6. [ ] Web UI tests with Playwright (login, keys, overview, live traffic). (P2d)
 
 ## Later: cleanup (P3)
 
-7. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed; clear the 6 web lint warnings.
-8. [ ] Populate or drop `five_minute_metrics`. (KI-24)
-9. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
-10. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
+6. [ ] **Formatting and coverage gates:** decide on Prettier (one repo-wide reformat commit); add coverage thresholds once the baseline (80% server unit) is agreed; clear the 6 web lint warnings.
+7. [ ] Populate or drop `five_minute_metrics`. (KI-24)
+8. [ ] Time-based anomaly baselines; method-qualified endpoint key. (KI-27)
+9. [ ] One client-state library in web (Redux + zustand today); configure or delete `turbo.json`. (KI-31)
 
 ## Backlog: product (P3–P7, see plan.md)
 
@@ -55,6 +54,8 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: Browser tests with Playwright (`npm run test:e2e`, CI job `browser-tests`): login redirects, sign-up, cookie session restore, sign-out, keys, ingest → overview, revocation, live traffic. They found the live-view websocket bug (KI-41) and a stale project list after creating a project on the Keys page (fixed); icon-only key buttons and the account menu got accessible names (P2d)
+- [x] 2026-11-11: Live views (live traffic, logs, traces) never received updates: their websocket join sent no access token and the server refused it. Shared `connectProjectSocket` sends the token, refreshes once on an unauthorized join, and shows LIVE only after `join:ok`; unused mock `MetricCards` removed (KI-41)
 - [x] 2026-11-11: Web route protection: `proxy.ts` (Next 16) redirects signed-out visitors on the server when the refresh cookie is visible (opt-in `WEB_SESSION_COOKIE_CHECK`); every login redirect keeps `?next=` with an open-redirect guard (KI-30)
 - [x] 2026-11-10: Multiple replicas: event bus bridged through Redis pub/sub, one alert pass per minute cluster-wide (Redis lock), competing queue consumers; Socket.IO adapter deliberately not used (KI-20)
 - [x] 2026-11-10: CI: Node 24 from `.nvmrc`, ESLint for server + SDKs + web in CI (42 web errors fixed), server coverage report as an artifact

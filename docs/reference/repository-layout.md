@@ -62,6 +62,7 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `test/unit/` | Vitest unit tests (in-memory fakes, no network) |
 | `test/integration/` | Vitest integration tests against real services; `harness.ts` boots the stack |
 | `test/setup/`, `test/helpers/` | Test env, isolated-DB global setup, fakes, `knownBug()` helper |
+| `test/e2e/serve.ts` | Starts the API with fresh `apexmonitor_e2e` stores for the browser tests |
 | `vitest.config.ts`, `vitest.integration.config.ts` | Unit / integration runner configs |
 | `src/shared/utils/` | `logger` (pino; redacts credentials from request logs), `math.utils` (percentiles), `anomaly.utils` (z-score), `cookie.utils`, `phonepe.utils` |
 
@@ -83,7 +84,10 @@ Every top-level path and the files that matter. For the planned layout see [../a
 | `shared/ui/` | Leaflet GeoIP map |
 | `lib/redux/` | Store, hooks, persist storage |
 | `proxy.ts` | Next proxy (formerly middleware): optional server-side redirect to /login |
-| `test/` | Vitest tests for API client, auth state, routes |
+| `test/` | Vitest tests for API client, auth state, routes, project websocket |
+| `e2e/`, `playwright.config.ts` | Playwright browser tests against the real API and a production build |
+| `shared/realtime/projectSocket.ts` | Authenticated websocket join for live views |
+| `shared/routes/session-gate.ts` | Login redirects, `?next=` validation, proxy decision |
 
 ## `packages`: SDKs
 

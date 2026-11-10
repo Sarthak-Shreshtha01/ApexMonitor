@@ -102,7 +102,7 @@ Goal: code layout that supports independent scaling and testing. Do this before 
 - [x] Integration (real Postgres, Mongo, Redis, RabbitMQ via compose / CI service containers, isolated DBs): ingest → workers → query APIs; RUM ingest → aggregates; key revoke takes effect immediately.
 - [x] Security suite: for every project-scoped route, assert a user from project A gets 403 for project B; assert API key for A cannot write to B.
 - [x] Contract: TS + browser SDK run against the live server in the integration suite; Python SDK unit tests (live-server Python tests still open).
-- [ ] Web: Playwright smoke (login, overview renders, create key, logs page).
+- [x] Web: Playwright smoke (login, overview renders, create key, live traffic). Logs page still to add.
 - [ ] Coverage gate: start at 60% for `packages/core`, raise over time.
 
 **Exit criteria:** `apps/api` and `apps/worker` deploy and scale independently; CI runs unit + integration + security + contract suites on every PR.

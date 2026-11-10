@@ -93,7 +93,7 @@ docker run --rm --network host --env-file .env apexmonitor-server
 
 The image runs as the non-root `node` user, has a `HEALTHCHECK` on `/health`, and does not run database migrations.
 
-Tests: `npm test` and `npm run test:integration`; see [testing-strategy.md](testing-strategy.md).
+Tests: `npm test`, `npm run test:integration` and `npm run test:e2e` (browser); see [testing-strategy.md](testing-strategy.md).
 
 ## Troubleshooting
 

@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   output: "standalone",
   // npm workspaces hoist dependencies to the repo root, so trace files from there.
   outputFileTracingRoot: path.join(__dirname, "../../"),
+  // The browser tests build into their own folder so they never overwrite a normal build.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
 };
 
 export default nextConfig;

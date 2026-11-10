@@ -2,7 +2,8 @@
  * Connection settings for integration tests. Defaults match docker-compose.yml;
  * override with TEST_* variables (CI service containers use these).
  */
-export const TEST_DB = 'apexmonitor_test';
+// TEST_DB_NAME lets other suites (the browser tests) use their own isolated stores.
+export const TEST_DB = process.env.TEST_DB_NAME ?? 'apexmonitor_test';
 
 export const testUrls = {
   pgAdmin: process.env.TEST_PG_ADMIN_URI ?? 'postgresql://pulse:pulse_dev_password@127.0.0.1:9999/postgres',

@@ -8,6 +8,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run -c vitest.integration.config.ts",
+    "e2e:api": "tsx test/e2e/serve.ts",
     "typecheck": "tsc --noEmit",
     "start": "node --enable-source-maps dist/bootstrap.js",
     "db:migrate": "tsx src/migrate.ts",
