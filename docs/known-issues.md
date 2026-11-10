@@ -25,10 +25,6 @@ _None open._
 
 ## P1
 
-### KI-4 OAuth callback leaks tokens in the URL
-`modules/auth/auth.controller.ts` (~line 72) redirects to `/oauth/callback?accessToken=…&refreshToken=…`. Tokens end up in browser history, proxy/server logs, and `Referer` headers.
-**Fix:** httpOnly refresh cookie + short-lived one-time code exchanged by the web app.
-
 ### KI-7 Billing is sandbox-only and incomplete
 - `shared/utils/phonepe.utils.ts` falls back to the public sandbox merchant ID and salt when env vars are missing, so production silently runs against sandbox.
 - `modules/billing/billing.service.ts` hardcodes `X-MERCHANT-ID: PGTESTPAYUAT` and redirect `http://localhost:3000/dashboard/billing`.

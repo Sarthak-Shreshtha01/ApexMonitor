@@ -64,6 +64,22 @@ describe('authentication (real stack)', () => {
     expect(res.headers.get('set-cookie')).toContain('Max-Age=0');
   });
 
+  it('OAuth login codes: exchanged once for working tokens, then refused (KI-4)', async () => {
+    const { AuthService } = await import('@modules/auth/auth.service');
+    const fresh = await api('POST', '/api/v1/auth/login', { body: { email: t.email, password: t.password } });
+    const issued = { accessToken: fresh.body.data.accessToken, refreshToken: fresh.body.data.refreshToken };
+    const code = await new AuthService().createOAuthLoginCode(issued);
+
+    const first = await api('POST', '/api/v1/auth/oauth/exchange', { body: { code } });
+    expect(first.status).toBe(200);
+    expect(first.body.data).toEqual(issued);
+    expect(first.headers.get('set-cookie')).toContain('refresh_token=');
+    expect((await api('GET', '/api/v1/users/me', { token: first.body.data.accessToken })).status).toBe(200);
+
+    expect((await api('POST', '/api/v1/auth/oauth/exchange', { body: { code } })).status).toBe(401);
+    expect((await api('POST', '/api/v1/auth/oauth/exchange', { body: { code: 'nope' } })).status).toBe(400);
+  });
+
   it('OAuth start without provider configuration → 503; unknown provider → 400; callback validation → 400', async () => {
     expect((await api('GET', '/api/v1/auth/oauth/google/start')).status).toBe(503);
     expect((await api('GET', '/api/v1/auth/oauth/myspace/start')).status).toBe(400);

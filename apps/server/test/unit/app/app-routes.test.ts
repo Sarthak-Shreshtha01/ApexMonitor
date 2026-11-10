@@ -32,6 +32,7 @@ const ROUTES: Array<[string, string, Auth]> = [
   ['POST', '/api/v1/auth/logout', 'public'],
   ['GET', '/api/v1/auth/oauth/google/start', 'public'],
   ['GET', '/api/v1/auth/oauth/google/callback', 'public'],
+  ['POST', '/api/v1/auth/oauth/exchange', 'public'],
   ['POST', '/api/v1/auth/keys', 'jwt'],
   ['POST', '/api/v1/auth/rum-keys', 'jwt'],
   ['POST', '/api/v1/users/register', 'public'],

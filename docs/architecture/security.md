@@ -64,7 +64,6 @@ Any new outbound call to a user-supplied URL must use `sendWebhook` (or the same
 
 | ID | Gap |
 |---|---|
-| KI-4 | OAuth tokens in redirect URL |
 | KI-7 | Payment sandbox fallbacks |
 | KI-17 | Tokens persisted in localStorage |
 | KI-30 | No server-side route protection in web |

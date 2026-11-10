@@ -67,7 +67,8 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 | POST | `/refresh` | cookie or body | `{refreshToken?}` | Rotates pair |
 | POST | `/logout` | none | n/a | Clears cookie |
 | GET | `/oauth/:provider/start` | none | `?mode=login\|register` | `provider` = `google` \| `github`; 302 to provider |
-| GET | `/oauth/:provider/callback` | none | provider params | 302 to `${FRONTEND_URL}/oauth/callback?accessToken&refreshToken&provider` |
+| GET | `/oauth/:provider/callback` | none | provider params | 302 to `${FRONTEND_URL}/oauth/callback?code&provider`; `code` is single-use and valid for 60 s |
+| POST | `/oauth/exchange` | none | `{code}` | Swaps the callback `code` for `{accessToken, refreshToken}` and sets the `refresh_token` cookie. 400 malformed, 401 unknown/expired/used |
 | POST | `/keys` | JWT+O [body] | `{projectId, label?}` | Legacy ingest key issuance (prefer `POST /keys`) |
 | POST | `/rum-keys` | JWT+O [body] | `{projectId, label?, allowedOrigins?}` | RUM key issuance |
 

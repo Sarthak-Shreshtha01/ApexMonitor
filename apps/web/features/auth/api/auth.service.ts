@@ -35,6 +35,11 @@ export const authService = {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
     return `${baseUrl}${ENDPOINTS.auth.oauthStart(provider, mode)}`;
   },
+  /** Swaps the one-time code from the OAuth redirect for session tokens. */
+  exchangeOAuthCode: async (code: string): Promise<RefreshResponse> => {
+    const response = await apiClient.post<RefreshResponse>(ENDPOINTS.auth.oauthExchange, { code });
+    return response.data;
+  },
   login: async (data: LoginDto): Promise<AuthResponse> => {
     const response = await apiClient.post<AuthResponse>(ENDPOINTS.auth.login, data);
     return response.data;

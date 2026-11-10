@@ -63,6 +63,7 @@ erDiagram
 
 | Pattern | Type | TTL | Writer → Reader |
 |---|---|---|---|
+| `oauth:login_code:<sha256(code)>` | JSON `{accessToken, refreshToken}`; read once with `GETDEL` | 60 s | auth.service (OAuth callback → exchange) |
 | `api_key:cache:<sha256(key)>` | JSON `{projectId}` | 300 s | auth/key-cache |
 | `api_key:ref:<keyId>` | sha256 of the key (lets revoke find the cache entry) | 300 s | auth/key-cache |
 | `api_key:revoked:<keyId>` | `1` tombstone; blocks re-caching after revoke | 600 s | auth/key-cache |

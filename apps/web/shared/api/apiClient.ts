@@ -67,6 +67,7 @@ const AUTH_ENDPOINTS = [
   ENDPOINTS.auth.register,
   ENDPOINTS.auth.refresh,
   ENDPOINTS.auth.logout,
+  ENDPOINTS.auth.oauthExchange,
 ];
 
 const isAuthEndpoint = (url?: string): boolean => {

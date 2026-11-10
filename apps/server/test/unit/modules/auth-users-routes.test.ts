@@ -17,13 +17,13 @@ vi.mock('@modules/users/user.service', () => ({ UserService: class { constructor
 const authSvc = {
   login: vi.fn(), refreshSession: vi.fn(), generateApiKey: vi.fn(async () => 'proj_newkey'), generateRumWriteKey: vi.fn(async () => 'rum_newkey'),
   assertProjectOwner: vi.fn(), buildOAuthAuthorizationUrl: vi.fn(), handleOAuthCallback: vi.fn(), getFrontendUrl: () => 'http://web',
+  createOAuthLoginCode: vi.fn(async () => 'C'.repeat(43)), exchangeOAuthLoginCode: vi.fn(),
 };
 vi.mock('@modules/auth/auth.service', () => ({ AuthService: class { constructor() { return authSvc; } } }));
 
 const { authRouter } = await import('@modules/auth/auth.router');
 const { userRouter } = await import('@modules/users/user.router');
 const { signAccessToken } = await import('@shared/auth/tokens');
-const { knownBug } = await import('../../helpers/known-bug');
 
 const app = appWith((a) => {
   a.use('/auth', authRouter);
@@ -92,10 +92,32 @@ describe('auth routes', () => {
     expect(ok.headers.location.startsWith('http://web/oauth/callback')).toBe(true);
   });
 
-  knownBug('KI-4', 'OAuth callback does not put tokens in the redirect URL', async () => {
+  it('OAuth callback redirects with a one-time code, never the tokens (KI-4)', async () => {
     authSvc.handleOAuthCallback.mockResolvedValueOnce(tokens);
     const res = await request(await app).get('/auth/oauth/google/callback?code=c&state=s');
-    expect(res.headers.location).not.toMatch(/accessToken|refreshToken/);
+    expect(res.headers.location).not.toMatch(/accessToken|refreshToken|acc|ref=/);
+    expect(res.headers.location).toBe(`http://web/oauth/callback?code=${'C'.repeat(43)}&provider=google`);
+    expect(authSvc.createOAuthLoginCode).toHaveBeenCalledWith(tokens);
+    expect(res.headers['set-cookie']).toBeUndefined();
+  });
+
+  it('POST /auth/oauth/exchange swaps a valid code for tokens and sets the refresh cookie', async () => {
+    authSvc.exchangeOAuthLoginCode.mockResolvedValueOnce({ accessToken: 'acc', refreshToken: 'ref' });
+    const res = await request(await app).post('/auth/oauth/exchange').send({ code: 'x'.repeat(43) });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({ accessToken: 'acc', refreshToken: 'ref' });
+    expect(res.headers['set-cookie'][0]).toContain('refresh_token=ref');
+    expect(authSvc.exchangeOAuthLoginCode).toHaveBeenCalledWith('x'.repeat(43));
+  });
+
+  it('POST /auth/oauth/exchange: 400 for a missing or malformed code, 401 for an unknown/used one', async () => {
+    expect((await request(await app).post('/auth/oauth/exchange').send({})).status).toBe(400);
+    expect((await request(await app).post('/auth/oauth/exchange').send({ code: 'short' })).status).toBe(400);
+    expect((await request(await app).post('/auth/oauth/exchange').send({ code: 'a'.repeat(42) + '!' })).status).toBe(400);
+    authSvc.exchangeOAuthLoginCode.mockRejectedValueOnce(new Error('INVALID_OAUTH_CODE'));
+    const used = await request(await app).post('/auth/oauth/exchange').send({ code: 'y'.repeat(43) });
+    expect(used.status).toBe(401);
+    expect(used.body.error).toBe('UNAUTHORIZED');
   });
 
   it('POST /auth/keys and /auth/rum-keys: 401 unauthenticated, owner-only, 201 with the key', async () => {

@@ -5,6 +5,7 @@ import { ENDPOINTS } from '@/shared/api/endpoints';
 import { store } from '@/lib/redux/store';
 import authReducer, { clearAuth, setAccessToken, setRefreshToken, setTokens } from '@/features/auth/state/auth.slice';
 import { PUBLIC_PATHS, ROUTES } from '@/shared/routes/routes';
+import { authService } from '@/features/auth/api/auth.service';
 
 type Handler = (config: InternalAxiosRequestConfig) => { status: number; data: unknown } | Promise<{ status: number; data: unknown }>;
 
@@ -121,6 +122,27 @@ describe('apiClient', () => {
   it('passes non-401 errors straight through', async () => {
     const seen = install(() => ({ status: 500, data: {} }));
     await expect(apiClient.get('/x')).rejects.toMatchObject({ response: { status: 500 } });
+    expect(seen).toHaveLength(1);
+  });
+});
+
+describe('authService.exchangeOAuthCode (KI-4)', () => {
+  beforeEach(() => {
+    store.dispatch(clearAuth());
+  });
+
+  it('POSTs the one-time code and returns the tokens', async () => {
+    const seen = install(() => ({ status: 200, data: { data: { accessToken: 'a1', refreshToken: 'r1' } } }));
+    await expect(authService.exchangeOAuthCode('code-123')).resolves.toEqual({ accessToken: 'a1', refreshToken: 'r1' });
+    expect(seen[0].url).toBe(ENDPOINTS.auth.oauthExchange);
+    expect(seen[0].method).toBe('post');
+    expect(JSON.parse(String(seen[0].data))).toEqual({ code: 'code-123' });
+  });
+
+  it('a used or expired code fails without trying a token refresh', async () => {
+    store.dispatch(setTokens({ accessToken: 'x', refreshToken: 'y' }));
+    const seen = install(() => ({ status: 401, data: { error: 'UNAUTHORIZED' } }));
+    await expect(authService.exchangeOAuthCode('used')).rejects.toBeInstanceOf(AxiosError);
     expect(seen).toHaveLength(1);
   });
 });

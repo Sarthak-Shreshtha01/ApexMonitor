@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { parseCookieHeader, serializeCookie } from '@shared/utils/cookie.utils';
 import { errorBody, successBody } from '@shared/http/api-contract';
 import { auditLogService } from '@shared/services/audit-log.service';
+import { OAuthExchangeDto } from './dto/oauth.dto';
 
 const COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 
@@ -67,11 +68,12 @@ export class AuthController {
       }
 
       const result = await this.service.handleOAuthCallback(provider as 'google' | 'github', code, state);
-      setAuthCookies(res, result.accessToken, result.refreshToken);
 
+      // Only a short-lived single-use code goes in the URL; the web app swaps it for
+      // tokens with POST /auth/oauth/exchange.
+      const loginCode = await this.service.createOAuthLoginCode(result);
       const redirectUrl = new URL(`${this.service.getFrontendUrl()}/oauth/callback`);
-      redirectUrl.searchParams.set('accessToken', result.accessToken);
-      redirectUrl.searchParams.set('refreshToken', result.refreshToken);
+      redirectUrl.searchParams.set('code', loginCode);
       redirectUrl.searchParams.set('provider', provider);
 
       res.redirect(redirectUrl.toString());
@@ -82,6 +84,27 @@ export class AuthController {
       }
       if (error instanceof Error && (error.message === 'INVALID_OAUTH_STATE' || error.message === 'OAUTH_EXCHANGE_FAILED' || error.message === 'OAUTH_EMAIL_UNAVAILABLE' || error.message === 'UNSUPPORTED_PROVIDER')) {
         res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'OAuth sign-in failed'));
+        return;
+      }
+
+      next(error);
+    }
+  };
+
+  public oauthExchange = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = OAuthExchangeDto.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json(errorBody(res, 'VALIDATION_ERROR', 'A login code is required'));
+        return;
+      }
+
+      const tokens = await this.service.exchangeOAuthLoginCode(parsed.data.code);
+      setAuthCookies(res, tokens.accessToken, tokens.refreshToken);
+      res.status(200).json(successBody(res, tokens));
+    } catch (error) {
+      if (error instanceof Error && error.message === 'INVALID_OAUTH_CODE') {
+        res.status(401).json(errorBody(res, 'UNAUTHORIZED', 'Login code is invalid, expired or already used'));
         return;
       }
 

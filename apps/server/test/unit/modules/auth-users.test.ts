@@ -203,6 +203,30 @@ describe('AuthService.validateRumWriteKey', () => {
   });
 });
 
+describe('AuthService OAuth login codes (KI-4)', () => {
+  const service = new AuthService();
+  const pair = { accessToken: 'access-1', refreshToken: 'refresh-1' };
+
+  it('stores the tokens under a hashed random code for 60 seconds', async () => {
+    const code = await service.createOAuthLoginCode({ ...pair, user: { id: 'u' } } as never);
+    expect(code).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    const name = `oauth:login_code:${digestKey(code)}`;
+    expect(JSON.parse(redis.store.get(name)!)).toEqual(pair); // only the two tokens, nothing else
+    expect(redis.ttl.get(name)).toBe(60);
+    expect([...redis.store.keys()].some((k) => k.includes(code))).toBe(false);
+  });
+
+  it('a code can be exchanged exactly once', async () => {
+    const code = await service.createOAuthLoginCode(pair);
+    await expect(service.exchangeOAuthLoginCode(code)).resolves.toEqual(pair);
+    await expect(service.exchangeOAuthLoginCode(code)).rejects.toThrow('INVALID_OAUTH_CODE');
+  });
+
+  it('unknown codes are rejected', async () => {
+    await expect(service.exchangeOAuthLoginCode('z'.repeat(43))).rejects.toThrow('INVALID_OAUTH_CODE');
+  });
+});
+
 describe('AuthService OAuth', () => {
   const service = new AuthService();
   const original = { ...config };

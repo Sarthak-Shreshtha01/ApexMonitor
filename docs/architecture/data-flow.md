@@ -143,7 +143,9 @@ The webhook is sent through the SSRF guard in `shared/net/webhook.ts` (https onl
 **OAuth (Google/GitHub)**
 
 1. `GET /api/v1/auth/oauth/:provider/start?mode=login|register` redirects to the provider.
-2. The provider calls back `GET /api/v1/auth/oauth/:provider/callback`. The server upserts the user and redirects to `${FRONTEND_URL}/oauth/callback?accessToken=…&refreshToken=…` (KI-4).
+2. The provider calls back `GET /api/v1/auth/oauth/:provider/callback`. The server verifies the signed `state`, exchanges the provider code, and upserts the user.
+3. The server stores the new token pair in Redis under a random single-use code (`oauth:login_code:<sha256(code)>`, 60 s) and redirects to `${FRONTEND_URL}/oauth/callback?code=…&provider=…`. Tokens never appear in a URL.
+4. The web callback page calls `POST /api/v1/auth/oauth/exchange {code}`, which returns the tokens once (Redis `GETDEL`) and sets the refresh cookie. A reused or expired code gets 401 and the page sends the user back to `/login`.
 
 ## 7. Key issuance
 

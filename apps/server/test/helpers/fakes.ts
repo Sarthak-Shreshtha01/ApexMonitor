@@ -11,6 +11,11 @@ export class FakeRedis {
   ttl = new Map<string, number>();
 
   get = vi.fn(async (key: string) => this.store.get(key) ?? null);
+  getdel = vi.fn(async (key: string) => {
+    const v = this.store.get(key) ?? null;
+    this.store.delete(key);
+    return v;
+  });
   set = vi.fn(async (key: string, value: string, ...args: unknown[]) => {
     if (args.includes('NX') && this.store.has(key)) return null;
     this.store.set(key, String(value));

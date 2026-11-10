@@ -38,7 +38,7 @@ Goal: nothing in the current code leaks data across tenants or silently corrupts
 - [x] **Repo hygiene:** add root `.gitignore` (`node_modules`, `.env*` except `.env.example`, `dist`, `.next`, `*.tsbuildinfo`, `__pycache__`, `.venv`, `coverage`). (KI-1)
 - [x] **Tenant isolation on ingest:** use `req.project.id` from the API key in `ingest.controller.ts`; reject body `projectId` that differs (403) or drop the field from the DTO. (KI-2)
 - [x] **Token types:** `requireAuth` and the websocket `resolveUser` reject tokens whose `tokenType !== 'access'`; access, refresh and OAuth-state tokens use separate signing keys (`JWT_SECRET`, optional `JWT_REFRESH_SECRET`, derived keys). (KI-3)
-- [ ] **OAuth callback:** stop putting tokens in the redirect query string. Set an httpOnly refresh cookie and redirect with a one-time code the web app exchanges. (KI-4)
+- [x] **OAuth callback:** stop putting tokens in the redirect query string. Set an httpOnly refresh cookie and redirect with a one-time code the web app exchanges. (KI-4)
 - [x] **Key revocation:** on revoke, delete the Redis cache entry; cache by `sha256(rawKey)` instead of raw key. Same for RUM keys. (KI-5)
 - [x] **Webhook SSRF:** validate webhook URLs (https only, resolve DNS, block private/link-local/loopback ranges), 5 s timeout, no redirects. (KI-6)
 - [ ] **PhonePe:** remove hardcoded sandbox merchant/salt defaults; fail boot in production if billing is enabled without real credentials; build redirect URL from `FRONTEND_URL`. (KI-7)

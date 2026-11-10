@@ -4,9 +4,24 @@ import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAppDispatch } from '@/lib/redux/hooks';
 import { setTokens } from '@/features/auth/state/auth.slice';
+import { authService } from '@/features/auth/api/auth.service';
 import { projectsService } from '@/features/projects/api/projects.service';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { ROUTES } from '@/shared/routes/routes';
+
+/**
+ * Login codes are single-use, but React may run the effect twice (StrictMode, remounts).
+ * Every run for the same code shares one exchange request.
+ */
+const exchanges = new Map<string, ReturnType<typeof authService.exchangeOAuthCode>>();
+function exchangeOnce(code: string) {
+  let pending = exchanges.get(code);
+  if (!pending) {
+    pending = authService.exchangeOAuthCode(code);
+    exchanges.set(code, pending);
+  }
+  return pending;
+}
 
 export function OAuthCallbackPageClient() {
   const router = useRouter();
@@ -18,15 +33,22 @@ export function OAuthCallbackPageClient() {
     let cancelled = false;
 
     const completeOAuth = async () => {
-      const accessToken = searchParams.get('accessToken');
-      const refreshToken = searchParams.get('refreshToken');
-
-      if (!accessToken || !refreshToken) {
+      // The API redirects here with a single-use code, never with tokens (KI-4).
+      const code = searchParams.get('code');
+      if (!code) {
         router.replace(ROUTES.auth.login);
         return;
       }
 
-      dispatch(setTokens({ accessToken, refreshToken }));
+      try {
+        const tokens = await exchangeOnce(code);
+        if (cancelled) return;
+        dispatch(setTokens({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }));
+      } catch {
+        // Expired or already used (e.g. the page was reloaded): start the sign-in again.
+        if (!cancelled) router.replace(ROUTES.auth.login);
+        return;
+      }
 
       try {
         const projects = await projectsService.listMine();

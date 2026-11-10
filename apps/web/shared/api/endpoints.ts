@@ -6,6 +6,7 @@ export const ENDPOINTS = {
     logout: '/api/v1/users/logout',
     oauthStart: (provider: 'google' | 'github', mode: 'login' | 'register') =>
       `/api/v1/auth/oauth/${provider}/start?mode=${mode}`,
+    oauthExchange: '/api/v1/auth/oauth/exchange',
   },
   user: {
     profile: '/api/v1/users/me',

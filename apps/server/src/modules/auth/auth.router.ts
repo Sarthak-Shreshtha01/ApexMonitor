@@ -13,6 +13,7 @@ router.post(SERVER_ENDPOINTS.auth.refresh, asyncHandler(controller.refresh));
 router.post(SERVER_ENDPOINTS.auth.logout, asyncHandler(controller.logout));
 router.get(SERVER_ENDPOINTS.auth.oauthStart, asyncHandler(controller.oauthStart));
 router.get(SERVER_ENDPOINTS.auth.oauthCallback, asyncHandler(controller.oauthCallback));
+router.post(SERVER_ENDPOINTS.auth.oauthExchange, asyncHandler(controller.oauthExchange));
 
 // POST /api/v1/auth/keys
 router.post(SERVER_ENDPOINTS.auth.keys, requireAuth, requireProjectAccess({ source: 'body', requireOwner: true }), asyncHandler(controller.generateKey));

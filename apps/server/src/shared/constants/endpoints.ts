@@ -23,6 +23,7 @@ export const SERVER_ENDPOINTS = {
     rumKeys: '/rum-keys',
     oauthStart: '/oauth/:provider/start',
     oauthCallback: '/oauth/:provider/callback',
+    oauthExchange: '/oauth/exchange',
   },
   users: {
     register: '/register',

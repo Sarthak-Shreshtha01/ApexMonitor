@@ -5,7 +5,12 @@ import { AuthRepository } from './auth.repository';
 import crypto from 'crypto';
 import { UserService } from '@modules/users/user.service';
 import { signToken, verifyToken } from '@shared/auth/tokens';
-import { cacheValidatedKey, readCachedKey } from './key-cache';
+import { cacheValidatedKey, digestKey, readCachedKey } from './key-cache';
+
+/** How long the web app has to exchange an OAuth login code for tokens. */
+export const OAUTH_LOGIN_CODE_TTL_SECONDS = 60;
+
+type SessionTokens = { accessToken: string; refreshToken: string };
 
 type OAuthProvider = 'google' | 'github';
 type OAuthMode = 'login' | 'register';
@@ -158,6 +163,29 @@ export class AuthService {
     }
 
     throw new Error('UNSUPPORTED_PROVIDER');
+  }
+
+  /**
+   * Stores freshly issued tokens under a random single-use code. The OAuth callback
+   * redirects the browser with this code instead of the tokens themselves, so tokens
+   * never appear in URLs, browser history, proxy logs or Referer headers.
+   */
+  async createOAuthLoginCode(tokens: SessionTokens): Promise<string> {
+    const code = crypto.randomBytes(32).toString('base64url');
+    await getRedis().set(
+      `oauth:login_code:${digestKey(code)}`,
+      JSON.stringify({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken }),
+      'EX',
+      OAUTH_LOGIN_CODE_TTL_SECONDS,
+    );
+    return code;
+  }
+
+  /** Returns the tokens for a login code exactly once (GETDEL), or throws INVALID_OAUTH_CODE. */
+  async exchangeOAuthLoginCode(code: string): Promise<SessionTokens> {
+    const stored = await getRedis().getdel(`oauth:login_code:${digestKey(code)}`);
+    if (!stored) throw new Error('INVALID_OAUTH_CODE');
+    return JSON.parse(stored) as SessionTokens;
   }
 
   async handleOAuthCallback(provider: OAuthProvider, code: string, state: string) {
