@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Clock, ChevronDown, CheckCircle2, RefreshCcw } from 'lucide-react';
+import { CheckCircle2, RefreshCcw } from 'lucide-react';
 import { useProjectStore } from '@/features/projects/state/project.store';
 import { useDashboardStore } from '@/features/dashboard/state/dashboard.store';
 import { useRumAnalytics } from '@/features/analytics/hooks/useAnalytics';
@@ -62,11 +62,6 @@ export function WebAnalyticsExplorer() {
             <h1 className="text-3xl font-black tracking-tight text-white mb-1">Web Analytics (RUM)</h1>
             <p className="text-zinc-500 text-sm font-mono uppercase tracking-widest">Real-time user monitoring & experience metrics</p>
           </div>
-          {/* <div className="flex items-center gap-2 bg-[#131313] border border-[#242424] px-4 py-2 cursor-default rounded-lg w-fit">
-            <Clock className="w-4 h-4 text-orange-500" />
-            <span className="text-xs font-mono text-white">{timeframe.toUpperCase()}</span>
-            <ChevronDown className="w-4 h-4 text-zinc-600" />
-          </div> */}
           <button
             type="button"
             onClick={() => {

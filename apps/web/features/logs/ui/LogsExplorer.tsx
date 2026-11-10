@@ -58,13 +58,14 @@ export function LogsExplorer() {
     enabled: !!queryParams,
     refetchInterval: 10000,
   });
+  const refetchLogs = logsQuery.refetch;
 
   useEffect(() => {
     if (!activeProjectId) return;
 
-    // New traffic for this project: reload the list.
-    return connectProjectSocket(activeProjectId, { onPulse: () => void logsQuery.refetch() });
-  }, [activeProjectId, logsQuery.refetch]);
+    // New traffic for this project: reload the list (at most every 5 s while requests keep coming).
+    return connectProjectSocket(activeProjectId, { onTraffic: () => void refetchLogs() });
+  }, [activeProjectId, refetchLogs]);
 
   const onApplyFilters = (event: FormEvent) => {
     event.preventDefault();

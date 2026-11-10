@@ -203,7 +203,6 @@ export function GeoIpLeafletMapClient({
           </Pane>
 
           {points.map((point) => {
-            const ratio = Math.min(1, point.views / maxViews);
             const radius = Math.min(12, 2.6 + Math.log10(point.views + 1) * 2.4);
             return (
               <CircleMarker

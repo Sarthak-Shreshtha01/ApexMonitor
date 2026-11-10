@@ -91,6 +91,33 @@ describe('connectProjectSocket (KI-41)', () => {
     expect(socket.emitted).toHaveLength(1);
   });
 
+  it('onTraffic fires for pulses with traffic, at most once per interval', () => {
+    const socket = new FakeSocket();
+    let clock = 0;
+    const onTraffic = vi.fn();
+    connectProjectSocket('p1', { onTraffic, trafficIntervalMs: 5_000 }, {
+      createSocket: () => socket,
+      getAccessToken: () => 't',
+      refreshAccessToken: async () => 't',
+      now: () => clock,
+    });
+    const pulse = (rps: number) => socket.serverSends('pulse:live', { projectId: 'p1', data: { rps } });
+
+    pulse(0); // idle pulses (every 2 s) don't reload anything
+    expect(onTraffic).not.toHaveBeenCalled();
+    pulse(3);
+    expect(onTraffic).toHaveBeenCalledTimes(1);
+    clock = 2_000;
+    pulse(3);
+    expect(onTraffic).toHaveBeenCalledTimes(1);
+    clock = 5_000;
+    pulse(1);
+    expect(onTraffic).toHaveBeenCalledTimes(2);
+    socket.serverSends('pulse:live', { projectId: 'other', data: { rps: 9 } });
+    clock = 20_000;
+    expect(onTraffic).toHaveBeenCalledTimes(2);
+  });
+
   it('the returned function disconnects', () => {
     const { socket, close } = setup();
     close();

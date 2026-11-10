@@ -39,6 +39,7 @@ export function SupportQrCard() {
       <h2 className="text-sm font-bold tracking-tight text-white">Support via QR</h2>
 
       <div className="rounded-md border border-neutral-800 bg-black p-3">
+        {/* eslint-disable-next-line @next/next/no-img-element -- small external QR image; next/image optimisation buys nothing here */}
         <img src={qrSrc} alt="Payment QR code" className="mx-auto h-52 w-52 sm:h-56 sm:w-56 rounded-sm" loading="lazy" />
       </div>
 

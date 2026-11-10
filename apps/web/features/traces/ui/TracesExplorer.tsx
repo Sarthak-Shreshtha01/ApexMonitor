@@ -41,13 +41,14 @@ export function TracesExplorer() {
     enabled: !!queryParams,
     refetchInterval: 12000,
   });
+  const refetchTraces = tracesQuery.refetch;
 
   useEffect(() => {
     if (!activeProjectId) return;
 
-    // New traffic for this project: reload the list.
-    return connectProjectSocket(activeProjectId, { onPulse: () => void tracesQuery.refetch() });
-  }, [activeProjectId, tracesQuery.refetch]);
+    // New traffic for this project: reload the list (at most every 5 s while requests keep coming).
+    return connectProjectSocket(activeProjectId, { onTraffic: () => void refetchTraces() });
+  }, [activeProjectId, refetchTraces]);
 
   const traces = tracesQuery.data?.traces ?? [];
   const total = tracesQuery.data?.total ?? 0;

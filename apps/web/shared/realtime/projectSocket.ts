@@ -14,8 +14,14 @@ export interface ProjectSocketHandlers<T> {
   onJoined?: () => void;
   /** Disconnected, or the join was refused. */
   onLeft?: () => void;
-  /** A `pulse:live` event for this project. */
+  /** A `pulse:live` event for this project (the server sends one every 2 s, traffic or not). */
   onPulse?: (event: PulseEvent<T>) => void;
+  /**
+   * New requests arrived (a pulse with rps > 0), at most once per `trafficIntervalMs`.
+   * Use this to reload lists instead of reloading on every pulse.
+   */
+  onTraffic?: () => void;
+  trafficIntervalMs?: number;
 }
 
 /** The parts of a socket.io client this module uses (a fake in unit tests). */
@@ -29,6 +35,7 @@ export interface ProjectSocketDeps {
   createSocket: (url: string) => SocketLike;
   getAccessToken: () => string | null;
   refreshAccessToken: () => Promise<string>;
+  now?: () => number;
 }
 
 const defaultDeps: ProjectSocketDeps = {
@@ -51,7 +58,10 @@ export function connectProjectSocket<T = unknown>(
   deps: ProjectSocketDeps = defaultDeps,
 ): () => void {
   const socket = deps.createSocket(WS_URL);
+  const now = deps.now ?? Date.now;
+  const trafficIntervalMs = handlers.trafficIntervalMs ?? 5_000;
   let retriedAfterRefresh = false;
+  let lastTrafficAt = -Infinity;
 
   const join = (token: string | null) => socket.emit('join', { projectId, token: token ?? undefined });
 
@@ -69,7 +79,13 @@ export function connectProjectSocket<T = unknown>(
   });
   socket.on('disconnect', () => handlers.onLeft?.());
   socket.on('pulse:live', (event: PulseEvent<T>) => {
-    if (event?.projectId === projectId) handlers.onPulse?.(event);
+    if (event?.projectId !== projectId) return;
+    handlers.onPulse?.(event);
+    const rps = Number((event.data as { rps?: unknown } | undefined)?.rps ?? 0);
+    if (handlers.onTraffic && rps > 0 && now() - lastTrafficAt >= trafficIntervalMs) {
+      lastTrafficAt = now();
+      handlers.onTraffic();
+    }
   });
 
   return () => {
