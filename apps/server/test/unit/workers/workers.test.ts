@@ -25,7 +25,7 @@ const { RawLogWorker } = await import('@workers/raw-log.worker');
 const { AggregationWorker } = await import('@workers/aggregation.worker');
 const { AnomalyWorker } = await import('@workers/anomaly.worker');
 const { RumWorker } = await import('@workers/rum.worker');
-const { AlertWorker, evaluateRule } = await import('@workers/alert.worker');
+const { AlertWorker, evaluateRule, ALERT_PASS_LOCK_KEY } = await import('@workers/alert.worker');
 const { eventBus } = await import('@events/event-bus');
 
 const log = (o: Record<string, unknown> = {}) => ({
@@ -234,7 +234,8 @@ describe('AlertWorker (KI-18)', () => {
   });
   const breaching = { totalRequests: 100, totalErrors: 6, p99Ms: 10 };
   const healthy = { totalRequests: 100, totalErrors: 0, p99Ms: 10 };
-  const worker = new AlertWorker() as unknown as { evaluateRules(): Promise<void>; start(): void; stop(): void };
+  // singleton: false — the cluster-wide pass lock has its own tests below
+  const worker = new AlertWorker({ singleton: false }) as unknown as { evaluateRules(): Promise<boolean>; start(): void; stop(): void };
 
   beforeEach(() => {
     Object.values(alertsRepo).forEach((f) => f.mockReset());
@@ -299,11 +300,11 @@ describe('AlertWorker (KI-18)', () => {
 
   it('one failing rule does not stop the others; repository and webhook failures are contained', async () => {
     alertsRepo.getActiveRules.mockRejectedValueOnce(new Error('pg down'));
-    await expect(worker.evaluateRules()).resolves.toBeUndefined();
+    await expect(worker.evaluateRules()).resolves.toBe(false); // the pass failed as a whole
     alertsRepo.getActiveRules.mockResolvedValue([rule({ id: 1 }), rule({ id: 2, notify_webhook: 'https://hooks.example/x' })]);
     alertsRepo.getWindowStats.mockRejectedValueOnce(new Error('mongo down')).mockResolvedValue(breaching);
     sendWebhook.mockRejectedValueOnce(new Error('ECONNREFUSED'));
-    await expect(worker.evaluateRules()).resolves.toBeUndefined();
+    await expect(worker.evaluateRules()).resolves.toBe(true); // one rule failed, the pass completed
     expect(alertsRepo.transition).toHaveBeenCalledWith(expect.objectContaining({ id: 2 }), 'ok', 'firing', expect.any(String), 6);
   });
 
@@ -327,5 +328,30 @@ describe('AlertWorker (KI-18)', () => {
     expect(sendWebhook).toHaveBeenCalledWith('http://169.254.169.254/latest/meta-data', expect.anything());
     expect(fetchSpy).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('AlertWorker across replicas (KI-20)', () => {
+  beforeEach(() => {
+    redis.store.delete(ALERT_PASS_LOCK_KEY);
+    Object.values(alertsRepo).forEach((f) => f.mockReset());
+    alertsRepo.getActiveRules.mockResolvedValue([]);
+  });
+
+  it('only one replica runs each pass: the first takes the lock, the others skip', async () => {
+    const a = new AlertWorker();
+    const b = new AlertWorker();
+    expect(await a.evaluateRules()).toBe(true);
+    expect(await b.evaluateRules()).toBe(false);
+    expect(alertsRepo.getActiveRules).toHaveBeenCalledTimes(1);
+    expect(redis.ttl.get(ALERT_PASS_LOCK_KEY)).toBeUndefined(); // PX expiry, see below
+    expect(redis.set).toHaveBeenCalledWith(ALERT_PASS_LOCK_KEY, expect.any(String), 'PX', 55_000, 'NX');
+  });
+
+  it('once the lock expires, the next pass runs on whichever replica gets there first', async () => {
+    const b = new AlertWorker();
+    await new AlertWorker().evaluateRules();
+    redis.store.delete(ALERT_PASS_LOCK_KEY); // expired
+    expect(await b.evaluateRules()).toBe(true);
   });
 });

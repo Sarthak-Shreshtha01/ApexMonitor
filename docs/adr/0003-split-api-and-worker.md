@@ -8,8 +8,7 @@
 `apps/server/src/bootstrap.ts` runs the HTTP API, Socket.IO, four RabbitMQ consumers, and the alert `setInterval` loop in one process. Consequences today:
 
 - Ingest/query traffic and background processing compete for one event loop.
-- Running 2+ replicas duplicates alert evaluation and notifications (KI-20).
-- The in-process `EventEmitter` only works because producers and consumers share memory.
+- Running 2+ replicas used to duplicate alert evaluation and break events (KI-20). That is fixed with a Redis pass lock and a Redis pub/sub bridge for the event bus, so splitting is no longer needed for scaling; it remains useful for isolating ingest/worker load.
 - A worker crash takes down the API, and vice versa.
 
 ## Decision

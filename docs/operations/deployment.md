@@ -49,6 +49,10 @@ services:
 
 and pass both files: `-f infra/compose/docker-compose.prod.yml -f infra/compose/docker-compose.override.yml`.
 
+## More than one API replica
+
+Supported: run more `api` containers behind the proxy (`docker compose … up -d --scale api=3` with the published port removed, or separate hosts). Queue work is shared, alert evaluation runs once per minute cluster-wide, and events reach websocket clients on every replica. No sticky sessions are needed. Run `migrate` once per release, not per replica.
+
 ## Upgrades
 
 1. Build or pull the new images.
@@ -57,5 +61,4 @@ and pass both files: `-f infra/compose/docker-compose.prod.yml -f infra/compose/
 
 ## Not covered yet
 
-- More than one API replica (in-process event bus, Socket.IO without a Redis adapter, scheduled jobs on every replica): KI-20.
 - Backups: see the "Restoring from backup" runbook.

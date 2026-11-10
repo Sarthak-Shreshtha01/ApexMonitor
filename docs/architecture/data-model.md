@@ -76,6 +76,8 @@ To read latency across several rows (hours, endpoints), merge, don't average: `S
 | `rum_key:ref:<keyId>`, `rum_key:revoked:<keyId>` | as for API keys | 300 / 600 s | auth/key-cache |
 | `project_owner:<projectId>` | string | 3600 s | ingest.service |
 | `tier:<userId>` | string | 3600 s | ingest.service; deleted by billing webhook |
+| `alerts:evaluation-pass` | instance id of the replica running this minute's alert pass | 55 s | AlertWorker |
+| pub/sub `apexmonitor:events` | JSON `{origin, event, payload}` relayed between replicas | n/a | events/event-bus |
 | `rate:ingest:<projectId>:<minute index>` | events counted in that minute (sliding window uses this + the previous minute) | 120 s | shared/rate-limit/sliding-window |
 | `rate:rum:<projectId>:<minute index>` | same, for RUM events | 120 s | shared/rate-limit/sliding-window |
 | `ingest:idempotency:<projectId>:<key>` | JSON | 300 s | ingest.service |

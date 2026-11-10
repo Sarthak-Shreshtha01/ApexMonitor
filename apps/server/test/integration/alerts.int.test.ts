@@ -16,7 +16,8 @@ describe('alert rules and evaluation (real stack, KI-18)', () => {
 
   const evaluate = async () => {
     const { AlertWorker } = await import('@workers/alert.worker');
-    await new AlertWorker().evaluateRules();
+    // singleton: false — these tests run passes back to back; the pass lock is tested in replicas.int.test.ts
+    await new AlertWorker({ singleton: false }).evaluateRules();
   };
   const createRule = async (body: Record<string, unknown>) => {
     const res = await api('POST', '/api/v1/alerts/rules', { token: t.accessToken, body: { projectId: t.projectId, ...body } });

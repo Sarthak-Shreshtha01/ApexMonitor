@@ -106,7 +106,7 @@ Key facts:
 | Tenant isolation | Enforced on dashboard reads and ingest (project from credential) |
 | Durability | Queues and messages durable; publisher confirms before 202; automatic reconnect |
 | Correctness | Hourly averages exact; percentiles from mergeable histograms (~5%); UTC buckets |
-| Scalability | Single process; in-process event bus; interval-based alert loop (KI-20) |
+| Scalability | Several replicas: competing queue consumers, Redis-bridged event bus, one alert pass per minute cluster-wide |
 | Observability of itself | `/health`, `/ready`, `/metrics/system`, pino request logs |
 | Testability | No tests; module-level singletons (KI-28) |
 

@@ -89,19 +89,27 @@ Publishing (`publish()`) uses a separate confirm channel and resolves only when 
 | `AggregationWorker` | `aggregation_queue` | 100 | Groups by project/endpoint/method/hour, computes stats, upserts `hourly_metrics`, emits `aggregation.completed` |
 | `AnomalyWorker` | `anomaly_queue` | 50 | Per endpoint: batch p99 vs Redis baseline (last 20 values); z > 3 → `insights` row + `anomaly.detected` |
 | `RumWorker` | `rum_queue` | 150 | Writes `rum_raw_events` (Mongo, 7-day TTL), aggregates into `hourly_rum_metrics`, HyperLogLog for uniques |
-| `AlertWorker` | n/a (interval 60 s) | n/a | Loads active `alert_rules`, reads `hourly_metrics`, logs `alert_events`, emits `alert.triggered`, POSTs webhook |
+| `AlertWorker` | n/a (interval 60 s) | n/a | One replica per minute (Redis lock `alerts:evaluation-pass`); evaluates active `alert_rules` over raw logs, records triggered/resolved events, emits `alert.triggered`, POSTs webhooks |
 
 ## Event bus
 
-`src/events/event-bus.ts`: typed `EventEmitter` singleton.
+`src/events/event-bus.ts`: typed `EventEmitter` singleton. Listeners in the emitting process run synchronously; with the bridge (started in `bootstrap.ts`) every emit is also published on the Redis channel `apexmonitor:events` and re-emitted by every other replica. A replica ignores its own messages, and relayed events are never published again.
 
 | Event | Emitted by | Consumed by |
 |---|---|---|
-| `aggregation.completed` | AggregationWorker | (nothing yet) |
+| `aggregation.completed` | AggregationWorker | MetricsService (clears cached overview data) |
 | `anomaly.detected` | AnomalyWorker | WebSocketService (`latestInsights`) |
 | `alert.triggered` | AlertWorker | (nothing yet) |
 
-In-process only: this breaks as soon as workers run in a different process (KI-20).
+## Running several replicas
+
+Several API processes can run against the same Postgres, Mongo, Redis and RabbitMQ:
+
+- Queue consumers compete: each message goes to one replica.
+- Alert evaluation runs on one replica per minute (`SET alerts:evaluation-pass NX PX 55000`); a crashed replica's lock just expires. Rule transitions are conditional SQL updates, so even overlapping passes can't notify twice.
+- Events cross replicas through the Redis bridge above, so websocket clients on any replica see every insight.
+- Socket.IO runs **without** a Redis adapter on purpose. Each replica broadcasts the live counters (shared in Redis) to its own clients every 2 s; an adapter would deliver every broadcast N times. Clients connect with `transports: ['websocket']`, so no sticky sessions are needed.
+- Migrations take a Postgres advisory lock, rate limits, idempotency keys and the key cache live in Redis.
 
 ## Realtime (Socket.IO)
 

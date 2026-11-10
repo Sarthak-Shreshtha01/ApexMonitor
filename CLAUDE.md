@@ -92,6 +92,6 @@ Full path-by-path map: [`docs/reference/repository-layout.md`](docs/reference/re
 
 - `.env` lives at the **repo root** (not `apps/server/.env`) and is optional: env vars win, and it's ignored when `NODE_ENV=test`. Template: `.env.example`.
 - The server build is an esbuild bundle (`apps/server/build.mjs`): our code is bundled with aliases resolved, `node_modules` stays external. Don't switch back to plain `tsc` output; it leaves `@modules/...` imports unresolved.
-- Workers run inside the API process; the event bus is in-process only.
+- Workers run inside the API process. Several replicas are safe (see `docs/architecture/backend.md#running-several-replicas`); anything that must happen once per cluster needs a lock, and cross-replica notifications go through `eventBus` (Redis-bridged).
 - Legacy name "PulseApi"/"pulse" still appears in infra credentials and old text; the product name is ApexMonitor.
 - `README.md`, `docs/`, and this file must stay accurate: update them in the same change as the behavior they describe.

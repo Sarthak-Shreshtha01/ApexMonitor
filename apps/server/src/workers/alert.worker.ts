@@ -1,8 +1,13 @@
 import { AlertsRepository, AlertRule, WindowStats } from '@modules/alerts/alerts.repository';
 import { eventBus } from '@events/event-bus';
 import { sendWebhook } from '@shared/net/webhook';
+import { getRedis } from '@infrastructure/redis';
+import { INSTANCE_ID } from '@shared/instance';
 
 export const ALERT_EVALUATION_INTERVAL_MS = 60_000;
+/** Redis key that makes one replica run each evaluation pass (expires on its own). */
+export const ALERT_PASS_LOCK_KEY = 'alerts:evaluation-pass';
+const ALERT_PASS_LOCK_MS = ALERT_EVALUATION_INTERVAL_MS - 5_000;
 
 export interface Evaluation {
   breached: boolean;
@@ -47,6 +52,13 @@ export class AlertWorker {
   private interval: NodeJS.Timeout | null = null;
   private running = false;
 
+  /**
+   * @param singleton with several replicas, only the one that takes the Redis pass lock
+   *   evaluates (at most one pass per ~minute cluster-wide). The lock is not released early:
+   *   it expires after 55 s, so a crashed replica can't block evaluation for long.
+   */
+  constructor(private readonly options: { singleton?: boolean } = {}) {}
+
   start(): void {
     console.log('👷 [Worker] AlertWorker started, evaluating rules every 60s');
     this.interval = setInterval(() => void this.evaluateRules(), ALERT_EVALUATION_INTERVAL_MS);
@@ -63,10 +75,15 @@ export class AlertWorker {
     return this.running;
   }
 
-  async evaluateRules(): Promise<void> {
-    if (this.running) return; // a slow pass must not overlap the next tick
+  /** Runs one pass. Returns false if skipped (already running here, or another replica's turn). */
+  async evaluateRules(): Promise<boolean> {
+    if (this.running) return false; // a slow pass must not overlap the next tick
     this.running = true;
     try {
+      if (this.options.singleton !== false) {
+        const won = await getRedis().set(ALERT_PASS_LOCK_KEY, INSTANCE_ID, 'PX', ALERT_PASS_LOCK_MS, 'NX');
+        if (won !== 'OK') return false;
+      }
       const rules = await this.repo.getActiveRules();
       for (const rule of rules) {
         try {
@@ -75,8 +92,10 @@ export class AlertWorker {
           console.error(`❌ [AlertWorker] Rule ${rule.id} failed:`, (error as Error).message);
         }
       }
+      return true;
     } catch (error) {
       console.error('❌ [AlertWorker] Failed to evaluate rules:', error);
+      return false;
     } finally {
       this.running = false;
     }

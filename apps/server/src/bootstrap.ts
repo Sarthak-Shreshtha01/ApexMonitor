@@ -1,7 +1,8 @@
 import { createApp } from './app';
 import { closeMongo, connectMongo } from '@infrastructure/db/mongo';
 import { closePostgres, connectPostgres, ensureSchemaUpToDate } from '@infrastructure/db/postgres';
-import { closeRedis, connectRedis } from '@infrastructure/redis';
+import { closeRedis, connectRedis, getRedis } from '@infrastructure/redis';
+import { eventBus } from '@events/event-bus';
 import { closeRabbitMQ, connectRabbitMQ, inFlightMessages, stopConsuming } from '@infrastructure/rabbitmq';
 import { markShuttingDown, runShutdown, waitUntil } from '@shared/lifecycle';
 import { config } from '@config';
@@ -27,6 +28,9 @@ async function bootstrap() {
 
     // 2. Schema must be current before workers or HTTP use the database
     await ensureSchemaUpToDate();
+
+    // 3. Relay events between replicas (websocket clients on any instance see every event)
+    await eventBus.connectBridge(getRedis(), getRedis().duplicate());
 
     // Initialize Background Workers
     console.log('⏳ Starting background workers...');
@@ -81,6 +85,7 @@ async function bootstrap() {
         { name: 'stop alert evaluation', run: async () => { alertWorker.stop(); await waitUntil(() => !alertWorker.isBusy(), 10_000); } },
         { name: 'drain queue consumers', run: async () => { if (!(await stopConsuming(10_000))) throw new Error(`${inFlightMessages()} message(s) still in flight; they will be redelivered`); } },
         { name: 'close RabbitMQ', run: closeRabbitMQ },
+        { name: 'stop event bridge', run: () => eventBus.disconnectBridge() },
         { name: 'close MongoDB', run: closeMongo },
         { name: 'close PostgreSQL', run: closePostgres },
         { name: 'close Redis', run: closeRedis },
