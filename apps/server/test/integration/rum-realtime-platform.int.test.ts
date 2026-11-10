@@ -112,6 +112,9 @@ describe('platform endpoints (real stack)', () => {
     expect(ready.status).toBe(200);
     expect(ready.body.data.snapshot.services).toEqual({ mongo: 'ok', postgres: 'ok', redis: 'ok', rabbitmq: 'ok' });
     const metrics = await api('GET', '/metrics/system');
-    for (const q of metrics.body.data.queues) expect(q.consumerCount, q.queue).toBeGreaterThanOrEqual(1);
+    const queues = metrics.body.data.queues as { queue: string; consumerCount: number }[];
+    for (const q of queues.filter((x) => x.queue.endsWith('_queue'))) expect(q.consumerCount, q.queue).toBeGreaterThanOrEqual(1);
+    // Dead-letter queues are reported (for backlog visibility) but nothing consumes them.
+    expect(queues.filter((x) => x.queue.endsWith('_dlq')).map((x) => x.consumerCount)).toEqual([0, 0, 0, 0]);
   });
 });

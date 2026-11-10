@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import { FakeChannel } from '../../helpers/fakes';
-import { knownBug } from '../../helpers/known-bug';
 
 const channel = new FakeChannel();
 vi.mock('amqplib', () => ({
@@ -32,9 +31,12 @@ describe('RabbitMQ topology', () => {
     expect(channel.bindQueue).toHaveBeenCalledWith('rum_queue', 'logs.exchange', 'rum.ingest');
   });
 
-  knownBug('KI-32', 'dead-letter queues are bound to dlq.exchange so rejected messages are kept', async () => {
-    for (const q of ['raw_log_dlq', 'aggregation_dlq', 'anomaly_dlq', 'rum_dlq']) {
-      expect(channel.bindQueue).toHaveBeenCalledWith(q, 'dlq.exchange', q);
+  it('binds every dead-letter queue to dlq.exchange under the routing key its worker queue uses (KI-32)', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    await connectRabbitMQ();
+    for (const q of ['raw_log', 'aggregation', 'anomaly', 'rum']) {
+      const workerArgs = channel.assertQueue.mock.calls.find(([name]) => name === `${q}_queue`)![1];
+      expect(channel.bindQueue).toHaveBeenCalledWith(workerArgs.deadLetterRoutingKey, workerArgs.deadLetterExchange, workerArgs.deadLetterRoutingKey);
     }
   });
 });

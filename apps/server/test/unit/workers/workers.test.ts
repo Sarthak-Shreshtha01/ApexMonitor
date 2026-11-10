@@ -5,7 +5,7 @@ import { knownBug } from '../../helpers/known-bug';
 const channel = new FakeChannel();
 const pg = new FakePg();
 const redis = new FakeRedis();
-vi.mock('@infrastructure/rabbitmq', () => ({ getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 

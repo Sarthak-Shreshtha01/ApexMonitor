@@ -9,7 +9,7 @@ const pg = new FakePg();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
-vi.mock('@infrastructure/rabbitmq', () => ({ getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
 
 const validateApiKey = vi.fn();
 vi.mock('@modules/auth/auth.service', () => ({

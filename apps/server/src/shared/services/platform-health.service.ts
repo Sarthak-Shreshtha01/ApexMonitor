@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import { getPg } from '@infrastructure/db/postgres';
 import { getRedis } from '@infrastructure/redis';
-import { getChannel } from '@infrastructure/rabbitmq';
+import { DEAD_LETTER_QUEUES, WORKER_QUEUES, getChannel } from '@infrastructure/rabbitmq';
 
 export interface QueueHealth {
   queue: string;
@@ -79,7 +79,8 @@ export class PlatformHealthService {
 
   private async checkQueues(): Promise<QueueHealth[]> {
     const channel = getChannel();
-    const queueNames = ['raw_log_queue', 'aggregation_queue', 'anomaly_queue', 'rum_queue'];
+    // Dead-letter queues are included so a growing backlog of rejected messages is visible.
+    const queueNames = [...WORKER_QUEUES, ...DEAD_LETTER_QUEUES];
 
     const results: QueueHealth[] = [];
     for (const queue of queueNames) {

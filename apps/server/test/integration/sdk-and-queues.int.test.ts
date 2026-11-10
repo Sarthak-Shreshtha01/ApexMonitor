@@ -62,7 +62,7 @@ describe('TypeScript SDK against the live server', () => {
 });
 
 describe('RabbitMQ dead-lettering (real stack)', () => {
-  knownBug('KI-32', 'a message rejected by a worker lands in its dead-letter queue', async () => {
+  it('a message rejected by a worker lands in its dead-letter queue (KI-32)', async () => {
     await getStack();
     const { getChannel } = await import('@infrastructure/rabbitmq');
     const channel = getChannel();

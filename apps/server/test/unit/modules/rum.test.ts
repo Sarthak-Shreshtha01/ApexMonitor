@@ -5,7 +5,7 @@ import { appWith, FakeChannel, FakeRedis, PROJECT_A, PROJECT_B, project } from '
 const redis = new FakeRedis();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
-vi.mock('@infrastructure/rabbitmq', () => ({ getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => ({ query: vi.fn(async () => ({ rows: [] })) }) }));
 
 const listProjects = vi.fn(async () => [project(PROJECT_A)]);

@@ -11,13 +11,20 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 - **Check:** `/metrics/system` queue counts. Are `raw_log_queue` / `aggregation_queue` growing? Are consumers 0?
 - **Check:** server logs for `[AggregationWorker] Processing failed` / `[RawLogWorker]`.
 - **Act:** consumers 0 → restart the server process (workers start at boot; there's no reconnect yet, KI-16). Errors → inspect the failing message shape.
-- **Follow-up:** messages rejected by workers are currently **lost** (DLQs unbound, KI-32).
+- **Check:** `*_dlq` counts in `/metrics/system`. Rejected messages are kept there; see *Messages piling up in a dead-letter queue*.
 
 ## RabbitMQ restarted or unreachable
 
 - **Symptoms:** ingest 500s ("RabbitMQ channel not created" or channel closed), `/ready` fails.
 - **Act:** after RabbitMQ is back, **restart the API process**; the app doesn't reconnect.
 - **Data impact:** batches accepted while the channel was dead may be lost.
+
+## Messages piling up in a dead-letter queue
+
+- **Symptoms:** a `*_dlq` count in `/metrics/system` is above 0 and growing.
+- **Check:** look at a few messages in the RabbitMQ UI (Queues → `<name>_dlq` → *Get messages*, ack mode *Nack message requeue true* so they stay). The `x-death` header says why (`rejected` = the worker failed; `expired` = it waited over 24 h). Match the time with worker errors in the server logs.
+- **Act:** fix the cause first (dependency down, bad deploy, malformed payload). Then move the messages back to the **worker queue, not the exchange**, so other workers don't process them twice: enable the shovel plugin (`rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management`) and use *Move messages* on the DLQ page with destination queue `<name>_queue` (e.g. `aggregation_dlq` → `aggregation_queue`). Purge messages that can never succeed (malformed JSON).
+- **Note:** raw-log inserts are idempotent; aggregation replays add to existing counters, so replay each message once.
 
 ## Redis unavailable or evicting
 
@@ -28,13 +35,13 @@ Useful endpoints: `GET /ready` (dependency status), `GET /metrics/system` (queue
 
 ## PostgreSQL unavailable
 
-- **Symptoms:** login, dashboards, aggregation fail; aggregation messages nack and are lost (KI-32).
+- **Symptoms:** login, dashboards, aggregation fail; aggregation messages are rejected into `aggregation_dlq`.
 - **Act:** restore PG; restart API if the pool doesn't recover.
-- **Follow-up:** replay is impossible until DLQs are bound; recompute aggregates from Mongo raw logs if needed.
+- **Follow-up:** replay `aggregation_dlq` once PG is back (see *Messages piling up in a dead-letter queue*).
 
 ## MongoDB unavailable
 
-- **Symptoms:** logs/traces pages fail; `RawLogWorker` nacks (data lost).
+- **Symptoms:** logs/traces pages fail; `RawLogWorker` rejects batches into `raw_log_dlq` (replay after recovery).
 - **Act:** restore Mongo. Aggregates in PG are unaffected.
 
 ## Ingest 429s for a customer

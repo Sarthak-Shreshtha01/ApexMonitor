@@ -65,10 +65,6 @@ _None open._
 - One channel is shared by publishers and all consumers.
 **Fix:** confirm channel + await confirms, reconnect with backoff, separate channels.
 
-### KI-32 Dead-lettered messages are dropped
-`infrastructure/rabbitmq.ts` declares `raw_log_dlq`, `aggregation_dlq`, `anomaly_dlq`, `rum_dlq` and routes rejected messages to `dlq.exchange` with routing key `<name>_dlq`, but never binds the DLQ queues to `dlq.exchange`. A direct exchange with no matching binding discards the message, so every `nack(requeue=false)` in the workers loses data.
-**Fix:** `bindQueue('<name>_dlq', 'dlq.exchange', '<name>_dlq')` for each; add DLQ depth alerting.
-
 ### KI-18 Alerting is not usable
 - No HTTP routes for alert rules. `modules/alerts/` only has a repository; the web `AlertRuleBuilder` has nothing to call.
 - `alert_rules.notify_email` is stored but no email is ever sent.

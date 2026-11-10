@@ -94,7 +94,7 @@ Redis is started with `maxmemory 256mb` and `allkeys-lru` in compose, so **any**
 | `anomaly_queue` | logs.exchange (`log.ingest`) | `anomaly_dlq` | 24 h |
 | `rum_queue` | logs.exchange (`rum.ingest`) | `rum_dlq` | 24 h |
 
-DLQs are declared but **not bound** to `dlq.exchange`. Dead-lettered messages are routed with `deadLetterRoutingKey=<name>_dlq` to `dlq.exchange`, which has no bindings, so they're dropped (KI-32).
+Each `<name>_dlq` queue is bound to `dlq.exchange` with routing key `<name>_dlq`. A message lands there when a worker rejects it (`nack` without requeue) or when it sits in its worker queue for more than 24 h. Nothing consumes the DLQs; their depth is reported by `/ready` and `/metrics/system`. Replay is manual (see `docs/operations/runbooks.md`).
 
 ### Message shapes
 

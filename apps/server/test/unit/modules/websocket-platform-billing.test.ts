@@ -12,7 +12,7 @@ const pg = new FakePg();
 const channel = new FakeChannel();
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => redis }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => pg }));
-vi.mock('@infrastructure/rabbitmq', () => ({ getChannel: () => channel }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => channel }));
 
 const listProjects = vi.fn(async () => [project(PROJECT_A)]);
 vi.mock('@modules/users/user.service', () => ({ UserService: class { listProjects = listProjects; } }));
@@ -112,7 +112,10 @@ describe('PlatformController', () => {
     const res = await request(await app).get('/ready');
     expect(res.status).toBe(200);
     expect(res.body.data.ready).toBe(true);
-    expect(res.body.data.snapshot.queues.map((q: any) => q.queue)).toEqual(['raw_log_queue', 'aggregation_queue', 'anomaly_queue', 'rum_queue']);
+    expect(res.body.data.snapshot.queues.map((q: any) => q.queue)).toEqual([
+      'raw_log_queue', 'aggregation_queue', 'anomaly_queue', 'rum_queue',
+      'raw_log_dlq', 'aggregation_dlq', 'anomaly_dlq', 'rum_dlq',
+    ]);
   });
 
   it('/ready is 503 when a dependency is down', async () => {

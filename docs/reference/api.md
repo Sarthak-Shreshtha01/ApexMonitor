@@ -57,7 +57,7 @@ The API/RUM key middlewares currently return `{error, message}` **without** `req
 |---|---|---|---|
 | GET | `/health` | none | Liveness |
 | GET | `/ready` | none | Dependency + queue readiness |
-| GET | `/metrics/system` | none | Uptime, memory, queue counts |
+| GET | `/metrics/system` | none | Uptime, memory, message and consumer counts for worker queues and their dead-letter queues |
 
 ## Auth: `/api/v1/auth`
 

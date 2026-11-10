@@ -17,6 +17,12 @@ export function getChannel(): Channel {
   return channel;
 }
 
+/** Queues consumed by workers. Each one dead-letters into `<name>_dlq` (see DEAD_LETTER_QUEUES). */
+export const WORKER_QUEUES = ['raw_log_queue', 'aggregation_queue', 'anomaly_queue', 'rum_queue'] as const;
+
+/** Where messages go when a worker rejects them (nack without requeue) or they expire after 24 h. */
+export const DEAD_LETTER_QUEUES = ['raw_log_dlq', 'aggregation_dlq', 'anomaly_dlq', 'rum_dlq'] as const;
+
 // Declarative Topology Setup (from SRS §9.2)
 async function setupRabbitMQTopology(ch: Channel): Promise<void> {
   // 1. Exchanges
@@ -24,11 +30,13 @@ async function setupRabbitMQTopology(ch: Channel): Promise<void> {
   await ch.assertExchange('dlq.exchange', 'direct', { durable: true });
   await ch.assertExchange('ws.fanout', 'fanout', { durable: false });
 
-  // 2. Dead Letter Queues
-  await ch.assertQueue('raw_log_dlq', { durable: true });
-  await ch.assertQueue('aggregation_dlq', { durable: true });
-  await ch.assertQueue('anomaly_dlq', { durable: true });
-  await ch.assertQueue('rum_dlq', { durable: true });
+  // 2. Dead-letter queues. Each one must be bound to dlq.exchange under its own name:
+  //    dlq.exchange is a direct exchange, so a dead-lettered message with no matching
+  //    binding would be silently discarded.
+  for (const dlq of DEAD_LETTER_QUEUES) {
+    await ch.assertQueue(dlq, { durable: true });
+    await ch.bindQueue(dlq, 'dlq.exchange', dlq);
+  }
 
   // 3. Worker Queues with DLQ Routing
   const qArgs = (dlq: string) => ({

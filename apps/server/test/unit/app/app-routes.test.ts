@@ -7,7 +7,7 @@ import { knownBug } from '../../helpers/known-bug';
 
 vi.mock('@infrastructure/redis', () => ({ getRedis: () => new FakeRedis() }));
 vi.mock('@infrastructure/db/postgres', () => ({ getPg: () => new FakePg() }));
-vi.mock('@infrastructure/rabbitmq', () => ({ getChannel: () => new FakeChannel() }));
+vi.mock('@infrastructure/rabbitmq', async (importOriginal) => ({ ...(await importOriginal<object>()), getChannel: () => new FakeChannel() }));
 vi.mock('mongoose', async (orig) => {
   const actual = await orig<typeof import('mongoose')>();
   return { ...actual, default: { ...actual.default, connection: { readyState: 1 } } };
