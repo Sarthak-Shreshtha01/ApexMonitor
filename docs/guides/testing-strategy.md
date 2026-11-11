@@ -33,7 +33,7 @@ Useful environment variables:
 | Server unit | `apps/server/test/unit/` | Vitest + supertest | none (in-memory fakes) | Utils, tokens, middleware, every DTO, every router/controller/service, workers, RabbitMQ topology, websocket, platform health, billing, full `createApp()` route table and auth matrix, client/server path drift, config loading |
 | Server integration | `apps/server/test/integration/` | Vitest | real PG, Mongo, Redis, RabbitMQ | Auth flows, tenant isolation matrix, ingest → workers → query APIs, keys, members/roles, RUM, websocket pulse, readiness, TS SDK + browser SDK against the live server, dead-lettering |
 | Web | `apps/web/test/` | Vitest | none | API client token refresh queue, auth state, routes and login redirects, project websocket |
-| Browser (E2E) | `apps/web/e2e/` | Playwright (Chromium) | real API + workers, PG, Mongo, Redis, RabbitMQ; production build of the dashboard | Server-side login redirect with `?next=`, sign-up, session restore from the httpOnly cookie (no tokens in storage), sign-out, wrong password, project + key creation, ingest → overview numbers and normalised endpoints, key revocation, live traffic websocket join and pulses |
+| Browser (E2E) | `apps/web/e2e/` | Playwright (Chromium) | real API + workers, PG, Mongo, Redis, RabbitMQ; production build of the dashboard | Server-side login redirect with `?next=`, sign-up, session restore from the httpOnly cookie (no tokens in storage), sign-out, wrong password, project + key creation, ingest → overview numbers and normalised endpoints, key revocation, live traffic websocket join and pulses, logs list + status filter → trace detail, trace explorer, unknown trace id, alert rules (create, pause/resume, delete) and SSRF-unsafe webhook rejection |
 | TS SDK | `packages/sdk/test/` | Vitest | none | Transport (auth, retries, timeouts, aborts, envelopes, errors) and every client method's path |
 | Browser SDK | `packages/browser-sdk/test/` | Vitest | none | Queueing, flushing, timers, unload; contract against the server RUM schema |
 | Python SDK | `packages/python-sdk/tests/` | unittest | none | Transport, auth, retries, errors, endpoint mapping |
@@ -95,6 +95,6 @@ While the bug exists the suite stays green. **When you fix a bug, its test start
 
 ## Not covered yet
 
-- Browser tests for the remaining pages (alerts, logs filters, traces, analytics, settings, billing)
+- Browser tests for the remaining pages (analytics, settings, billing)
 - Load tests (k6; plan Phase 3)
 - Python SDK against a live server

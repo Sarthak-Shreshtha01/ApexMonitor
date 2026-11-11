@@ -27,8 +27,10 @@ test('create a project and key, send traffic, see it on the overview, revoke the
 
   // Revoking the key stops ingest immediately.
   await page.goto('/keys');
-  await page.getByRole('button', { name: 'Revoke key e2e key' }).locator('visible=true').first().click();
-  await expect(page.getByText('No keys yet for this project.')).toBeVisible();
+  const section = page.locator('section', { has: page.getByRole('heading', { name: projectName }) }).last();
+  await section.getByRole('button', { name: 'Revoke key e2e key' }).locator('visible=true').first().click();
+  // Scoped to this project: the default project's section shows the same empty message.
+  await expect(section.getByText('No keys yet for this project.')).toBeVisible();
   const refused = await page.request.post(`${API_URL}/api/v1/ingest`, {
     headers: { 'x-api-key': apiKey },
     data: { logs: [{ method: 'GET', endpoint: '/x', statusCode: 200, latencyMs: 1, timestamp: new Date().toISOString() }] },

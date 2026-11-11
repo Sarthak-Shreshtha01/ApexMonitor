@@ -51,6 +51,7 @@ _All done (see Done)._
 
 ## Done
 
+- [x] 2026-11-11: Trace detail page never loaded a trace ("Trace Not Found" for every request): it read Next 16 route `params` synchronously, so the ID was `undefined` and no request was made. Found by new browser tests for logs (status filter → View Trace), the trace explorer and alert rules; seven unused mock log/trace components removed, log filters labelled
 - [x] 2026-11-11: API/RUM key errors use the standard envelope with `requestId`; a key check that fails because the database or Redis is down is now a retryable `503` + `Retry-After` instead of a `401` that made SDKs drop the batch (KI-23, part)
 - [x] 2026-11-11: Web uses one client-state library: the auth session moved from Redux to a Zustand store (still memory-only); Redux packages and the empty `turbo.json` removed (KI-31)
 - [x] 2026-11-11: Anomaly detection uses time-based baselines: per-minute latency histograms per method + endpoint (by request timestamp), p99 vs a 30-minute baseline, noise floors, 5-minute cooldown per endpoint; a flat baseline no longer hides spikes (KI-27)
