@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   description: 'Inspect distributed trace spans, timing waterfalls, and request metadata.',
 };
 
-export default function TraceDetailView({ params }: { params: { id: string } }) {
-  return <TraceDetailPageClient traceId={params.id} />;
+// Route params are a Promise in this Next.js version; reading `params.id` directly gives undefined.
+export default async function TraceDetailView({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  return <TraceDetailPageClient traceId={decodeURIComponent(id)} />;
 }

@@ -104,6 +104,7 @@ export function LogsExplorer() {
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20">
           <span className="text-secondary">Method:</span>
           <select
+            aria-label="Method"
             value={draft.method}
             onChange={(e) => setDraft((prev) => ({ ...prev, method: e.target.value as DraftFilters['method'] }))}
             className="bg-transparent border-none p-0 text-primary focus:ring-0 text-xs font-bold cursor-pointer outline-none"
@@ -121,6 +122,7 @@ export function LogsExplorer() {
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20">
           <span className="text-secondary">Status:</span>
           <select
+            aria-label="Status"
             value={draft.statusClass}
             onChange={(e) => setDraft((prev) => ({ ...prev, statusClass: e.target.value as DraftFilters['statusClass'] }))}
             className="bg-transparent border-none p-0 text-secondary focus:ring-0 text-xs font-bold cursor-pointer outline-none"
@@ -136,6 +138,7 @@ export function LogsExplorer() {
         <div className="flex items-center bg-surface-container-highest rounded-lg px-3 py-2 gap-2 text-xs font-medium border border-outline-variant/20 min-w-0">
           <span className="text-secondary">Endpoint:</span>
           <input
+            aria-label="Endpoint"
             value={draft.endpoint}
             onChange={(e) => setDraft((prev) => ({ ...prev, endpoint: e.target.value }))}
             placeholder="/api/v1/users"
@@ -146,6 +149,7 @@ export function LogsExplorer() {
         <div className="flex items-center bg-surface-container-lowest rounded-lg px-3 py-2 border border-outline-variant/20 min-w-0 xl:col-span-1">
           <Search className="text-secondary w-4 h-4 mr-2" />
           <input
+            aria-label="Search logs"
             value={draft.search}
             onChange={(e) => setDraft((prev) => ({ ...prev, search: e.target.value }))}
             type="text"
